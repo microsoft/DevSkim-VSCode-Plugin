@@ -1,0 +1,8 @@
+out
+node_modules
+.vscode
+npm-debug.log
+
+!.gitignore
+!.vscode/launch.json
+!.vscode/tasks.json

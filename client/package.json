@@ -1,0 +1,71 @@
+{
+	"name": "devskim-client",
+	"display-name":"DevSkim",
+	"description": "VSCode Client for Inline Security Analysis",
+	"author": "Microsoft Corporation",
+	"license": "MIT",
+	"version": "0.0.1",
+	"publisher": "Microsoft",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Microsoft/devskim.git"
+	},
+	"bugs": {
+		"url": "https://github.com/Microsoft/devskim/issues"
+	},	
+	"icon" : "./devskim.ico",
+	"engines": {
+		"vscode": "^0.10.10"
+	},
+	"categories": [
+		"Linters"
+	],
+	"activationEvents": [
+		"onLanguage:bat","onLanguage:php","onLanguage:c","onLanguage:cpp","onLanguage:csharp","onLanguage:ruby","onLanguage:perl","onLanguage:perl6","onLanguage:javascriptreact","onLanguage:javascript",
+			"onLanguage:go","onLanguage:rust","onLanguage:groovy","onLanguage:typescript","onLanguage:typescriptreact","onLanguage:jade","onLanguage:lua","onLanguage:swift","onLanguage:clojure",
+			"onLanguage:vb","onLanguage:shellscript","onLanguage:yaml","onLanguage:fsharp","onLanguage:objective-c","onLanguage:r","onLanguage:java","onLanguage:powershell","onLanguage:coffeescript","onLanguage:plaintext","onLanguage:python"
+	],
+	"main": "./out/src/extension",
+	"contributes": {
+		"configuration": {
+			"type": "object",
+			"title": "DevSkim configuration",
+			"properties": {
+				"devskim.enableInformationalSeverityRules": {
+					"type": "boolean",
+					"default": true,
+					"description": "Turn on the rules of severity \"Informational\". These rules either flag either recommended practices or issues with slightly higher false positives."
+				}, 
+				"devskim.enableDefenseInDepthSeverityRules": {
+					"type": "boolean",
+					"default": true,
+					"description": "Turn on the rules of severity \"Defense in Depth\". These rules either flag recommended practices that lead to more secure code, but aren't typically outright vulnerabilities."
+				}, 
+				"devskim.enableLowSeverityRules": {
+					"type": "boolean",
+					"default": true,
+					"description": "Turn on the rules of severity \"Low\". These rules typically flag minor vulnerabilities - usually it takes several Low severity vulnerabilities in concert to create compromise."
+				},	
+				"devskim.suppressionDurationInDays": {
+					"type": "number",
+					"default": 30,
+					"description": "DevSkim allows for findings to be suppressed for a temporary period of time. The default is 30 days.  Set to 0 to disable temporary suppressions"
+				}
+
+			}
+		}
+	},	
+	"scripts": {
+		"vscode:prepublish": "node ./node_modules/vscode/bin/compile",
+		"compile": "node ./node_modules/vscode/bin/compile -watch -p ./",
+		"postinstall": "node ./node_modules/vscode/bin/install"
+
+	},
+	"devDependencies": {
+		"typescript": "^1.8.9",
+		"vscode": "^0.11.0"
+	},
+	"dependencies": {
+		"vscode-languageclient": "^2.2.1"
+	}
+}

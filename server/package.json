@@ -1,0 +1,22 @@
+{
+  "name": "devskim-server",
+  "description": "Devskim Language Server component",
+  "version": "0.0.1",
+  "author": "Microsoft Corporation",
+  "license": "MIT",
+  "engines": {
+    "node": "*"
+  },
+  "dependencies": {
+    "node-dir": ">=0.1.15",
+    "vscode-languageserver": "^2.2.0",
+    "xregexp": ">=3.1.1"
+  },
+  "devDependencies": {
+    "typescript": "^1.8.9"
+  },
+  "scripts": {
+    "compile": "installServerIntoExtension ../client ./package.json ./tsconfig.json && tsc -p .",
+    "watch": "installServerIntoExtension ../client ./package.json ./tsconfig.json && tsc --watch -p ."
+  }
+}

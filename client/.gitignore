@@ -1,0 +1,8 @@
+out
+server
+node_modules
+.vscode
+
+!.gitignore
+!.vscode/launch.json
+!.vscode/tasks.json

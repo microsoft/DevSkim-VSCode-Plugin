@@ -1,0 +1,3 @@
+[submodule "client/rules"]
+	path = client/rules
+	url = https://twcsecurityassurance.visualstudio.com/defaultcollection/DevSkim/_git/DevSkim-Rules
