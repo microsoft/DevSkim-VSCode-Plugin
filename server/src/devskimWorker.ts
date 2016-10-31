@@ -12,7 +12,6 @@
  * ------------------------------------------------------------------------------------------ */
 import { Range } from 'vscode-languageserver';
 import {computeKey, DevSkimProblem, Settings, DevSkimSettings,DevskimRuleSeverity, Fixes, Map, AutoFix, Rule,FixIt,Pattern, DevSkimAutoFixEdit} from "./devskimObjects";
-import {convertCaptureGroup} from "./regexHelpers";
 import {DevSkimSuppression} from "./suppressions"
 import * as path from 'path';
 
@@ -393,12 +392,8 @@ export class DevSkimWorker
             {
                 let fix : DevSkimAutoFixEdit = Object.create(null);
                 var replacePattern = XRegExp(rule.fix_it[fixIndex].search);
-                
-                //the replace regex syntax used in the rules is python based, so we need to convert it to
-                //javascript syntax before we use it
-                let replacementString = convertCaptureGroup(rule.fix_it[fixIndex].replace);
 
-                fix.text = XRegExp.replace(replacementSource, replacePattern,  replacementString);
+                fix.text = XRegExp.replace(replacementSource, replacePattern,  rule.fix_it[fixIndex].replace);
                 fix.fixName = "DevSkim: "+ rule.fix_it[fixIndex].name;
                 
                 fix.range = range;
