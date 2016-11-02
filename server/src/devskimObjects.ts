@@ -239,8 +239,7 @@ export class DevSkimProblem {
     public makeDiagnostic(): Diagnostic 
 	{
 		var diagnostic : Diagnostic = Object.create(null);
-		//this may not be obvious, but accessing an enum as an array (for the severity below) gives the name of the member value
-		//using just the enum value gives the ordinal within the enum, which isn't desired
+		//truncate the severity so that the message looks a bit more succinct in the output window
 		let fullMessage : string = "\nSeverity: " + this.getShortSeverityName(this.severity) + "\n\n" + this.message;
 
 		fullMessage = (this.replacement.length > 0 ) ? 
