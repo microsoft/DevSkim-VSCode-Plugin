@@ -14,8 +14,24 @@ import {Settings, DevSkimSettings,AutoFix, DevSkimAutoFixEdit} from "./devskimOb
 import { Range } from 'vscode-languageserver';
 import {DevSkimWorker} from "./devskimWorker";
 
+/**
+ * Class to handle Suppressions (i.e. comments that direct devskim to ignore a finding for either a period of time or permanently)
+ * a suppression in practice would looke something like this (assuming a finding in a C file):
+ * 
+ *      strcpy(a,b); //DevSkim: ignore DS185832 until 2016-12-28
+ * 
+ * The comment after strcpy (which DevSkim would normally flag) tells devskim to ignore that specific finding (as Identified by the DS185832 - the strcpy rule)
+ * until 2016-12-28.  prior to that date DevSkim shouldn't flag the finding. After that date it should.  This is an example of a temporary suppression, and is used
+ * when the dev wants to fix something but is busy with other work at the moment.  If the date is ommitted DevSkim will never flag that finding again (provided the 
+ * suppression comment remains next to the finding).
+ * 
+ * The logic to determine if a finding should be suppressed, as well as the logic to create the code action to add a suppression exist in this class
+ * @export
+ * @class DevSkimSuppression
+ */
 export class DevSkimSuppression
 {
+    public static suppressionRegEx : RegExp = /DevSkim: ignore ([^\s]+)(?:\suntil ((\d{4})-(\d{2})-(\d{2})))?/i;
 
     /**
      * Retrieve the characters to start a comment in the given language (ex. "//" for C/C++/C#/Etc. )
@@ -83,13 +99,13 @@ export class DevSkimSuppression
     }
 
     /**
-     * 
+     * Generate the string that gets inserted into a comment for a suppression
      * 
      * @private
-     * @param {string} ruleIDs
-     * @param {string} langID
-     * @param {Date} untilDate
-     * @returns {string}
+     * @param {string} ruleIDs the DevSkim Rule ID that is being suppressed (e.g. DS102158). Can be a list of IDs, comma seperated (eg. DS102158,DS162445) if suppressing
+     *                         multiple issues on a single line
+     * @param {Date} untilDate (optional) Date the suppression is valid for, if valid for a limited time.  If ommitted suppression lasts forever
+     * @returns {string} 
      * 
      * @memberOf DevSkimSuppression
      */
@@ -108,6 +124,18 @@ export class DevSkimSuppression
         return suppressionString;
     }   
 
+    /**
+     * Create a Code Action(s) for the user to invoke should they want to suppress a finding
+     * 
+     * @param {string} ruleID the rule to be suppressed
+     * @param {string} documentContents the current document
+     * @param {number} startCharacter the start point of the finding
+     * @param {number} lineStart the line the finding starts on
+     * @param {string} langID the language for the file according to VSCode (so that we can get the correct comment syntax)
+     * @returns {DevSkimAutoFixEdit[]} an array of code actions for suppressions (usually "Suppress X Days" and "Suppress Indefinitely")
+     * 
+     * @memberOf DevSkimSuppression
+     */
     public addSuppressionAction(ruleID : string, documentContents : string, startCharacter : number, lineStart : number, langID : string) : DevSkimAutoFixEdit[]
     {
         let suppressionActions : DevSkimAutoFixEdit[] = [];
@@ -116,6 +144,9 @@ export class DevSkimSuppression
         
         let suppressionDays : number = DevSkimWorker.settings.devskim.suppressionDurationInDays;
 
+        //these are the strings that appear on the lightbulb menu to the user.  
+        //<TO DO> make this localizable.  Right now these are the only hard coded strings in the app.  The rest come from the rules files
+        //and we have plans to make those localizable as well  
         temporarySuppression.fixName = "DevSkim: Suppress issue for "+suppressionDays.toString(10)+" days";
         permanentSuppression.fixName = "DevSkim: Suppress issue permenantly";
 
@@ -124,12 +155,10 @@ export class DevSkimSuppression
 
         let XRegExp = require('xregexp');
         let range : Range;
-
-        let existingSuppressionPattern : RegExp = /DevSkim: ignore ([^\s]+)(?:\suntil ((\d{4})-(\d{2})-(\d{2})))?/i;
         var match;
 
-        //if there is an existing suppression
-        if(match = XRegExp.exec(documentContents,existingSuppressionPattern,startCharacter))
+        //if there is an existing suppression that has expired (or is there for a different issue) then it needs to be replaced
+        if(match = XRegExp.exec(documentContents,DevSkimSuppression.suppressionRegEx,startCharacter))
         {
             let columnStart : number = (lineStart == 0) ? match.index : match.index -  documentContents.substr(0,match.index).lastIndexOf("\n") -1;
             range = Range.create(lineStart,columnStart ,lineStart, columnStart + match[0].length);
@@ -148,13 +177,13 @@ export class DevSkimSuppression
             temporarySuppression.text = this.makeSuppressionString(ruleID,suppressionDate);
             permanentSuppression.text = this.makeSuppressionString(ruleID,null);              
         }
-        //if there is not an existing suppression
+        //if there is not an existing suppression then we need to find the newline and insert the suppression just before the newline
         else
         {
             let newlinePattern : RegExp = /(\r\n|\n|\r)/gm;           
 
             if(match = XRegExp.exec(documentContents,newlinePattern,startCharacter))
-            {
+            {             
                 let columnStart : number = (lineStart == 0) ? match.index : match.index -  documentContents.substr(0,match.index).lastIndexOf("\n") -1;
                 range = Range.create(lineStart,columnStart ,lineStart, columnStart + match[0].length);                
             }
@@ -178,6 +207,66 @@ export class DevSkimSuppression
         
         suppressionActions.push(permanentSuppression);
         return suppressionActions;
-    }     
+    }   
+
+    /**
+     * Determine if there is a suppression comment in the line of the finding, if it
+     * corresponds to the rule that triggered the finding, and if there is a date the suppression
+     * expires.  Return true if the finding should be suppressed for now, so that it isn't added
+     * to the list of diagnostics
+     * 
+     * @private
+     * @param {number} startPosition the start of the finding in the document (#of chars from the start)
+     * @param {string} documentContents the content containing the finding
+     * @param {string} ruleID the rule that triggered the finding
+     * @returns {boolean} true if this finding should be ignored, false if it shouldn't
+     * 
+     * @memberOf DevSkimWorker
+     */
+    public static isFindingSuppressed(startPosition : number, documentContents: string, ruleID : string) : boolean
+    {
+        let XRegExp = require('xregexp');
+        let match;
+        let newlinePattern : RegExp = /(\r\n|\n|\r)/gm;
+        
+
+        if(match = XRegExp.exec(documentContents,newlinePattern,startPosition))
+        {
+            let line = documentContents.substr(startPosition, match.index - startPosition);
+            let ignoreMatch;
+
+            //look for the suppression comment
+            if(ignoreMatch = XRegExp.exec(line,DevSkimSuppression.suppressionRegEx))
+            {
+                if(ignoreMatch[0].indexOf(ruleID) > -1 || ignoreMatch[0].indexOf("all") > -1 )
+                {
+                    let untilMatch;
+                    let untilPattern : RegExp = /until (\d{4})-(\d{2})-(\d{2})/i;
+                    
+                    line = line.substr(ignoreMatch.index);
+
+                    if(untilMatch = XRegExp.exec(line,untilPattern))
+                    {
+                        var untilDate : number = Date.UTC(untilMatch[1],untilMatch[2]-1,untilMatch[3],0,0,0,0);
+                        //we have a match of the rule, and haven't yet reached the "until" date, so ignore finding
+                        //if the "until" date is less than the current time, the suppression has expired and we should not ignore
+                        if (untilDate > Date.now()) 
+                        {
+                            return true;
+                        }
+                    }
+                    else //we have a match with the rule (or all rules), and now "until" date, so we should ignore this finding
+                    {
+                        return true;
+                    }
+                    
+                }
+                
+            }
+
+        }
+
+        return false;
+    }      
 
 }

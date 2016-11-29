@@ -243,7 +243,7 @@ export class DevSkimWorker
                     while(match = XRegExp.exec(documentContents,matchPattern,matchPosition))
                     {
                         //look for the suppression comment for that finding
-                        if(!this.ignoreFinding(match.index,documentContents, rule.id))
+                        if(!DevSkimSuppression.isFindingSuppressed(match.index,documentContents, rule.id))
                         {
                             //calculate what line we are on by grabbing the text before the match & counting the newlines in it
                             let lineStart: number = this.getLineNumber(documentContents,match.index);
@@ -305,66 +305,7 @@ export class DevSkimWorker
 
 
 
-    /**
-     * Determine if there is a suppression comment in the line of the finding, if it
-     * corresponds to the rule that triggered the finding, and if there is a date the suppression
-     * expires.  Return true if the finding should be suppressed for now, so that it isn't added
-     * to the list of diagnostics
-     * 
-     * @private
-     * @param {number} startPosition the start of the finding in the document (#of chars from the start)
-     * @param {string} documentContents the content containing the finding
-     * @param {string} ruleID the rule that triggered the finding
-     * @returns {boolean} true if this finding should be ignored, false if it shouldn't
-     * 
-     * @memberOf DevSkimWorker
-     */
-    private ignoreFinding(startPosition : number, documentContents: string, ruleID : string) : boolean
-    {
-        let XRegExp = require('xregexp');
-        let match;
-        let newlinePattern : RegExp = /(\r\n|\n|\r)/gm;
-        
 
-        if(match = XRegExp.exec(documentContents,newlinePattern,startPosition))
-        {
-            let line = documentContents.substr(startPosition, match.index - startPosition);
-            let ignorePattern : RegExp  = /DevSkim: ignore ([^\s]+)\s*/i;
-            let ignoreMatch;
-
-            //look for the suppression comment
-            if(ignoreMatch = XRegExp.exec(line,ignorePattern))
-            {
-                if(ignoreMatch[0].indexOf(ruleID) > -1 || ignoreMatch[0].indexOf("all") > -1 )
-                {
-                    let untilMatch;
-                    let untilPattern : RegExp = /until (\d{4})-(\d{2})-(\d{2})/i;
-                    
-                    line = line.substr(ignoreMatch.index);
-
-                    if(untilMatch = XRegExp.exec(line,untilPattern))
-                    {
-                        var untilDate : number = Date.UTC(untilMatch[1],untilMatch[2]-1,untilMatch[3],0,0,0,0);
-                        //we have a match of the rule, and haven't yet reached the "until" date, so ignore finding
-                        //if the "until" date is less than the current time, the suppression has expired and we should not ignore
-                        if (untilDate > Date.now()) 
-                        {
-                            return true;
-                        }
-                    }
-                    else //we have a match with the rule (or all rules), and now "until" date, so we should ignore this finding
-                    {
-                        return true;
-                    }
-                    
-                }
-                
-            }
-
-        }
-
-        return false;
-    }
 
     /**
      * Create an array of fixes from the rule and the vulnerable part of the file being scanned
