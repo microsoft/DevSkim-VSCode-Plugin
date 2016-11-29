@@ -77,8 +77,6 @@ connection.onDidChangeConfiguration((change) => {
 
 function onValidateAll() 
 {
-	var x = 0;
-	x++;
 
 }
 

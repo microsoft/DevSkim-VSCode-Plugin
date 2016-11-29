@@ -240,6 +240,8 @@ export class DevSkimSuppression
             {
                 if(ignoreMatch[0].indexOf(ruleID) > -1 || ignoreMatch[0].indexOf("all") > -1 )
                 {
+                    //<TODO> this second regex is unnecessary, since the first one was changed to include
+                    //a capture group for date.  Remove the logic
                     let untilMatch;
                     let untilPattern : RegExp = /until (\d{4})-(\d{2})-(\d{2})/i;
                     
@@ -258,12 +260,9 @@ export class DevSkimSuppression
                     else //we have a match with the rule (or all rules), and now "until" date, so we should ignore this finding
                     {
                         return true;
-                    }
-                    
-                }
-                
+                    }                    
+                }                
             }
-
         }
 
         return false;
