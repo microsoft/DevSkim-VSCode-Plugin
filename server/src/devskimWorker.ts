@@ -165,8 +165,9 @@ export class DevSkimWorker
            ruleSeverity == DevskimRuleSeverity.Important || 
            ruleSeverity == DevskimRuleSeverity.Moderate  ||
            (ruleSeverity == DevskimRuleSeverity.Low            && DevSkimWorker.settings.devskim.enableLowSeverityRules == true )            ||
-           (ruleSeverity == DevskimRuleSeverity.DefenseInDepth && DevSkimWorker.settings.devskim.enableDefenseInDepthSeverityRules == true ) || 
-           (ruleSeverity == DevskimRuleSeverity.Informational  && DevSkimWorker.settings.devskim.enableInformationalSeverityRules == true ) )
+           (ruleSeverity == DevskimRuleSeverity.DefenseInDepth && DevSkimWorker.settings.devskim.enableDefenseInDepthSeverityRules == true)  || 
+           (ruleSeverity == DevskimRuleSeverity.Informational  && DevSkimWorker.settings.devskim.enableInformationalSeverityRules == true )  ||
+           (ruleSeverity == DevskimRuleSeverity.ManualReview   && DevSkimWorker.settings.devskim.enableManualReviewRules == true  ))
         {
             return true;
         }
@@ -191,6 +192,7 @@ export class DevSkimWorker
 			case "moderate":         return DevskimRuleSeverity.Moderate;
 			case "low":              return DevskimRuleSeverity.Low;
 			case "defense-in-depth": return DevskimRuleSeverity.DefenseInDepth;
+            case "manual-review":    return DevskimRuleSeverity.ManualReview;
 			default:                 return DevskimRuleSeverity.Informational;
 		}  
     }
@@ -215,11 +217,12 @@ export class DevSkimWorker
         //iterate over all of the rules, and then all of the patterns within a rule looking for a match.  
         for(var rule of this.analysisRules)
         {
+            var ruleSeverity : DevskimRuleSeverity = this.MapRuleSeverity(rule.severity);
             //if the rule doesn't apply to whatever language we are analyzing (C++, Java, etc.) or we aren't processing
             //that particular severity skip the rest
             if(rule.active == true && 
                this.appliesToLanguage(langID, rule.applies_to) &&
-               this.RuleSeverityEnabled(this.MapRuleSeverity(rule.severity)))
+               this.RuleSeverityEnabled(ruleSeverity))
             {
                 for(let patternIndex:number = 0; patternIndex < rule.patterns.length; patternIndex++)
                 {
@@ -243,7 +246,10 @@ export class DevSkimWorker
                     while(match = XRegExp.exec(documentContents,matchPattern,matchPosition))
                     {
                         //look for the suppression comment for that finding
-                        if(!DevSkimSuppression.isFindingSuppressed(match.index,documentContents, rule.id))
+                        if((ruleSeverity != DevskimRuleSeverity.ManualReview &&
+                            !DevSkimSuppression.isFindingSuppressed(match.index,documentContents, rule.id)) ||
+                            (ruleSeverity == DevskimRuleSeverity.ManualReview &&
+                            !DevSkimSuppression.isFindingReviewed(match.index,documentContents, rule.id)))
                         {
                             //calculate what line we are on by grabbing the text before the match & counting the newlines in it
                             let lineStart: number = this.getLineNumber(documentContents,match.index);
@@ -268,9 +274,20 @@ export class DevSkimWorker
                         
                             //add in any fixes
                             problem.fixes = problem.fixes.concat(this.makeFixes(rule,replacementSource,range));
-                            problem.fixes = problem.fixes.concat(suppression.addSuppressionAction(rule.id,documentContents,match.index,lineStart, langID));
+                            if(ruleSeverity != DevskimRuleSeverity.ManualReview)
+                            {
+                                problem.fixes = problem.fixes.concat(suppression.addSuppressionAction(rule.id,documentContents,match.index,lineStart, langID));
+                            }
+                            else
+                            {
+                                problem.fixes.push(suppression.addReviewAction(rule.id,documentContents,match.index,lineStart, langID)) ;                            
+                            }
                             problems.push(problem);
                         }  
+                        else
+                        {
+                            //highlight suppression finding for context
+                        }
                         //advance the location we are searching in the line
                         matchPosition = match.index + match[0].length;                              
                     }
@@ -302,10 +319,6 @@ export class DevSkimWorker
 
         return lineStart;
     }
-
-
-
-
 
     /**
      * Create an array of fixes from the rule and the vulnerable part of the file being scanned
@@ -342,13 +355,6 @@ export class DevSkimWorker
             }
         }
         return fixes;        
-    }
-
-    private makeSuppressions(ruleID : string) : DevSkimAutoFixEdit[]
-    {
-        var suppressions : DevSkimAutoFixEdit[] = [];
-
-        return suppressions;
     }
 
     /**

@@ -22,6 +22,7 @@ export interface Settings {
 // These are the example settings we defined in the client's package.json
 // file
 export interface DevSkimSettings {
+	enableManualReviewRules: boolean;
 	enableInformationalSeverityRules: boolean;
 	enableDefenseInDepthSeverityRules: boolean;
 	enableLowSeverityRules: boolean;
@@ -141,7 +142,8 @@ export enum DevskimRuleSeverity
 	Moderate,
 	Low,
 	DefenseInDepth,
-	Informational
+	Informational,
+	ManualReview
 }
 
 /**
@@ -204,6 +206,7 @@ export class DevSkimProblem {
 			case DevskimRuleSeverity.Moderate: return "[Mod]";
 			case DevskimRuleSeverity.Low: return "[Low]";
 			case DevskimRuleSeverity.DefenseInDepth: return "[DiD]";
+			case DevskimRuleSeverity.ManualReview: return "[Review]";
 			default: return "[Info]";
 		}
 	}
@@ -217,17 +220,18 @@ export class DevSkimProblem {
     public getWarningLevel() : DiagnosticSeverity
     {
 		//mark any optional rule, or rule that is simply imformational as a warning (i.e. green squiggle)
-		if(this.severity == DevskimRuleSeverity.Informational)
+		switch(this.severity)
 		{
-			return DiagnosticSeverity.Information;
-		}
-		else if (this.severity == DevskimRuleSeverity.Low || this.severity == DevskimRuleSeverity.DefenseInDepth)
-		{
-			return DiagnosticSeverity.Warning;
-		}
-		else
-		{
-			return DiagnosticSeverity.Error;
+			case DevskimRuleSeverity.Informational: 
+			case DevskimRuleSeverity.ManualReview: return DiagnosticSeverity.Information;
+
+			case DevskimRuleSeverity.Low:
+			case DevskimRuleSeverity.DefenseInDepth: return DiagnosticSeverity.Warning;
+
+			case DevskimRuleSeverity.Moderate:
+			case DevskimRuleSeverity.Important:
+			case DevskimRuleSeverity.Critical:
+			default: return DiagnosticSeverity.Error;
 		}
     }
 

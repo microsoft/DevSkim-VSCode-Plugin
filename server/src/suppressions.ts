@@ -32,6 +32,7 @@ import {DevSkimWorker} from "./devskimWorker";
 export class DevSkimSuppression
 {
     public static suppressionRegEx : RegExp = /DevSkim: ignore ([^\s]+)(?:\suntil ((\d{4})-(\d{2})-(\d{2})))?/i;
+    public static reviewRegEx      : RegExp = /DevSkim: reviewed ([^\s]+)(?:\son ((\d{4})-(\d{2})-(\d{2})))?/i;
 
     /**
      * Retrieve the characters to start a comment in the given language (ex. "//" for C/C++/C#/Etc. )
@@ -122,7 +123,32 @@ export class DevSkimSuppression
             suppressionString = suppressionString + " until " + untilDate.getFullYear() + "-" + month + "-" + day;
         }
         return suppressionString;
-    }   
+    }  
+
+    /**
+     * 
+     * 
+     * @private
+     * @param {string} ruleIDs
+     * @returns {string}
+     * 
+     * @memberOf DevSkimSuppression
+     */
+    private makeReviewString(ruleIDs : string) : string
+    {
+        let reviewString : string = "DevSkim: reviewed " + ruleIDs;
+        var today : Date = new Date();
+
+        //both month and day should be in two digit format, so prepend a "0".  Also, month is 0 indexed so needs to be incremented 
+        //to be in a format that reflects how months are actually represented by humans (and every other programming language)
+        var day : string = (today.getDate() > 9) ? today.getDate().toString() : "0" + today.getDate().toString();
+        var month : string = ((today.getMonth() + 1) > 9) ? (today.getMonth() + 1).toString(10) : "0" + (today.getMonth() + 1).toString(10);
+
+        reviewString = reviewString + " on " + today.getFullYear() + "-" + month + "-" + day;
+        
+        return reviewString;        
+
+    }
 
     /**
      * Create a Code Action(s) for the user to invoke should they want to suppress a finding
@@ -164,7 +190,7 @@ export class DevSkimSuppression
             range = Range.create(lineStart,columnStart ,lineStart, columnStart + match[0].length);
             if(match[1] !== undefined && match[1] != null && match[1].length > 0)
             {
-                if(match[1].indexOf(ruleID) > 0)
+                if(match[1].indexOf(ruleID) >= 0)
                 {
                     ruleID = match[1];
                 }
@@ -192,8 +218,8 @@ export class DevSkimSuppression
                 //replace with end of file
                 range = Range.create(lineStart,0 ,lineStart,1);
             }            
-            temporarySuppression.text = this.GetCommentStart(langID) + this.makeSuppressionString(ruleID,suppressionDate) + this.GetCommentEnd(langID);
-            permanentSuppression.text = this.GetCommentStart(langID) + this.makeSuppressionString(ruleID,null) + this.GetCommentEnd(langID);           
+            temporarySuppression.text = " " + this.GetCommentStart(langID) + this.makeSuppressionString(ruleID,suppressionDate) + this.GetCommentEnd(langID);
+            permanentSuppression.text = " " + this.GetCommentStart(langID) + this.makeSuppressionString(ruleID,null) + this.GetCommentEnd(langID);           
         }
 
         temporarySuppression.range = range;
@@ -208,6 +234,73 @@ export class DevSkimSuppression
         suppressionActions.push(permanentSuppression);
         return suppressionActions;
     }   
+
+    /**
+     * Create a Code Action(s) for the user to invoke should they want to suppress a finding
+     * 
+     * @param {string} ruleID the rule to be suppressed
+     * @param {string} documentContents the current document
+     * @param {number} startCharacter the start point of the finding
+     * @param {number} lineStart the line the finding starts on
+     * @param {string} langID the language for the file according to VSCode (so that we can get the correct comment syntax)
+     * @returns {DevSkimAutoFixEdit[]} an array of code actions for suppressions (usually "Suppress X Days" and "Suppress Indefinitely")
+     * 
+     * @memberOf DevSkimSuppression
+     */
+    public addReviewAction(ruleID : string, documentContents : string, startCharacter : number, lineStart : number, langID : string) : DevSkimAutoFixEdit
+    {
+        let reviewAction : DevSkimAutoFixEdit = Object.create(null);
+              
+
+        //these are the strings that appear on the lightbulb menu to the user.  
+        //<TO DO> make this localizable.  Right now these are the only hard coded strings in the app.  The rest come from the rules files
+        //and we have plans to make those localizable as well  
+        reviewAction.fixName = "DevSkim: Mark Finding as Reviewed";
+
+        let XRegExp = require('xregexp');
+        let range : Range;
+        var match;
+
+        //if there is an existing suppression that has expired (or is there for a different issue) then it needs to be replaced
+        if(match = XRegExp.exec(documentContents,DevSkimSuppression.reviewRegEx,startCharacter))
+        {
+            let columnStart : number = (lineStart == 0) ? match.index : match.index -  documentContents.substr(0,match.index).lastIndexOf("\n") -1;
+            range = Range.create(lineStart,columnStart ,lineStart, columnStart + match[0].length);
+            if(match[1] !== undefined && match[1] != null && match[1].length > 0)
+            {
+                if(match[1].indexOf(ruleID) >= 0)
+                {
+                    ruleID = match[1];
+                }
+                else
+                {
+                    ruleID = ruleID + "," + match[1];
+                }                
+            }         
+            reviewAction.text = this.makeReviewString(ruleID);            
+        }
+        //if there is not an existing suppression then we need to find the newline and insert the suppression just before the newline
+        else
+        {
+            let newlinePattern : RegExp = /(\r\n|\n|\r)/gm;           
+
+            if(match = XRegExp.exec(documentContents,newlinePattern,startCharacter))
+            {             
+                let columnStart : number = (lineStart == 0) ? match.index : match.index -  documentContents.substr(0,match.index).lastIndexOf("\n") -1;
+                range = Range.create(lineStart,columnStart ,lineStart, columnStart + match[0].length);                
+            }
+            else
+            {
+                //replace with end of file
+                let columnStart : number = documentContents.length - startCharacter;
+                range = Range.create(lineStart,columnStart ,lineStart,columnStart);
+            }  
+            reviewAction.text = " " + this.GetCommentStart(langID) + this.makeReviewString(ruleID) + this.GetCommentEnd(langID);              
+        }
+        reviewAction.range = range;
+
+        return reviewAction;
+    }       
 
     /**
      * Determine if there is a suppression comment in the line of the finding, if it
@@ -240,16 +333,11 @@ export class DevSkimSuppression
             {
                 if(ignoreMatch[0].indexOf(ruleID) > -1 || ignoreMatch[0].indexOf("all") > -1 )
                 {
-                    //<TODO> this second regex is unnecessary, since the first one was changed to include
-                    //a capture group for date.  Remove the logic
-                    let untilMatch;
-                    let untilPattern : RegExp = /until (\d{4})-(\d{2})-(\d{2})/i;
-                    
                     line = line.substr(ignoreMatch.index);
 
-                    if(untilMatch = XRegExp.exec(line,untilPattern))
+                    if(ignoreMatch[2] !== undefined && ignoreMatch[2] != null && ignoreMatch[2].length >0)
                     {
-                        var untilDate : number = Date.UTC(untilMatch[1],untilMatch[2]-1,untilMatch[3],0,0,0,0);
+                        var untilDate : number = Date.UTC(ignoreMatch[3],ignoreMatch[4]-1,ignoreMatch[5],0,0,0,0);
                         //we have a match of the rule, and haven't yet reached the "until" date, so ignore finding
                         //if the "until" date is less than the current time, the suppression has expired and we should not ignore
                         if (untilDate > Date.now()) 
@@ -267,5 +355,44 @@ export class DevSkimSuppression
 
         return false;
     }      
+
+  /**
+     * Determine if there is a review comment in the line of a manual review finding, if it
+     * corresponds to the rule that triggered the finding.  
+     * Return true if the finding has been reviewed, so that it isn't added
+     * to the list of diagnostics
+     * 
+     * @private
+     * @param {number} startPosition the start of the finding in the document (#of chars from the start)
+     * @param {string} documentContents the content containing the finding
+     * @param {string} ruleID the rule that triggered the finding
+     * @returns {boolean} true if this finding should be ignored, false if it shouldn't
+     * 
+     * @memberOf DevSkimWorker
+     */
+    public static isFindingReviewed(startPosition : number, documentContents: string, ruleID : string) : boolean
+    {
+        let XRegExp = require('xregexp');
+        let match;
+        let newlinePattern : RegExp = /(\r\n|\n|\r)/gm;
+        
+
+        if(match = XRegExp.exec(documentContents,newlinePattern,startPosition))
+        {
+            let line = documentContents.substr(startPosition, match.index - startPosition);
+            let ignoreMatch;
+
+            //look for the review comment
+            if(ignoreMatch = XRegExp.exec(line,DevSkimSuppression.reviewRegEx))
+            {
+                if(ignoreMatch[0].indexOf(ruleID) > -1 || ignoreMatch[0].indexOf("all") > -1 )
+                {
+                        return true;
+                }                
+            }
+        }
+
+        return false;
+    }          
 
 }
