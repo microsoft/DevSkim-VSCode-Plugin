@@ -246,10 +246,7 @@ export class DevSkimWorker
                     while(match = XRegExp.exec(documentContents,matchPattern,matchPosition))
                     {
                         //look for the suppression comment for that finding
-                        if((ruleSeverity != DevskimRuleSeverity.ManualReview &&
-                            !DevSkimSuppression.isFindingSuppressed(match.index,documentContents, rule.id)) ||
-                            (ruleSeverity == DevskimRuleSeverity.ManualReview &&
-                            !DevSkimSuppression.isFindingReviewed(match.index,documentContents, rule.id)))
+                        if(!DevSkimSuppression.isFindingCommented(match.index,documentContents, rule.id,ruleSeverity))
                         {
                             //calculate what line we are on by grabbing the text before the match & counting the newlines in it
                             let lineStart: number = this.getLineNumber(documentContents,match.index);
@@ -274,14 +271,8 @@ export class DevSkimWorker
                         
                             //add in any fixes
                             problem.fixes = problem.fixes.concat(this.makeFixes(rule,replacementSource,range));
-                            if(ruleSeverity != DevskimRuleSeverity.ManualReview)
-                            {
-                                problem.fixes = problem.fixes.concat(suppression.addSuppressionAction(rule.id,documentContents,match.index,lineStart, langID));
-                            }
-                            else
-                            {
-                                problem.fixes.push(suppression.addReviewAction(rule.id,documentContents,match.index,lineStart, langID)) ;                            
-                            }
+                            problem.fixes = problem.fixes.concat(suppression.createActions(rule.id,documentContents,match.index,lineStart, langID,ruleSeverity));
+                           
                             problems.push(problem);
                         }  
                         else
