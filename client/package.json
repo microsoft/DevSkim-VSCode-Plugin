@@ -36,6 +36,11 @@
 					"default": false,
 					"description": "Turn on the rules that flag things for manual review. These are typically scenarios that *could* be incredibly severe if tainted data can be inserted, but are often programmatically necessary (for example, dynamic code generation with \"eval\").  Since these rules tend to require further analysis upon flagging an issue, they disabled by default."
 				}, 
+				"devskim.manualReviewerName": {
+					"type": "string",
+					"default": "",
+					"description": "when enableManualReviewRules is set to true, if this property is set to a name/alias/email address it will be inserted when marking a finding as reviewed.  For example //DevSkim: reviewed DS123321 on 2016-12-10 by <whatever this value is>.  If left blank the \"by <whatever this value is>\" is ommitted when marking a finding reviewed."
+				}, 				
 				"devskim.enableInformationalSeverityRules": {
 					"type": "boolean",
 					"default": true,

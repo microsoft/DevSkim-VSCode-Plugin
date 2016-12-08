@@ -128,6 +128,11 @@ export class DevSkimSuppression
             actionString = (isReviewRule) ? actionString + " on " :actionString + " until ";
             actionString = actionString + date.getFullYear() + "-" + month + "-" + day;
         }
+        if(isReviewRule && DevSkimWorker.settings.devskim.manualReviewerName !== undefined && DevSkimWorker.settings.devskim.manualReviewerName != null &&
+            DevSkimWorker.settings.devskim.manualReviewerName.length > 0)
+        {
+            actionString = actionString + " by " + DevSkimWorker.settings.devskim.manualReviewerName;
+        }
         return actionString;
     }      
 
@@ -282,7 +287,7 @@ export class DevSkimSuppression
      * 
      * @memberOf DevSkimWorker
      */
-    public static isFindingCommented(startPosition : number, documentContents: string, ruleID : string, ruleSeverity ?: DevskimRuleSeverity) : boolean
+    public static isFindingCommented(startPosition : number, documentContents: string, ruleID : string, ruleSeverity ?: DevskimRuleSeverity) : DevSkimSuppressionFinding
     {
         let XRegExp = require('xregexp');
         let match;
@@ -290,6 +295,8 @@ export class DevSkimSuppression
         let isReviewRule = (ruleSeverity !== undefined && ruleSeverity != null && ruleSeverity == DevskimRuleSeverity.ManualReview);
         let regex : RegExp = (isReviewRule) ? DevSkimSuppression.reviewRegEx : DevSkimSuppression.suppressionRegEx;
         let line;
+        let finding : DevSkimSuppressionFinding = Object.create(null);
+        finding.showFinding = false;
 
         if(match = XRegExp.exec(documentContents,newlinePattern,startPosition))
         {
@@ -300,33 +307,41 @@ export class DevSkimSuppression
             line =  documentContents.substr(startPosition);
         }
 
-        let ignoreMatch;
-
         //look for the suppression comment
-        if(ignoreMatch = XRegExp.exec(line,regex))
+        if(match = XRegExp.exec(line,regex))
         {
-            if(ignoreMatch[0].indexOf(ruleID) > -1 || ignoreMatch[0].indexOf("all") > -1 )
+            finding.ruleColumn = match[0].indexOf(ruleID);
+            if(finding.ruleColumn > -1 )
             {
-                line = line.substr(ignoreMatch.index);
-
-                if(!isReviewRule && ignoreMatch[2] !== undefined && ignoreMatch[2] != null && ignoreMatch[2].length >0)
+                finding.ruleColumn += match.index;
+                if(!isReviewRule && match[2] !== undefined && match[2] != null && match[2].length >0)
                 {
-                    var untilDate : number = Date.UTC(ignoreMatch[3],ignoreMatch[4]-1,ignoreMatch[5],0,0,0,0);
+                    var untilDate : number = Date.UTC(match[3],match[4]-1,match[5],0,0,0,0);
                     //we have a match of the rule, and haven't yet reached the "until" date, so ignore finding
                     //if the "until" date is less than the current time, the suppression has expired and we should not ignore
                     if (untilDate > Date.now()) 
                     {
-                        return true;
+                        finding.showFinding = true;
                     }
                 }
                 else //we have a match with the rule (or all rules), and now "until" date, so we should ignore this finding
                 {
-                    return true;
+                    finding.showFinding = true;
                 }                    
+            }
+            else if (match[0].indexOf("all") > -1)
+            {
+                finding.showFinding = true;
             }                
         }
         
 
-        return false;
+        return finding;
     }       
+}
+
+export class DevSkimSuppressionFinding
+{
+    public showFinding : boolean;
+    public ruleColumn : number;
 }

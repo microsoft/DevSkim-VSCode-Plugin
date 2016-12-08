@@ -12,7 +12,7 @@
  * ------------------------------------------------------------------------------------------ */
 import { Range } from 'vscode-languageserver';
 import {computeKey, DevSkimProblem, Settings, DevSkimSettings,DevskimRuleSeverity, Fixes, Map, AutoFix, Rule,FixIt,Pattern, DevSkimAutoFixEdit} from "./devskimObjects";
-import {DevSkimSuppression} from "./suppressions"
+import {DevSkimSuppression, DevSkimSuppressionFinding} from "./suppressions"
 import * as path from 'path';
 
 export class DevSkimWorker
@@ -207,7 +207,6 @@ export class DevSkimWorker
      */
     private runAnalysis(documentContents : string, langID : string, documentURI : string) : DevSkimProblem[]
     {
-        var starttime : number = Date.now(); //for lame perf measurements
         let problems : DevSkimProblem[] = [];
         let suppression : DevSkimSuppression = new DevSkimSuppression();
 
@@ -245,20 +244,20 @@ export class DevSkimWorker
                     //go through all of the text looking for a match with the given pattern
                     while(match = XRegExp.exec(documentContents,matchPattern,matchPosition))
                     {
+                        let suppressionFinding : DevSkimSuppressionFinding = DevSkimSuppression.isFindingCommented(match.index,documentContents, rule.id,ruleSeverity);
+                        //calculate what line we are on by grabbing the text before the match & counting the newlines in it
+                        let lineStart: number = this.getLineNumber(documentContents,match.index);
+                        let columnStart : number = (lineStart == 0) ? match.index : match.index -  documentContents.substr(0,match.index).lastIndexOf("\n") -1;
+                        
                         //look for the suppression comment for that finding
-                        if(!DevSkimSuppression.isFindingCommented(match.index,documentContents, rule.id,ruleSeverity))
+                        if(!suppressionFinding.showFinding)
                         {
-                            //calculate what line we are on by grabbing the text before the match & counting the newlines in it
-                            let lineStart: number = this.getLineNumber(documentContents,match.index);
-
                             //since a match may span lines (someone who broke a long function invocation into multiple lines for example)
                             //it's necessary to see if there are any newlines WITHIN the match so that we get the line the match ends on,
                             //not just the line it starts on.  Also, we use the substring for the match later when making fixes
                             let replacementSource : string = documentContents.substr(match.index, match[0].length);
-                            let lineEnd : number = this.getLineNumber(replacementSource,replacementSource.length) + lineStart;
-                            
-                            let columnStart : number = (lineStart == 0) ? match.index : match.index -  documentContents.substr(0,match.index).lastIndexOf("\n") -1;
-                            
+                            let lineEnd : number = this.getLineNumber(replacementSource,replacementSource.length) + lineStart;                 
+                                    
                             let range : Range = Range.create(lineStart,columnStart,lineEnd, columnStart + match[0].length);
 
                             let problem : DevSkimProblem = new DevSkimProblem(rule.description,rule.name,
@@ -275,9 +274,16 @@ export class DevSkimWorker
                            
                             problems.push(problem);
                         }  
-                        else
+                        //throw a pop up if there is a review/suppression comment with the rule id, so that people can figure out what was
+                        //suppressed/reviewed
+                        else if(suppressionFinding.ruleColumn > 0)
                         {
                             //highlight suppression finding for context
+                            let range : Range = Range.create(lineStart,columnStart + suppressionFinding.ruleColumn,lineStart, columnStart + suppressionFinding.ruleColumn + rule.id.length);
+                            let problem : DevSkimProblem = new DevSkimProblem(rule.description,rule.name,
+                                rule.id, DevskimRuleSeverity.Informational, rule.replacement, rule.rule_info, range);
+                            problems.push(problem);
+
                         }
                         //advance the location we are searching in the line
                         matchPosition = match.index + match[0].length;                              
@@ -285,7 +291,6 @@ export class DevSkimWorker
                 }
             }
         }
-        var totalTime : number =  Date.now() - starttime;
         return problems;
     }
 
