@@ -6,6 +6,12 @@ A primer for VS Code Lanuage Servers can be found at <https://code.visualstudio.
 
 As with most VS Code extensions, this project is implemented in TypeScript running on Node.js.
 
+### PUBLIC PREVIEW
+
+DevSkim is currently in *public preview*. We're looking forward to working with the community
+to improve both the scanning engines and rules over the next few months, and welcome your feedback
+and contributions!
+
 # Running DevSkim in VS Code
 For people simply interested in using DevSkim in VS Code, it can be installed and run from the VS Code Extension Marketplace.  In VS Code launch the VS Code Quick Open (Ctrl + P), paste the folloiwng command, and press enter:
 
