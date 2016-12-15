@@ -252,7 +252,7 @@ export class DevSkimProblem {
 			fullMessage;
 
 		fullMessage = (this.issueURL.length > 0 ) ? 
-			fullMessage + "\n\nMore Information: " + this.issueURL : 
+			fullMessage + "\n\nMore Info:\n" + this.issueURL : 
 			fullMessage;
 
 		diagnostic.message = fullMessage;
