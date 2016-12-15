@@ -1,8 +1,11 @@
 out
 node_modules
-.vscode
 npm-debug.log
 
 !.gitignore
+
+#exclude everything in .vscode except launch and tasks
+!.vscode
+.vscode/*
 !.vscode/launch.json
 !.vscode/tasks.json

@@ -1,8 +1,12 @@
 out
 server
 node_modules
-.vscode
+rules
 
 !.gitignore
+
+#exclude everything in .vscode except launch and tasks
+!.vscode
+.vscode/*
 !.vscode/launch.json
 !.vscode/tasks.json
