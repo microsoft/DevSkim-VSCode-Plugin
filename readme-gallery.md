@@ -8,9 +8,9 @@ DevSkim is currently in public preview. We're looking forward to working with th
 
 ## Usage
 
-As you type DevSkim will flag certain security issues and call attention to them with errors or warnings (depending on a very generalized
+As a developer codes DevSkim will flag certain security issues and call attention to them with errors or warnings (depending on a very generalized
 estimation of the severity).  Mousing over the issue will show a description of the problem and how to address it, and a link to more 
-information.  For some issues, one or safe alternitives are available in the lightbulb menu so that the issue can be fixed with a couple mouse
+information.  For some issues, one or more safe alternitives are available in the lightbulb menu so that the issue can be fixed with a couple mouse
 clicks.  For issues where the alternitive has different parameters than the unsafe API that is called out, guidance for the parameters will be inserted
 in the form of \<some guidance info\>  (example, when DevSkim turns gets() into fgets() it adds \<size of firstparamname\> to cue a user that
 they need to provide the size of the buffer).
@@ -22,8 +22,8 @@ they need to provide the size of the buffer).
 DevSkim has built in the ability to suppress any of its warnings, either permanently, or for a period of time.  The permanent Suppressions
 are for scenarios where, for whatever reason, the flagged code shouldn't be changed.  Timed Suppressions are for scenarios where the code
 should change, but the developer doesn't want to change it right now.  In both cases, DevSkim will insert a comment after the code to
-notify it (and anyone reviewing the code) that the usage should be ignored, and in the case of timed suppressions, when DevSkim should start
-alert of the usage again.  Users can add additional after the suppression to describe why it the issue is being suppressed.
+notify it (and anyone reviewing the code) that the usage should be ignored, and in the case of timed suppressions, when DevSkim should 
+alert of the usage again.  Users can add additional comments after the suppression to describe why the issue is being suppressed.
 
 For timed suppressions, the default period is 30 days, but this can be adjusted in the settings file.
 
@@ -61,5 +61,5 @@ knowledge of regular expressions and json.  Details can be found [on our Github 
 
 ## Thank You
 
-Thanks for trying DevSkim.  Its a work in progress, but it should provide some value now.  If you find issues please 
+Thanks for trying DevSkim.  Its a work in progress.  If you find issues please 
 [report them on Github](https://github.com/Microsoft/DevSkim-VSCode-Plugin/) and feel free to contribute!
