@@ -1,11 +1,11 @@
 {
-	"name": "devskim-client",
+	"name": "vscode-devskim",
 	"display-name":"DevSkim",
 	"description": "VSCode Client for Inline Security Analysis",
 	"author": "Microsoft Corporation",
 	"license": "MIT",
-	"version": "0.1.0",
-	"publisher": "Microsoft",
+	"version": "0.1.1",
+	"publisher": "MS-DevSkim",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/Microsoft/devskim.git"
