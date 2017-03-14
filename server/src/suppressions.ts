@@ -184,21 +184,22 @@ export class DevSkimSuppression
     {
         let action : DevSkimAutoFixEdit = Object.create(null);
         let isDateSet = (daysOffset !==undefined && daysOffset !=null && daysOffset > 0);
+        let regex : RegExp = (isReviewRule) ? DevSkimSuppression.reviewRegEx : DevSkimSuppression.suppressionRegEx;
 
         //these are the strings that appear on the lightbulb menu to the user.  
         //<TO DO> make this localizable.  Right now these are the only hard coded strings in the app.  The rest come from the rules files
         //and we have plans to make those localizable as well
         if(isReviewRule)
         {
-            action.fixName = "DevSkim: Mark Finding as Reviewed";
+            action.fixName = "DevSkim: Mark "+ruleID+" as Reviewed";
         }
         else if(isDateSet)
         {
-            action.fixName = "DevSkim: Suppress issue for "+daysOffset.toString(10)+" days";
+            action.fixName = "DevSkim: Suppress "+ruleID+" for "+daysOffset.toString(10)+" days";
         }
         else
         {
-            action.fixName = "DevSkim: Suppress issue permenantly";
+            action.fixName = "DevSkim: Suppress "+ruleID+" permenantly";
         }          
         
 
@@ -212,8 +213,24 @@ export class DevSkimSuppression
         let range : Range;
         var match;
 
+        let newlinePattern : RegExp = /(\r\n|\n|\r)/gm;  
+
+        if(match = XRegExp.exec(documentContents,newlinePattern,startCharacter))
+        {             
+            let columnStart : number = (lineStart == 0) ? match.index : match.index -  documentContents.substr(0,match.index).lastIndexOf("\n") -1;
+            range = Range.create(lineStart,columnStart ,lineStart, columnStart + match[0].length);    
+            documentContents = documentContents.substr(0,match.index);            
+        }
+        else
+        {
+            //replace with end of file
+            let columnStart : number = documentContents.length - startCharacter;
+            range = Range.create(lineStart,columnStart ,lineStart,columnStart);
+        }          
+
+
         //if there is an existing suppression that has expired (or is there for a different issue) then it needs to be replaced
-        if(match = XRegExp.exec(documentContents,DevSkimSuppression.suppressionRegEx,startCharacter))
+        if(match = XRegExp.exec(documentContents,regex,startCharacter))
         {
             let columnStart : number = (lineStart == 0) ? match.index : match.index -  documentContents.substr(0,match.index).lastIndexOf("\n") -1;
             range = Range.create(lineStart,columnStart ,lineStart, columnStart + match[0].length);
@@ -240,20 +257,7 @@ export class DevSkimSuppression
         }
         //if there is not an existing suppression then we need to find the newline and insert the suppression just before the newline
         else
-        {
-            let newlinePattern : RegExp = /(\r\n|\n|\r)/gm;           
-
-            if(match = XRegExp.exec(documentContents,newlinePattern,startCharacter))
-            {             
-                let columnStart : number = (lineStart == 0) ? match.index : match.index -  documentContents.substr(0,match.index).lastIndexOf("\n") -1;
-                range = Range.create(lineStart,columnStart ,lineStart, columnStart + match[0].length);                
-            }
-            else
-            {
-                //replace with end of file
-                let columnStart : number = documentContents.length - startCharacter;
-                range = Range.create(lineStart,columnStart ,lineStart,columnStart);
-            }  
+        {                 
 
             if(isReviewRule || isDateSet)
             {
@@ -324,7 +328,7 @@ export class DevSkimSuppression
                         finding.showFinding = true;
                     }
                 }
-                else //we have a match with the rule (or all rules), and now "until" date, so we should ignore this finding
+                else //we have a match with the rule (or all rules), and no "until" date, so we should ignore this finding
                 {
                     finding.showFinding = true;
                 }                    

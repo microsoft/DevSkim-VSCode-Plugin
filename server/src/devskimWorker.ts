@@ -249,20 +249,20 @@ export class DevSkimWorker
                         let lineStart: number = this.getLineNumber(documentContents,match.index);
                         let columnStart : number = (lineStart == 0) ? match.index : match.index -  documentContents.substr(0,match.index).lastIndexOf("\n") -1;
                         
+                        //since a match may span lines (someone who broke a long function invocation into multiple lines for example)
+                        //it's necessary to see if there are any newlines WITHIN the match so that we get the line the match ends on,
+                        //not just the line it starts on.  Also, we use the substring for the match later when making fixes
+                        let replacementSource : string = documentContents.substr(match.index, match[0].length);
+                        let lineEnd : number = this.getLineNumber(replacementSource,replacementSource.length) + lineStart;                 
+                                
+                        let range : Range = Range.create(lineStart,columnStart,lineEnd, columnStart + match[0].length);
+
                         //look for the suppression comment for that finding
                         if(!suppressionFinding.showFinding)
                         {
-                            //since a match may span lines (someone who broke a long function invocation into multiple lines for example)
-                            //it's necessary to see if there are any newlines WITHIN the match so that we get the line the match ends on,
-                            //not just the line it starts on.  Also, we use the substring for the match later when making fixes
-                            let replacementSource : string = documentContents.substr(match.index, match[0].length);
-                            let lineEnd : number = this.getLineNumber(replacementSource,replacementSource.length) + lineStart;                 
-                                    
-                            let range : Range = Range.create(lineStart,columnStart,lineEnd, columnStart + match[0].length);
-
                             let problem : DevSkimProblem = new DevSkimProblem(rule.description,rule.name,
                                 rule.id, this.MapRuleSeverity(rule.severity), rule.replacement, rule.rule_info, range);
-
+   
                             if(rule.overrides !== undefined && rule.overrides.length > 0)
                             {
                                 problem.overrides = rule.overrides; 
@@ -279,9 +279,16 @@ export class DevSkimWorker
                         else if(suppressionFinding.ruleColumn > 0)
                         {
                             //highlight suppression finding for context
-                            let range : Range = Range.create(lineStart,columnStart + suppressionFinding.ruleColumn,lineStart, columnStart + suppressionFinding.ruleColumn + rule.id.length);
+                            let suppressionRange : Range = Range.create(lineStart,columnStart + suppressionFinding.ruleColumn,lineStart, columnStart + suppressionFinding.ruleColumn + rule.id.length);
                             let problem : DevSkimProblem = new DevSkimProblem(rule.description,rule.name,
-                                rule.id, DevskimRuleSeverity.Informational, rule.replacement, rule.rule_info, range);
+                                rule.id, DevskimRuleSeverity.Informational, rule.replacement, rule.rule_info, suppressionRange);
+                            problem.suppressedFindingRange = range;
+
+                            if(rule.overrides !== undefined && rule.overrides.length > 0)
+                            {
+                                problem.overrides = rule.overrides; 
+                            }
+
                             problems.push(problem);
 
                         }
@@ -384,8 +391,11 @@ export class DevSkimWorker
                 for(let x : number = 0; x < problems.length; x++)
                 {
                     var matches = problems[x].ruleId.match(regexString);
+                    let range : Range = (problem.suppressedFindingRange != null) ? problem.suppressedFindingRange : problem.range;
+
                     if((matches !== undefined && matches != null && matches.length > 0) 
-                        && problems[x].range.start.line == problem.range.start.line )
+                        && problems[x].range.start.line == range.start.line && 
+                           problems[x].range.start.character == range.start.character)
                         {
                             problems.splice(x,1);
                         }
