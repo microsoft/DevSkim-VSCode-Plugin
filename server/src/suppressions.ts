@@ -199,7 +199,7 @@ export class DevSkimSuppression
         }
         else
         {
-            action.fixName = "DevSkim: Suppress "+ruleID+" permenantly";
+            action.fixName = "DevSkim: Suppress "+ruleID+" permanently";
         }          
         
 
