@@ -1,4 +1,4 @@
-#README
+# README
 
 This is a language client implementation of DevSkim. This is the in proc component of the plugin that handles integration with VS Code and spawns the out of proc server (located in ../server).  The server handles the actual analysis. 
 

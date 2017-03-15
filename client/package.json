@@ -1,7 +1,7 @@
 {
 	"name": "vscode-devskim",
-	"display-name":"DevSkim",
-	"description": "VSCode Client for Inline Security Analysis",
+	"displayName":"DevSkim",
+	"description": "Detect security mistakes as you type, and get real time details and fix suggestions",
 	"author": "Microsoft Corporation",
 	"license": "MIT",
 	"version": "0.1.1",
@@ -14,12 +14,20 @@
 		"url": "https://github.com/Microsoft/devskim/issues"
 	},	
 	"icon" : "devskim.ico",
+	"galleryBanner": {
+        "color": "#000000",
+        "theme": "light"
+    },
 	"engines": {
-		"vscode": "^0.10.10"
+		"vscode": "^1.0.10"
 	},
 	"categories": [
 		"Linters"
 	],
+	"keywords": [
+		"Security"
+	],
+	"preview": true,
 	"activationEvents": [
 		"onLanguage:bat","onLanguage:php","onLanguage:c","onLanguage:cpp","onLanguage:csharp","onLanguage:ruby","onLanguage:perl","onLanguage:perl6","onLanguage:javascriptreact","onLanguage:javascript",
 			"onLanguage:go","onLanguage:rust","onLanguage:groovy","onLanguage:typescript","onLanguage:typescriptreact","onLanguage:jade","onLanguage:lua","onLanguage:swift","onLanguage:clojure",
