@@ -219,17 +219,17 @@ export class DevSkimWorker
             var ruleSeverity : DevskimRuleSeverity = this.MapRuleSeverity(rule.severity);
             //if the rule doesn't apply to whatever language we are analyzing (C++, Java, etc.) or we aren't processing
             //that particular severity skip the rest
-            if(rule.active == true && 
+            if((rule.active === undefined || rule.active == null || rule.active == true) && 
                this.appliesToLanguage(langID, rule.applies_to) &&
                this.RuleSeverityEnabled(ruleSeverity))
             {
                 for(let patternIndex:number = 0; patternIndex < rule.patterns.length; patternIndex++)
                 {
-                    //the pattern type governs how we form the regex.  regex_word is wrapped in \b, string is as well, but is also escaped.
+                    //the pattern type governs how we form the regex.  regex-word is wrapped in \b, string is as well, but is also escaped.
                     //substring is not wrapped in \b, but is escapped, and regex/the default behavior is a vanilla regular expression
                     switch(rule.patterns[patternIndex].type.toLowerCase())
                     {
-                        case 'regex_word': var matchPattern = XRegExp('\\b'+rule.patterns[patternIndex].pattern+'\\b', "g");
+                        case 'regex-word': var matchPattern = XRegExp('\\b'+rule.patterns[patternIndex].pattern+'\\b', "g");
                             break;
                         case 'string': var matchPattern = XRegExp('\\b'+XRegExp.escape(rule.patterns[patternIndex].pattern)+'\\b', "g");
                             break; 
