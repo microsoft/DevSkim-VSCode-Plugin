@@ -164,9 +164,7 @@ export class DevSkimWorker
         if(ruleSeverity == DevskimRuleSeverity.Critical  || 
            ruleSeverity == DevskimRuleSeverity.Important || 
            ruleSeverity == DevskimRuleSeverity.Moderate  ||
-           (ruleSeverity == DevskimRuleSeverity.Low            && DevSkimWorker.settings.devskim.enableLowSeverityRules == true )            ||
-           (ruleSeverity == DevskimRuleSeverity.DefenseInDepth && DevSkimWorker.settings.devskim.enableDefenseInDepthSeverityRules == true)  || 
-           (ruleSeverity == DevskimRuleSeverity.Informational  && DevSkimWorker.settings.devskim.enableInformationalSeverityRules == true )  ||
+           (ruleSeverity == DevskimRuleSeverity.BestPractice            && DevSkimWorker.settings.devskim.enableLowSeverityRules == true )            ||
            (ruleSeverity == DevskimRuleSeverity.ManualReview   && DevSkimWorker.settings.devskim.enableManualReviewRules == true  ))
         {
             return true;
@@ -190,10 +188,9 @@ export class DevSkimWorker
 			case "critical":         return DevskimRuleSeverity.Critical;
 			case "important":        return DevskimRuleSeverity.Important;
 			case "moderate":         return DevskimRuleSeverity.Moderate;
-			case "low":              return DevskimRuleSeverity.Low;
-			case "defense-in-depth": return DevskimRuleSeverity.DefenseInDepth;
+			case "best-practice":    return DevskimRuleSeverity.BestPractice
             case "manual-review":    return DevskimRuleSeverity.ManualReview;
-			default:                 return DevskimRuleSeverity.Informational;
+			default:                 return DevskimRuleSeverity.BestPractice;
 		}  
     }
 
@@ -219,7 +216,7 @@ export class DevSkimWorker
             var ruleSeverity : DevskimRuleSeverity = this.MapRuleSeverity(rule.severity);
             //if the rule doesn't apply to whatever language we are analyzing (C++, Java, etc.) or we aren't processing
             //that particular severity skip the rest
-            if(rule.active == true && 
+            if((rule.active === undefined || rule.active == null || rule.active == true) && 
                this.appliesToLanguage(langID, rule.applies_to) &&
                this.RuleSeverityEnabled(ruleSeverity))
             {
@@ -281,7 +278,7 @@ export class DevSkimWorker
                             //highlight suppression finding for context
                             let range : Range = Range.create(lineStart,columnStart + suppressionFinding.ruleColumn,lineStart, columnStart + suppressionFinding.ruleColumn + rule.id.length);
                             let problem : DevSkimProblem = new DevSkimProblem(rule.description,rule.name,
-                                rule.id, DevskimRuleSeverity.Informational, rule.replacement, rule.rule_info, range);
+                                rule.id, DevskimRuleSeverity.WarningInfo, rule.replacement, rule.rule_info, range);
                             problems.push(problem);
 
                         }

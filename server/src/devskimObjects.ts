@@ -141,9 +141,9 @@ export enum DevskimRuleSeverity
 	Critical,
 	Important,
 	Moderate,
-	Low,
-	DefenseInDepth,
-	Informational,
+	BestPractice,
+	WarningInfo, //this isn't actually an error level in rules, but used when flagging
+	             //DS identifiers in suppressions and other comments
 	ManualReview
 }
 
@@ -202,13 +202,11 @@ export class DevSkimProblem {
 	{
 		switch (severity)
 		{
-			case DevskimRuleSeverity.Critical: return "[Crit]";
-			case DevskimRuleSeverity.Important: return "[Imp]";
-			case DevskimRuleSeverity.Moderate: return "[Mod]";
-			case DevskimRuleSeverity.Low: return "[Low]";
-			case DevskimRuleSeverity.DefenseInDepth: return "[DiD]";
+			case DevskimRuleSeverity.Critical: return "[Critical]";
+			case DevskimRuleSeverity.Important: return "[Important]";
+			case DevskimRuleSeverity.Moderate: return "[Moderate]";
 			case DevskimRuleSeverity.ManualReview: return "[Review]";
-			default: return "[Info]";
+			default: return "[Best Practice]";
 		}
 	}
     
@@ -223,11 +221,10 @@ export class DevSkimProblem {
 		//mark any optional rule, or rule that is simply imformational as a warning (i.e. green squiggle)
 		switch(this.severity)
 		{
-			case DevskimRuleSeverity.Informational: 
+			case DevskimRuleSeverity.WarningInfo:
 			case DevskimRuleSeverity.ManualReview: return DiagnosticSeverity.Information;
 
-			case DevskimRuleSeverity.Low:
-			case DevskimRuleSeverity.DefenseInDepth: return DiagnosticSeverity.Warning;
+			case DevskimRuleSeverity.BestPractice: return DiagnosticSeverity.Warning;
 
 			case DevskimRuleSeverity.Moderate:
 			case DevskimRuleSeverity.Important:
