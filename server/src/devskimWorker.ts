@@ -278,18 +278,13 @@ export class DevSkimWorker
                             //highlight suppression finding for context
                             let suppressionRange : Range = Range.create(lineStart,columnStart + suppressionFinding.ruleColumn,lineStart, columnStart + suppressionFinding.ruleColumn + rule.id.length);
                             let problem : DevSkimProblem = new DevSkimProblem(rule.description,rule.name,
-<<<<<<< HEAD
-                                rule.id, DevskimRuleSeverity.WarningInfo, rule.replacement, rule.rule_info, range);
-=======
-                                rule.id, DevskimRuleSeverity.Informational, rule.replacement, rule.rule_info, suppressionRange);
+                                rule.id, DevskimRuleSeverity.WarningInfo, rule.replacement, rule.rule_info, suppressionRange);
                             problem.suppressedFindingRange = range;
 
                             if(rule.overrides !== undefined && rule.overrides.length > 0)
                             {
                                 problem.overrides = rule.overrides; 
                             }
-
->>>>>>> origin/master
                             problems.push(problem);
 
                         }
