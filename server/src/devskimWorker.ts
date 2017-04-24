@@ -164,7 +164,7 @@ export class DevSkimWorker
         if(ruleSeverity == DevskimRuleSeverity.Critical  || 
            ruleSeverity == DevskimRuleSeverity.Important || 
            ruleSeverity == DevskimRuleSeverity.Moderate  ||
-           (ruleSeverity == DevskimRuleSeverity.BestPractice            && DevSkimWorker.settings.devskim.enableLowSeverityRules == true )            ||
+           (ruleSeverity == DevskimRuleSeverity.BestPractice   && DevSkimWorker.settings.devskim.enableBestPracticeRules == true )            ||
            (ruleSeverity == DevskimRuleSeverity.ManualReview   && DevSkimWorker.settings.devskim.enableManualReviewRules == true  ))
         {
             return true;

@@ -25,6 +25,7 @@ export interface DevSkimSettings {
 	enableManualReviewRules: boolean;
 	enableInformationalSeverityRules: boolean;
 	enableDefenseInDepthSeverityRules: boolean;
+	enableBestPracticeRules: boolean;
 	enableLowSeverityRules: boolean;
 	suppressionDurationInDays: number;
 	manualReviewerName: string;

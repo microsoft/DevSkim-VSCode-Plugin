@@ -48,22 +48,12 @@
 					"type": "string",
 					"default": "",
 					"description": "when enableManualReviewRules is set to true, if this property is set to a name/alias/email address it will be inserted when marking a finding as reviewed.  For example //DevSkim: reviewed DS123321 on 2016-12-10 by <whatever this value is>.  If left blank the \"by <whatever this value is>\" is ommitted when marking a finding reviewed."
-				}, 				
-				"devskim.enableInformationalSeverityRules": {
-					"type": "boolean",
-					"default": true,
-					"description": "Turn on the rules of severity \"Informational\". These rules either flag either recommended practices or issues with slightly higher false positives."
 				}, 
-				"devskim.enableDefenseInDepthSeverityRules": {
+				"devskim.enableBestPracticeRules": {
 					"type": "boolean",
-					"default": true,
-					"description": "Turn on the rules of severity \"Defense in Depth\". These rules either flag recommended practices that lead to more secure code, but aren't typically outright vulnerabilities."
-				}, 
-				"devskim.enableLowSeverityRules": {
-					"type": "boolean",
-					"default": true,
-					"description": "Turn on the rules of severity \"Low\". These rules typically flag minor vulnerabilities - usually it takes several Low severity vulnerabilities in concert to create compromise."
-				},	
+					"default": false,
+					"description": "Turn on the rules of severity \"Best-Practice\". These rules either flag issues that are typically of a lower severity, or recommended practices that lead to more secure code, but aren't typically outright vulnerabilities."
+				}, 	
 				"devskim.suppressionDurationInDays": {
 					"type": "number",
 					"default": 30,
