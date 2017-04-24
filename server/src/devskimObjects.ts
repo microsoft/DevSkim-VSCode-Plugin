@@ -162,6 +162,7 @@ export class DevSkimProblem {
 	public issueURL : string;
 	public replacement: string;
 	public fixes: DevSkimAutoFixEdit[];
+	public suppressedFindingRange : Range;
 
 	public overrides : string[]; //a collection of ruleIDs that this rule supercedes
 
@@ -186,7 +187,8 @@ export class DevSkimProblem {
 		this.issueURL    = (issueURL    !== undefined && issueURL.length    > 0) ? issueURL    : "";
 		this.replacement = (replacement !== undefined && replacement.length > 0) ? replacement : "";
    		this.range    = (range    !== undefined ) ? range    : Range.create(0,0,0,0);
-		this.severity = severity;     
+		this.severity = severity;  
+		this.suppressedFindingRange = null; 
         
 	}
 
