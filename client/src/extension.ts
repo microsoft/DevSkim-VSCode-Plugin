@@ -37,7 +37,7 @@ export function activate(context: ExtensionContext) {
 		// Register the server for plain text documents.  I haven't found a "Always do this" option, hence the exhaustive
 		//listing here.  If someone else knows how to say "do this for *" that would be the preference
 		documentSelector: ["php","c","cpp","csharp","ruby","perl","perl6","javascriptreact","javascript",
-			"go","rust","groovy","typescript","typescriptreact","jade","lua","swift","clojure",
+			"go","rust","groovy","typescript","typescriptreact","jade","lua","swift","clojure","sql",
 			"vb","shellscript","yaml","fsharp","objective-c","r","java","powershell","coffeescript", "plaintext","python" ],
 		synchronize: {
 			// Synchronize the setting section 'devskim' to the server
