@@ -367,6 +367,8 @@ export class DevSkimWorker
      */
     private processOverrides(problems : DevSkimProblem[]) : DevSkimProblem[]
     {
+        let overrideRemoved : boolean = false;
+
         for(var problem of problems)
         {
             //if this problem overrides other ones, THEN do the processing
@@ -394,12 +396,29 @@ export class DevSkimWorker
                            problems[x].range.start.character == range.start.character)
                         {
                             problems.splice(x,1);
+                            overrideRemoved = true;
                         }
                 }
+                //clear the overrides so we don't process them on subsequent recursive calls to this
+                //function
+                problem.overrides = []
 
             }
         }
-        return problems;
+        // I hate recursion - it gives me perf concerns, but because we are modifying the 
+        //array that we are iterating over we can't trust that we don't terminate earlier than
+        //desired (because the length is going down while the iterator is going up), so run
+        //until we don't modify anymore.  To make things from getting too ugly, we do clear a 
+        //problem's overrides after we processed them, so we don't run it again in 
+        //recursive calls
+        if(overrideRemoved)
+        {
+            return this.processOverrides(problems)
+        }
+        else
+        {
+            return problems;
+        }        
     }  
 
     /**
