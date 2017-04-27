@@ -250,9 +250,13 @@ export class DevSkimWorker
                         //it's necessary to see if there are any newlines WITHIN the match so that we get the line the match ends on,
                         //not just the line it starts on.  Also, we use the substring for the match later when making fixes
                         let replacementSource : string = documentContents.substr(match.index, match[0].length);
-                        let lineEnd : number = this.getLineNumber(replacementSource,replacementSource.length) + lineStart;                 
-                                
-                        let range : Range = Range.create(lineStart,columnStart,lineEnd, columnStart + match[0].length);
+                        let lineEnd : number = this.getLineNumber(replacementSource,replacementSource.length) + lineStart;  
+
+                        let columnEnd = (lineStart == lineEnd) ?   
+                            columnStart + match[0].length :
+                            match[0].length - documentContents.substr(match.index).indexOf("\n") - 1;
+
+                        let range : Range = Range.create(lineStart,columnStart,lineEnd, columnEnd);
 
                         //look for the suppression comment for that finding
                         if(!suppressionFinding.showFinding)
@@ -336,7 +340,6 @@ export class DevSkimWorker
         //if there are any fixes, add them to the fix collection so they can be used in code fix commands
         if(rule.fix_it !== undefined && rule.fix_it.length > 0)
         {   
-            let XRegExp = require('xregexp');
 
             //recordCodeAction below acts like a stack, putting the most recently added rule first.
             //Since the very first fix in the rule is usually the prefered one (when there are multiples)
@@ -344,13 +347,19 @@ export class DevSkimWorker
             for(var fixIndex = rule.fix_it.length -1; fixIndex >= 0; fixIndex--) 
             {
                 let fix : DevSkimAutoFixEdit = Object.create(null);
-                var replacePattern = XRegExp(rule.fix_it[fixIndex].search);
-
-                fix.text = XRegExp.replace(replacementSource, replacePattern,  rule.fix_it[fixIndex].replace);
-                fix.fixName = "DevSkim: "+ rule.fix_it[fixIndex].name;
-                
-                fix.range = range;
-                fixes.push(fix);                                
+                var replacePattern = RegExp(rule.fix_it[fixIndex].search);
+                try
+                {
+                    fix.text = replacementSource.replace(replacePattern,rule.fix_it[fixIndex].replace); 
+                    fix.fixName = "DevSkim: "+ rule.fix_it[fixIndex].name;
+                    
+                    fix.range = range;
+                    fixes.push(fix);    
+                }   
+                catch(e)
+                {
+                    console.log(e);
+                }                        
             }
         }
         return fixes;        
