@@ -9,7 +9,6 @@
  * 
  *  ------------------------------------------------------------------------------------------ */
 'use strict';
-
 import {
 	IPCMessageReader, IPCMessageWriter,
 	createConnection, IConnection, TextDocumentSyncKind,
@@ -159,7 +158,7 @@ connection.onDidChangeWatchedFiles((change) => {
 //so it knows the format to use
 interface ValidateDocsParams {	textDocuments: TextDocumentIdentifier[];}
 namespace ValidateDocsRequest {
-	export const type: RequestType<ValidateDocsParams, void, void> = { get method() { return 'textDocument/devskim/validatedocuments'; } };}
+	export const type = new RequestType<ValidateDocsParams,void, void, void>('textDocument/devskim/validatedocuments')}
 
 connection.onRequest(ValidateDocsRequest.type, (params) => {
 	for(var docs of params.textDocuments)

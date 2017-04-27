@@ -6,14 +6,17 @@
 
 import * as path from 'path';
 
-import { workspace, window, commands, Disposable, ExtensionContext } from 'vscode';
-import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, TextEdit, Protocol2Code, TextDocumentIdentifier, RequestType } from 'vscode-languageclient';
+import { workspace, window, commands, ExtensionContext, StatusBarAlignment, TextEditor, Disposable } from 'vscode';
+import {
+	LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TextEdit,
+	RequestType, TextDocumentIdentifier, ResponseError, InitializeError, State as ClientState, NotificationType, TransportKind
+} from 'vscode-languageclient';
 
 //the following interface and namespace define a format to invoke a function on the server via
 //LanguageClient.sendRequest
 interface ValidateDocsParams {	textDocuments: TextDocumentIdentifier[];}
 namespace ValidateDocsRequest {
-	export const type: RequestType<ValidateDocsParams, void, void> = { get method() { return 'textDocument/devskim/validatedocuments'; } };}
+	export const type = new RequestType<ValidateDocsParams, void, void, void>('textDocument/devskim/validatedocuments');}
 
 
 export function activate(context: ExtensionContext) {
@@ -70,7 +73,7 @@ export function activate(context: ExtensionContext) {
 			//apply the edits
 			textEditor.edit(mutator => {
 				for(let edit of edits) {
-					mutator.replace(Protocol2Code.asRange(edit.range), edit.newText);
+					mutator.replace(client.protocol2CodeConverter.asRange(edit.range), edit.newText);
 				}
 			}).then((success) => {
 				if (!success) {
