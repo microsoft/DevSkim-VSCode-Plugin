@@ -64,10 +64,11 @@
 		}
 	},	
 	"scripts": {
-		"vscode:prepublish": "node ./node_modules/vscode/bin/compile",
-		"compile": "node ./node_modules/vscode/bin/compile -watch -p ./",
-		"postinstall": "node ./node_modules/vscode/bin/install"
-
+		"postinstall": "node ./node_modules/vscode/bin/install",
+		"vscode:prepublish": "cd ../server && npm run compile && cd ../client && tsc -p ./",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"update-vscode": "node ./node_modules/vscode/bin/install"
 	},
 	"devDependencies": {
 		"@types/node": "^6.0.40",
