@@ -1,7 +1,7 @@
 {
   "name": "devskim-server",
   "description": "Devskim Language Server component",
-  "version": "0.0.1",
+  "version": "0.1.2",
   "author": "Microsoft Corporation",
   "license": "MIT",
   "engines": {
