@@ -13,6 +13,7 @@
 import {Settings, DevSkimSettings,AutoFix, DevSkimAutoFixEdit, DevskimRuleSeverity} from "./devskimObjects";
 import { Range } from 'vscode-languageserver';
 import {DevSkimWorker} from "./devskimWorker";
+import {SourceComments} from "./comments";
 
 /**
  * Class to handle Suppressions (i.e. comments that direct devskim to ignore a finding for either a period of time or permanently)
@@ -33,71 +34,6 @@ export class DevSkimSuppression
 {
     public static suppressionRegEx : RegExp = /DevSkim: ignore ([^\s]+)(?:\suntil ((\d{4})-(\d{2})-(\d{2})))?/i;
     public static reviewRegEx      : RegExp = /DevSkim: reviewed ([^\s]+)(?:\son ((\d{4})-(\d{2})-(\d{2})))?/i;
-
-    /**
-     * Retrieve the characters to start a comment in the given language (ex. "//" for C/C++/C#/Etc. )
-     * 
-     * @private
-     * @param {string} langID VSCode language identifier (should be lower case)
-     * @returns {string} the starting characters to spin up a comment
-     * 
-     * @memberOf DevSkimSuppression
-     */
-    private GetCommentStart(langID : string) : string
-    {
-        switch(langID)
-        {
-            case "vb": return "'";
-
-            case "lua": return "--";
-
-            case "clojure": return ";;";           
-
-            case "yaml":
-            case "shellscript":
-            case "ruby":
-            case "powershell":
-            case "coffeescript":
-            case "python":
-            case "r":
-            case "perl6":
-            case "perl": return "#";
-
-            case "jade": return "//-";
-
-            case "c":
-            case "cpp":
-            case "csharp":
-            case "fsharp":
-            case "groovy":
-            case "php":
-            case "javascript":
-            case "javascriptreact":
-            case "typescript":
-            case "typescriptreact":
-            case "java":
-            case "objective-c":
-            case "swift":
-            case "go":
-            case "rust":
-            default: return "//";
-        }
-    }
-
-    /**
-     * Retrieves any closing comment tags for the given language, for those languages that only support block style comments
-     * 
-     * @private
-     * @param {string} langID VSCode ID for the language (should be lower case)
-     * @returns {string} closing comment characters, if any (empty string if not)
-     * 
-     * @memberOf DevSkimSuppression
-     */
-    private GetCommentEnd(langID : string) : string
-    {
-        //currently none of the supported languages require a closing tag, but this is maintained in case that changes
-        return "";
-    }
 
     /**
      * Generate the string that gets inserted into a comment for a suppression
@@ -257,15 +193,23 @@ export class DevSkimSuppression
         }
         //if there is not an existing suppression then we need to find the newline and insert the suppression just before the newline
         else
-        {                 
+        { 
+            let StartComment: string = SourceComments.GetLineComment(langID);
+            let EndComment : string = "";
+            if(StartComment == null)
+            {
+                StartComment =  SourceComments.GetBlockCommentStart(langID);
+                EndComment = SourceComments.GetBlockCommentEnd(langID);
+            }
+
 
             if(isReviewRule || isDateSet)
             {
-                action.text = " " + this.GetCommentStart(langID) + this.makeActionString(ruleID,isReviewRule, date) +this.GetCommentEnd(langID); 
+                action.text = " " + StartComment + this.makeActionString(ruleID,isReviewRule, date) + " " + EndComment; 
             }
             else
             {
-                action.text = " " + this.GetCommentStart(langID) + this.makeActionString(ruleID,isReviewRule) + " " +this.GetCommentEnd(langID); 
+                action.text = " " + StartComment + this.makeActionString(ruleID,isReviewRule) + " " + EndComment; 
             }             
          
         }

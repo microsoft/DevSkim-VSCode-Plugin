@@ -14,6 +14,7 @@ import { Range } from 'vscode-languageserver';
 import {computeKey, DevSkimProblem, Settings, DevSkimSettings,DevskimRuleSeverity, Fixes, Map, AutoFix, Rule,FixIt,Pattern, DevSkimAutoFixEdit} from "./devskimObjects";
 import {DevSkimSuppression, DevSkimSuppressionFinding} from "./suppressions"
 import * as path from 'path';
+import {SourceComments} from "./comments";
 
 export class DevSkimWorker
 {
@@ -244,7 +245,10 @@ export class DevSkimWorker
                         let suppressionFinding : DevSkimSuppressionFinding = DevSkimSuppression.isFindingCommented(match.index,documentContents, rule.id,ruleSeverity);
                         //calculate what line we are on by grabbing the text before the match & counting the newlines in it
                         let lineStart: number = this.getLineNumber(documentContents,match.index);
-                        let columnStart : number = (lineStart == 0) ? match.index : match.index -  documentContents.substr(0,match.index).lastIndexOf("\n") -1;
+                        let newlineIndex : number = (lineStart == 0 ) ? -1 : documentContents.substr(0,match.index).lastIndexOf("\n");
+                        let columnStart : number =  match.index - newlineIndex - 1;
+
+                        
                         
                         //since a match may span lines (someone who broke a long function invocation into multiple lines for example)
                         //it's necessary to see if there are any newlines WITHIN the match so that we get the line the match ends on,
@@ -259,7 +263,9 @@ export class DevSkimWorker
                         let range : Range = Range.create(lineStart,columnStart,lineEnd, columnEnd);
 
                         //look for the suppression comment for that finding
-                        if(!suppressionFinding.showFinding)
+                        if(!suppressionFinding.showFinding && 
+                           !SourceComments.IsFindingInComment(langID,
+                                                              documentContents.substr(0, match.index), newlineIndex))
                         {
                             let problem : DevSkimProblem = new DevSkimProblem(rule.description,rule.name,
                                 rule.id, this.MapRuleSeverity(rule.severity), rule.replacement, rule.rule_info, range);
