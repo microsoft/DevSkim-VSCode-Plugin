@@ -5,7 +5,7 @@
 * A couple new rules for banned C API, SQL, PHP
 * Improved multi-line findings detection/suppressions
 * Reduced the number of "Severities" - "Low", "Informational", and "Defense in Depth" are now all "Best Practice"
-* "Best Practice" is not enabled by default, but can be turned on with a setting
+* "Best Practice" is not enabled by default, but can be turned on with in the DevSkim settings.  
 
 ## Version 0.1.1
 * Fixed bugs relating to scenarios where multiple security issues reside on a single line

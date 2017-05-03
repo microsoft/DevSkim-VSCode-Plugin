@@ -1,5 +1,7 @@
 /**
- * 
+ * Class for dealing with code comments, since VS Code doesn't (currently, as of this authoring)
+ * expose an API to understand the comment characters for a language, or whether or not the current
+ * code is commented
  * 
  * @export
  * @class SourceComments
@@ -7,12 +9,12 @@
 export class SourceComments
 {
 
-/**
+    /**
      * Retrieve the characters to start a comment in the given language (ex. "//" for C/C++/C#/Etc. )
      * 
      * @private
      * @param {string} langID VSCode language identifier (should be lower case)
-     * @returns {string} the starting characters to spin up a comment
+     * @returns {string} the characters to start a line comment, or empty string if the language doesn't have line comments
      * 
      * @memberOf DevSkimSuppression
      */
@@ -127,7 +129,19 @@ export class SourceComments
             default: return "";
         }
     }
-
+    
+    /**
+     * Checks to see if the finding is within code that is commented out.  Verifies both against
+     * line comments and block comments
+     * 
+     * @static
+     * @param {string} langID VSCode ID for the language (should be lower case)
+     * @param {string} documentContents the documentContents up to, but not including the finding
+     * @param {number} newlineIndex the index of the most recent newline, for checking line comments
+     * @returns {boolean} true if in a comment, false if active code
+     * 
+     * @memberOf SourceComments
+     */
     public static IsFindingInComment(langID: string, documentContents : string, newlineIndex : number) : boolean
     {
         if(documentContents.length < 1 )
