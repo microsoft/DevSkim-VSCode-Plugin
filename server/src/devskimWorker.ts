@@ -364,7 +364,7 @@ export class DevSkimWorker
                 }   
                 catch(e)
                 {
-                    console.log(e);
+                    //console.log(e);
                 }                        
             }
         }
@@ -447,7 +447,6 @@ export class DevSkimWorker
      */
     private appliesToLanguage(languageID : string, appliesTo : string[]) : boolean
     {
-        console.log("\nLanguage is: " + languageID);
         //if the parameters are empty, assume it applies.  Also, apply all the rules to plaintext documents	
         if(languageID !== undefined && languageID != null && appliesTo !== undefined && appliesTo != null && appliesTo.length > 0)
         {	

@@ -4,7 +4,7 @@
 	"description": "Detect security mistakes as you type, and get real time details and fix suggestions",
 	"author": "Microsoft Corporation",
 	"license": "MIT",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"publisher": "MS-DevSkim",
 	"repository": {
 		"type": "git",
@@ -15,8 +15,8 @@
 	},	
 	"icon" : "devskim.ico",
 	"galleryBanner": {
-        "color": "#000000",
-        "theme": "light"
+        "color": "#999999",
+        "theme": "dark"
     },
 	"engines": {
 		"vscode": "^1.0.10"
@@ -65,7 +65,6 @@
 	},	
 	"scripts": {
 		"postinstall": "node ./node_modules/vscode/bin/install",
-		"vscode:prepublish": "cd ../server && npm run compile && cd ../client && tsc -p ./",
 		"compile": "tsc -p ./",
 		"watch": "tsc -watch -p ./",
 		"update-vscode": "node ./node_modules/vscode/bin/install"
