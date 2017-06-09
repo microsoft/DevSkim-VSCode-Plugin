@@ -13,6 +13,7 @@
 import { Range } from 'vscode-languageserver';
 import {computeKey, DevSkimProblem, Settings, DevSkimSettings,DevskimRuleSeverity, Fixes, Map, AutoFix, Rule,FixIt,Pattern, DevSkimAutoFixEdit} from "./devskimObjects";
 import {DevSkimSuppression, DevSkimSuppressionFinding} from "./suppressions"
+import {PathOperations} from "./pathOperations"
 import * as path from 'path';
 import {SourceComments} from "./comments";
 
@@ -63,11 +64,18 @@ export class DevSkimWorker
     public analyzeText(documentContents : string, langID : string, documentURI : string) : DevSkimProblem[]
     {
         var problems : DevSkimProblem[];
+        var ignore : PathOperations = new PathOperations();
 
-        problems = this.runAnalysis(documentContents,langID,documentURI);
-        
-        //remove any findings from rules that have been overriden by other rules
-        problems = this.processOverrides(problems);
+        //Before we do any processing, see if the file (or its directory) are in the ignore list.  If so
+        //skip doing any analysis on the file
+        if(!ignore.ignoreFile(documentURI,DevSkimWorker.settings.devskim.ignoreList))
+        {
+            //find out what issues are in the current document
+            problems = this.runAnalysis(documentContents,langID,documentURI);
+            
+            //remove any findings from rules that have been overriden by other rules
+            problems = this.processOverrides(problems);
+        }
 
         return problems;
 

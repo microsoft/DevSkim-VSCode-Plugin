@@ -29,6 +29,7 @@ export interface DevSkimSettings {
 	enableLowSeverityRules: boolean;
 	suppressionDurationInDays: number;
 	manualReviewerName: string;
+	ignoreList: string[];
 }
 
 /**
