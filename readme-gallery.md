@@ -37,5 +37,4 @@ DevSkim takes an approach that is programming language agnostic.  At this stage,
 
 ## Thank You
 
-Thanks for trying DevSkim.  Its a work in progress.  If you find issues please 
-[report them on Github](https://github.com/Microsoft/DevSkim-VSCode-Plugin/) and feel free to contribute!
+Thanks for trying DevSkim.  Its a work in progress.  If you find issues please [report them on Github](https://github.com/Microsoft/DevSkim-VSCode-Plugin/) and feel free to contribute!
