@@ -4,7 +4,7 @@
 	"description": "Detect security mistakes as you type, and get real time details and fix suggestions",
 	"author": "Microsoft Corporation",
 	"license": "MIT",
-	"version": "0.1.3",
+	"version": "0.1.4",
 	"publisher": "MS-DevSkim",
 	"repository": {
 		"type": "git",
@@ -85,6 +85,6 @@
 		"@types/node": "^6.0.40"
 	},
 	"dependencies": {
-		"vscode-languageclient": "^3.2.0"
+		"vscode-languageclient": "^3.3.0"
 	}
 }

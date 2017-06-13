@@ -63,7 +63,7 @@ export class DevSkimWorker
      */
     public analyzeText(documentContents : string, langID : string, documentURI : string) : DevSkimProblem[]
     {
-        var problems : DevSkimProblem[];
+        var problems : DevSkimProblem[] = [];
         var ignore : PathOperations = new PathOperations();
 
         //Before we do any processing, see if the file (or its directory) are in the ignore list.  If so
