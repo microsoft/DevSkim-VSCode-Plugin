@@ -59,13 +59,17 @@
 					"default": 30,
 					"description": "DevSkim allows for findings to be suppressed for a temporary period of time. The default is 30 days.  Set to 0 to disable temporary suppressions"
 				},
-				"devskim.ignoreList": {
+				"devskim.ignoreFilesList": {
 					"type" :"array",
-					"default": [".gitignore", "node_modules/*", ".vscode/*","yarn.lock", "logs/*", "*.log"],
+					"default": ["out/*","bin/*", "node_modules/*", ".vscode/*","yarn.lock", "logs/*", "*.log"],
 					"description":"List of Files, File Extensions, and directories to ignore.  DevSkim will not run on any files that match one of these ignores.  To match any file of a give name, just list the file name. If there are multiple files and only one should be ignored, include at least the immediate folder path the file lives in. Whole directories can be ignored via <Dir Name>/* (use unix style paths), and all files of a specific extension can be ignored via *.<extension>"
 
+				},
+				"devskim.ignoreRulesList": {
+					"type" :"array",
+					"default": [],
+					"description":"List of DevSkim Rule IDs to be ignored.  For example providing ['DS123456','DS147258','DS147896'] would cause DevSkim to not mark any findings corresponding to those RuleIDs"
 				}
-
 			}
 		}
 	},	

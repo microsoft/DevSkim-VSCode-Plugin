@@ -29,7 +29,8 @@ export interface DevSkimSettings {
 	enableLowSeverityRules: boolean;
 	suppressionDurationInDays: number;
 	manualReviewerName: string;
-	ignoreList: string[];
+	ignoreFilesList: string[];
+	ignoreRulesList: string[];
 }
 
 /**
@@ -202,7 +203,7 @@ export class DevSkimProblem {
 	 * 
 	 * @memberOf DevSkimProblem
 	 */
-	public getShortSeverityName(severity : DevskimRuleSeverity) : string
+	public getSeverityName(severity : DevskimRuleSeverity) : string
 	{
 		switch (severity)
 		{
@@ -246,7 +247,7 @@ export class DevSkimProblem {
 	{
 		var diagnostic : Diagnostic = Object.create(null);
 		//truncate the severity so that the message looks a bit more succinct in the output window
-		let fullMessage : string = "\nSeverity: " + this.getShortSeverityName(this.severity) + "\n\n" + this.message;
+		let fullMessage : string = "\n" + this.source + "\nSeverity: " + this.getSeverityName(this.severity) + "\n\n" + this.message;
 
 		fullMessage = (this.replacement.length > 0 ) ? 
 			fullMessage + "\n\nFix Guidance: " + this.replacement : 
@@ -258,7 +259,7 @@ export class DevSkimProblem {
 
 		diagnostic.message = fullMessage;
 		diagnostic.code = this.ruleId;
-		diagnostic.source = "Devskim:" + this.source;
+		diagnostic.source = "Devskim: Finding " + this.ruleId;
 		diagnostic.range = this.range;
 		diagnostic.severity = this.getWarningLevel();
 	

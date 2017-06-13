@@ -68,7 +68,7 @@ export class DevSkimWorker
 
         //Before we do any processing, see if the file (or its directory) are in the ignore list.  If so
         //skip doing any analysis on the file
-        if(!ignore.ignoreFile(documentURI,DevSkimWorker.settings.devskim.ignoreList))
+        if(!ignore.ignoreFile(documentURI,DevSkimWorker.settings.devskim.ignoreFilesList))
         {
             //find out what issues are in the current document
             problems = this.runAnalysis(documentContents,langID,documentURI);
@@ -226,6 +226,7 @@ export class DevSkimWorker
             //if the rule doesn't apply to whatever language we are analyzing (C++, Java, etc.) or we aren't processing
             //that particular severity skip the rest
             if((rule.active === undefined || rule.active == null || rule.active == true) && 
+               DevSkimWorker.settings.devskim.ignoreRulesList.indexOf(rule.id) == -1 &&  /*check to see if this is a rule the user asked to ignore */
                this.appliesToLanguage(langID, rule.applies_to) &&
                this.RuleSeverityEnabled(ruleSeverity))
             {
