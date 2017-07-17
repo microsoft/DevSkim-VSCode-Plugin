@@ -227,7 +227,7 @@ export class DevSkimWorker
             //that particular severity skip the rest
             if((rule.active === undefined || rule.active == null || rule.active == true) && 
                DevSkimWorker.settings.devskim.ignoreRulesList.indexOf(rule.id) == -1 &&  /*check to see if this is a rule the user asked to ignore */
-               this.appliesToLanguage(langID, rule.applies_to) &&
+               this.appliesToLangOrFile(langID, rule.applies_to, documentURI) &&
                this.RuleSeverityEnabled(ruleSeverity))
             {
                 for(let patternIndex:number = 0; patternIndex < rule.patterns.length; patternIndex++)
@@ -447,21 +447,31 @@ export class DevSkimWorker
 
     /**
      * compares the languageID against all of the languages listed in the appliesTo array to check 
-     * for a match.  If it matches, then the rule/pattern applies to the language being analyzed.  Absent
-     * any value in appliesTo we assume it applies to everything so return true
+     * for a match.  If it matches, then the rule/pattern applies to the language being analyzed.  
+     * 
+     * Also checks to see if appliesTo has the specific file name for the current file
+     * 
+     * Absent any value in appliesTo we assume it applies to everything so return true
      * 
      * @param {string} languageID the vscode languageID for the current document
      * @param {string[]} appliesTo the array of languages a rule/pattern applies to
+     * @param {string} documentURI the current document URI
      * @returns {boolean} true if it applies, false if it doesn't
      */
-    private appliesToLanguage(languageID : string, appliesTo : string[]) : boolean
+    private appliesToLangOrFile(languageID : string, appliesTo : string[], documentURI : string) : boolean
     {
         //if the parameters are empty, assume it applies.  Also, apply all the rules to plaintext documents	
-        if(languageID !== undefined && languageID != null && appliesTo !== undefined && appliesTo != null && appliesTo.length > 0)
+        if(appliesTo != undefined && appliesTo != null && appliesTo.length > 0)
         {	
             for(let i: number = 0; i < appliesTo.length; i++)
             {
-                if(languageID.toLowerCase() == appliesTo[i].toLowerCase() )
+                //if the list of languages this rule applies to matches the current lang ID
+                if(languageID !== undefined && languageID != null && languageID.toLowerCase() == appliesTo[i].toLowerCase() )
+                {
+                    return true;
+                }
+                else if(appliesTo[i].indexOf(".") != -1 /*applies to is probably a specific file name instead of a langID*/
+                    && documentURI.toLowerCase().indexOf(appliesTo[i].toLowerCase()) != -1) /*and its in the current doc URI*/
                 {
                     return true;
                 }

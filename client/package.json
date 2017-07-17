@@ -31,7 +31,7 @@
 	"activationEvents": [
 		"onLanguage:bat","onLanguage:php","onLanguage:c","onLanguage:cpp","onLanguage:csharp","onLanguage:ruby","onLanguage:perl","onLanguage:perl6","onLanguage:javascriptreact","onLanguage:javascript",
 			"onLanguage:go","onLanguage:sql","onLanguage:rust","onLanguage:groovy","onLanguage:typescript","onLanguage:typescriptreact","onLanguage:jade","onLanguage:lua","onLanguage:swift","onLanguage:clojure",
-			"onLanguage:vb","onLanguage:shellscript","onLanguage:yaml","onLanguage:fsharp","onLanguage:objective-c","onLanguage:r","onLanguage:java","onLanguage:powershell","onLanguage:coffeescript","onLanguage:plaintext","onLanguage:python"
+			"onLanguage:vb","onLanguage:shellscript","onLanguage:yaml","onLanguage:fsharp","onLanguage:objective-c","onLanguage:xml","onLanguage:r","onLanguage:java","onLanguage:powershell","onLanguage:coffeescript","onLanguage:plaintext","onLanguage:python"
 	],
 	"main": "./out/src/extension",
 	"contributes": {
