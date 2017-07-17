@@ -19,7 +19,7 @@
         "theme": "dark"
     },
 	"engines": {
-		"vscode": "^1.0.10"
+		"vscode": "^1.8.0"
 	},
 	"categories": [
 		"Linters"
@@ -81,7 +81,7 @@
 	},
 	"devDependencies": {
 		"typescript": "^2.2.2",
-		"vscode": "^1.1.0",
+		"vscode": "^1.1.1",
 		"@types/node": "^6.0.40"
 	},
 	"dependencies": {
