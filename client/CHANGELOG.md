@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 0.1.5
+* Added ability to apply rules to specific files (e.g. package.json or project.json, instead of all .json files)
+* New manual review rules for deserialization in different languages (e.g. pickle.load in Python, or ReadObject in Java).  Manual review rules are not enabled by default and must be turned on via settings.  These are *potentially* severe security issues, but as DevSkim does not have strong data flow capabilities these rules will also flag safe uses
+
+
 ## Version 0.1.4
 * Fixed analysis exception that would trigger on certain workspace changes
 
