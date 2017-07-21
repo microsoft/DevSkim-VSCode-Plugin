@@ -11,7 +11,7 @@
  * 
  * ------------------------------------------------------------------------------------------ */
 import { Range } from 'vscode-languageserver';
-import {computeKey, DevSkimProblem, Settings, DevSkimSettings,DevskimRuleSeverity, Fixes, Map, AutoFix, Rule,FixIt,Pattern, DevSkimAutoFixEdit} from "./devskimObjects";
+import {computeKey, Condition, DevSkimProblem, Settings, DevSkimSettings,DevskimRuleSeverity, Fixes, Map, AutoFix, Rule,FixIt,Pattern, DevSkimAutoFixEdit} from "./devskimObjects";
 import {DevSkimSuppression, DevSkimSuppressionFinding} from "./suppressions"
 import {PathOperations} from "./pathOperations"
 import * as path from 'path';
@@ -136,8 +136,6 @@ export class DevSkimWorker
     {
         this.analysisRules = [];
 
-        this.analysisRules = [];
-
         //read the rules files recursively from the file system - get all of the .json files under the rules directory.  
         //first read in the default & custom directories, as they contain the required rules (i.e. exclude the "optional" directory)
         //and then do the inverse to populate the optional rules
@@ -204,6 +202,24 @@ export class DevSkimWorker
     }
 
     /**
+     * the pattern type governs how we form the regex.  regex-word is wrapped in \b, string is as well, but is also escaped.
+     * substring is not wrapped in \b, but is escapped, and regex/the default behavior is a vanilla regular expression
+     * @param regexType regex-word|string|substring
+     * @param pattern 
+     */
+    public MakeRegex(regexType : string, pattern : string) : RegExp
+    {
+         let XRegExp = require('xregexp');
+        switch(regexType.toLowerCase())
+        {
+            case 'regex-word': return XRegExp('\\b'+pattern+'\\b', "g");    
+            case 'string': return XRegExp('\\b'+pattern+'\\b', "g");                            
+            case 'substring': return XRegExp(XRegExp.escape(pattern), "g");                              
+            default: return XRegExp(pattern, "g");                                                
+        }            
+    }
+
+    /**
      * Perform the actual analysis of the text, using the provided rules
      * 
      * @param {string} documentContents the full text to analyze
@@ -232,18 +248,8 @@ export class DevSkimWorker
             {
                 for(let patternIndex:number = 0; patternIndex < rule.patterns.length; patternIndex++)
                 {
-                    //the pattern type governs how we form the regex.  regex-word is wrapped in \b, string is as well, but is also escaped.
-                    //substring is not wrapped in \b, but is escapped, and regex/the default behavior is a vanilla regular expression
-                    switch(rule.patterns[patternIndex].type.toLowerCase())
-                    {
-                        case 'regex-word': var matchPattern = XRegExp('\\b'+rule.patterns[patternIndex].pattern+'\\b', "g");
-                            break;
-                        case 'string': var matchPattern = XRegExp('\\b'+XRegExp.escape(rule.patterns[patternIndex].pattern)+'\\b', "g");
-                            break; 
-                        case 'substring': var matchPattern = XRegExp(XRegExp.escape(rule.patterns[patternIndex].pattern), "g");
-                            break;   
-                        default: var matchPattern = XRegExp(rule.patterns[patternIndex].pattern, "g");                                                
-                    }
+                    
+                    var matchPattern: RegExp = this.MakeRegex(rule.patterns[patternIndex].type,rule.patterns[patternIndex].pattern );
                     
                     let matchPosition: number = 0;
                     var match;
@@ -251,13 +257,17 @@ export class DevSkimWorker
                     //go through all of the text looking for a match with the given pattern
                     while(match = XRegExp.exec(documentContents,matchPattern,matchPosition))
                     {
+                        //if the rule doesn't contain any conditions, set it to an empty array to make logic later easier
+                        if(rule.conditions == undefined || rule.conditions == null)
+                        {
+                            rule.conditions = [];
+                        }
+
                         let suppressionFinding : DevSkimSuppressionFinding = DevSkimSuppression.isFindingCommented(match.index,documentContents, rule.id,ruleSeverity);
                         //calculate what line we are on by grabbing the text before the match & counting the newlines in it
                         let lineStart: number = this.getLineNumber(documentContents,match.index);
                         let newlineIndex : number = (lineStart == 0 ) ? -1 : documentContents.substr(0,match.index).lastIndexOf("\n");
-                        let columnStart : number =  match.index - newlineIndex - 1;
-
-                        
+                        let columnStart : number =  match.index - newlineIndex - 1;                    
                         
                         //since a match may span lines (someone who broke a long function invocation into multiple lines for example)
                         //it's necessary to see if there are any newlines WITHIN the match so that we get the line the match ends on,
@@ -274,7 +284,8 @@ export class DevSkimWorker
                         //look for the suppression comment for that finding
                         if(!suppressionFinding.showFinding && 
                            !SourceComments.IsFindingInComment(langID,
-                                                              documentContents.substr(0, match.index), newlineIndex))
+                                                              documentContents.substr(0, match.index), newlineIndex) &&
+                            this.matchesConditions(rule.conditions,match[0],documentContents,range))
                         {
                             let problem : DevSkimProblem = new DevSkimProblem(rule.description,rule.name,
                                 rule.id, this.MapRuleSeverity(rule.severity), rule.replacement, rule.rule_info, range);
@@ -314,6 +325,12 @@ export class DevSkimWorker
             }
         }
         return problems;
+    }
+
+    private matchesConditions(conditions : Condition[], findingContents: string, documentContents : string, findingRange : Range ) : boolean
+    {
+
+        return true;
     }
 
     /**

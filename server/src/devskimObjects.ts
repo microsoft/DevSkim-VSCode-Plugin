@@ -85,10 +85,19 @@ export interface Rule {
     description: string;
     replacement: string;
     rule_info: string;
-    patterns: Pattern[];
+	patterns: Pattern[];
+	conditions?: Condition[];
     fix_it?: FixIt[];
 	filepath? : string; //filepath to the rules file the rule came from
 	_comment ? : string;
+}
+
+export interface Condition {
+	pattern: Pattern;
+	search_in: string;
+	case_sensitive?: boolean;
+	negate_finding?: boolean;
+
 }
 
 
