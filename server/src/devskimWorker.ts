@@ -262,8 +262,13 @@ export class DevSkimWorker
                         {
                             rule.conditions = [];
                         }
-
+                        
+                        //check to see if this finding has either been suppressed or reviewed (for manual-review rules)
+                        //the suppressionFinding object contains a flag if the finding has been suppressed as well as
+                        //range info for the ruleID in the suppression text so that hover text can be added describing
+                        //the finding that was suppress
                         let suppressionFinding : DevSkimSuppressionFinding = DevSkimSuppression.isFindingCommented(match.index,documentContents, rule.id,ruleSeverity);
+                        
                         //calculate what line we are on by grabbing the text before the match & counting the newlines in it
                         let lineStart: number = this.getLineNumber(documentContents,match.index);
                         let newlineIndex : number = (lineStart == 0 ) ? -1 : documentContents.substr(0,match.index).lastIndexOf("\n");
@@ -283,18 +288,11 @@ export class DevSkimWorker
 
                         //look for the suppression comment for that finding
                         if(!suppressionFinding.showFinding && 
-                           !SourceComments.IsFindingInComment(langID,
-                                                              documentContents.substr(0, match.index), newlineIndex) &&
+                           this.matchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex) &&
                             this.matchesConditions(rule.conditions,match[0],documentContents,range))
                         {
-                            let problem : DevSkimProblem = new DevSkimProblem(rule.description,rule.name,
-                                rule.id, this.MapRuleSeverity(rule.severity), rule.replacement, rule.rule_info, range);
-   
-                            if(rule.overrides !== undefined && rule.overrides.length > 0)
-                            {
-                                problem.overrides = rule.overrides; 
-                            }
-                        
+                            let problem : DevSkimProblem = this.makeProblem(rule,this.MapRuleSeverity(rule.severity), range);
+
                             //add in any fixes
                             problem.fixes = problem.fixes.concat(this.makeFixes(rule,replacementSource,range));
                             problem.fixes = problem.fixes.concat(suppression.createActions(rule.id,documentContents,match.index,lineStart, langID,ruleSeverity));
@@ -306,15 +304,10 @@ export class DevSkimWorker
                         else if(suppressionFinding.ruleColumn > 0)
                         {
                             //highlight suppression finding for context
+                            //this will look
                             let suppressionRange : Range = Range.create(lineStart,columnStart + suppressionFinding.ruleColumn,lineStart, columnStart + suppressionFinding.ruleColumn + rule.id.length);
-                            let problem : DevSkimProblem = new DevSkimProblem(rule.description,rule.name,
-                                rule.id, DevskimRuleSeverity.WarningInfo, rule.replacement, rule.rule_info, suppressionRange);
-                            problem.suppressedFindingRange = range;
-
-                            if(rule.overrides !== undefined && rule.overrides.length > 0)
-                            {
-                                problem.overrides = rule.overrides; 
-                            }
+                            let problem : DevSkimProblem = this.makeProblem(rule,DevskimRuleSeverity.WarningInfo, suppressionRange, range);
+                            
                             problems.push(problem);
 
                         }
@@ -327,6 +320,60 @@ export class DevSkimWorker
         return problems;
     }
 
+    /**
+     * 
+     * 
+     * @private
+     * @param {string} langID 
+     * @param {string} docContentsToFinding 
+     * @param {number} newlineIndex 
+     * @returns {boolean} 
+     * @memberof DevSkimWorker
+     */
+    private matchIsInScope(langID : string, docContentsToFinding : string, newlineIndex : number) : boolean
+    {
+        //this is a stub.  Once the new schema is accepted this will check if the rule scope is all, code, or comment
+        //and then check where the finding occured.  If the finding is in the expected scope it will return true, otherwise false
+        let findingInCOmments : boolean = SourceComments.IsFindingInComment(langID,docContentsToFinding, newlineIndex);
+        return !findingInCOmments;
+    }
+
+    /**
+     * There are two conditions where this function gets called.  The first is to mark the code a rule triggered on and
+     * in that case the rule, the severity of that rule, and the range of code for a specific finding found by that rule are
+     * passed in.  suppressedFindingRange is ignored
+     * 
+     * The second instance is when decorating the ruleID in a suppression or review comment.  e.g.:
+     *     //DevSkim ignore: DS123456 or //DevSkim reviewed:DS123456
+     * DevSkim will create a problem to mark the DS123456 so that when moused over so other people looking through the code
+     * know what was suppressed or reviewed.  In this instance we still pass in the rule.  a Rule severity of warningInfo should
+     * be passed in for warningLevel.  problemRange should be the range of the "DSXXXXXX" text that should get the information squiggle
+     * and suppressedFindingRange should be the range of the finding that was suppressed or reviewed by the comment.  This last
+     * is important, as we need to save that info for later to cover overrides that also should be suppressed
+     * @param {Rule} rule
+     * @param {DevskimRuleSeverity} warningLevel 
+     * @param {Range} problemRange 
+     * @param {Range} [suppressedFindingRange] 
+     */
+    private makeProblem(rule: Rule, warningLevel : DevskimRuleSeverity, problemRange: Range, suppressedFindingRange?:Range) : DevSkimProblem
+    {
+        let problem : DevSkimProblem = new DevSkimProblem(rule.description,rule.name,
+            rule.id, warningLevel, rule.replacement, rule.rule_info, problemRange);
+
+        if(suppressedFindingRange != undefined && suppressedFindingRange != null)
+        {
+            problem.suppressedFindingRange = suppressedFindingRange;
+        }
+        
+
+        if(rule.overrides !== undefined && rule.overrides.length > 0)
+        {
+            problem.overrides = rule.overrides; 
+        }
+
+        return problem;
+    }
+    
     private matchesConditions(conditions : Condition[], findingContents: string, documentContents : string, findingRange : Range ) : boolean
     {
 
