@@ -153,7 +153,7 @@ connection.onDidChangeWatchedFiles((change) => {
 });
 
 
-//the following interface, namespace and onRequest define a way for the client to invoke validation via
+//the following interface, namespace and onRequest define a way for the client to invoke validation of a source file via
 //a message sent to the server.  The same interfaces need to be defined (or included) in the client
 //so it knows the format to use
 interface ValidateDocsParams {	textDocuments: TextDocumentIdentifier[];}
@@ -169,6 +169,13 @@ connection.onRequest(ValidateDocsRequest.type, (params) => {
 });
 
 
+interface ReloadRulesParams {null}
+namespace ReloadRulesRequest {
+	export const type = new RequestType<ReloadRulesParams,void, void, void>('devskim/validaterules')}
+
+connection.onRequest(ReloadRulesRequest.type, (params) => {
+	analysisEngine.refreshAnalysisRules();
+});
 
 
 // Listen on the connection

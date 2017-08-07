@@ -18,6 +18,10 @@ interface ValidateDocsParams {	textDocuments: TextDocumentIdentifier[];}
 namespace ValidateDocsRequest {
 	export const type = new RequestType<ValidateDocsParams, void, void, void>('textDocument/devskim/validatedocuments');}
 
+interface ReloadRulesParams {null}
+namespace ReloadRulesRequest {
+	export const type = new RequestType<ReloadRulesParams,void, void, void>('devskim/validaterules')}
+
 
 export function activate(context: ExtensionContext) {
 
@@ -83,7 +87,15 @@ export function activate(context: ExtensionContext) {
 		}
 	}
 
+	function command_ReloadRules()
+	{
+		client.sendRequest(ReloadRulesRequest.type, null);	
+	}
 
+	function command_ScanEverything()
+	{
+
+	}
 	
 	let client : LanguageClient = new LanguageClient('Devskim', serverOptions, clientOptions);
 	// Create the language client and start the client.
@@ -92,7 +104,12 @@ export function activate(context: ExtensionContext) {
 	// Push the disposable to the context's subscriptions so that the 
 	// client can be deactivated on extension deactivation
 	context.subscriptions.push(disposable,
-		commands.registerCommand('devskim.applySingleFix', applyTextEdits));
+		commands.registerCommand('devskim.applySingleFix', applyTextEdits),
+		commands.registerCommand('devskim.scanWorkspace', command_ScanEverything),
+		commands.registerCommand('devskim.reloadRules', command_ReloadRules)
+	);
+
+	
 
 	//when the extension is first loading a lot of stuff is happening asyncronously in VS code
 	//as a result, often the first analysis doesn't happen until after the user types.  This will

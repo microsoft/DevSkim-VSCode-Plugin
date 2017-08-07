@@ -12,20 +12,26 @@
  * ------------------------------------------------------------------------------------------ */
 import { Range } from 'vscode-languageserver';
 import {computeKey, Condition, DevSkimProblem, Settings, DevSkimSettings,DevskimRuleSeverity, Fixes, Map, AutoFix, Rule,FixIt,Pattern, DevSkimAutoFixEdit} from "./devskimObjects";
-import {DevSkimSuppression, DevSkimSuppressionFinding} from "./suppressions"
-import {PathOperations} from "./pathOperations"
+import {DevSkimSuppression, DevSkimSuppressionFinding} from "./suppressions";
+import {PathOperations} from "./pathOperations";
 import * as path from 'path';
 import {SourceComments} from "./comments";
+import {RuleValidator} from "./ruleValidator";
 
+
+/**
+ * The bulk of the DevSkim analysis logic.  Loads rules in, exposes functions to run rules across a file
+ */
 export class DevSkimWorker
 {
     public static settings : Settings;
 
     //directory that the extension rules live in.  
-    private rulesDirectory: String;
+    private rulesDirectory: string;
 
     //collection of rules to run analysis with
     private analysisRules: Rule[];
+    private tempRules: Object[];
    
     private dir = require('node-dir'); 
 
@@ -49,7 +55,7 @@ export class DevSkimWorker
         //this file runs out of the server directory.  The rules directory should be in ../rules
         //so pop over to it
         this.rulesDirectory =  path.join(__dirname,"..","rules");
-        
+
         this.loadRules();
     }
 
@@ -134,6 +140,7 @@ export class DevSkimWorker
      */
     private loadRules() : void 
     {
+        this.tempRules = [];
         this.analysisRules = [];
 
         //read the rules files recursively from the file system - get all of the .json files under the rules directory.  
@@ -143,17 +150,28 @@ export class DevSkimWorker
             (err, content, file, next) => 
             { 
                 if (err) throw err;
-                //Load the rules from files add the file path & whether the rule is required 
-                //or optional (based on the file path) to the rule objects
+                //Load the rules from files add the file path 
                 var loadedRules : Rule[] = JSON.parse(content);
                 for(var rule of loadedRules)
                 {
                     rule.filepath = file;
                 }
 
-                this.analysisRules = this.analysisRules.concat(loadedRules);
+                this.tempRules = this.tempRules.concat(loadedRules);
                 next();  
-            });          
+            },
+            (err, files) => 
+            {
+                //now that we have all of the rules objects, lets clean them up and make
+                //sure they are in a format we can use.  This will overwrite any badly formed JSON files
+                //with good ones so that it passes validation in the future
+                let validator : RuleValidator = new RuleValidator(this.rulesDirectory,__dirname);
+                this.analysisRules = validator.validateRules(this.tempRules, DevSkimWorker.settings.devskim.validateRulesFiles);
+                
+                //don't need to keep this around anymore
+                delete this.tempRules;
+            }
+        );          
     }
 
     /**
@@ -358,7 +376,7 @@ export class DevSkimWorker
     private makeProblem(rule: Rule, warningLevel : DevskimRuleSeverity, problemRange: Range, suppressedFindingRange?:Range) : DevSkimProblem
     {
         let problem : DevSkimProblem = new DevSkimProblem(rule.description,rule.name,
-            rule.id, warningLevel, rule.replacement, rule.rule_info, problemRange);
+            rule.id, warningLevel, rule.recommendation, rule.rule_info, problemRange);
 
         if(suppressedFindingRange != undefined && suppressedFindingRange != null)
         {

@@ -31,7 +31,6 @@ export interface DevSkimSettings {
 	manualReviewerName: string;
 	ignoreFilesList: string[];
 	ignoreRulesList: string[];
-	validateRulesFiles: boolean;	
 }
 
 /**
@@ -84,7 +83,7 @@ export interface Rule {
     applies_to?: string[];
     severity: string;
     description: string;
-    recommendation: string;
+    replacement: string;
     rule_info: string;
 	patterns: Pattern[];
 	conditions?: Condition[];

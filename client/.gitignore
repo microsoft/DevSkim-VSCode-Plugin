@@ -4,6 +4,7 @@ node_modules
 rules
 
 !.gitignore
+rulesValidationLog.json
 
 #exclude everything in .vscode except launch and tasks
 !.vscode
