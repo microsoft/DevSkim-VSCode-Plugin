@@ -71,6 +71,11 @@
 					"default": 30,
 					"description": "DevSkim allows for findings to be suppressed for a temporary period of time. The default is 30 days.  Set to 0 to disable temporary suppressions"
 				},
+				"devskim.guidanceBaseURL": {
+					"type": "string",
+					"default": "https://github.com/Microsoft/DevSkim/blob/master/guidance/",
+					"description": "Each finding has a guidance file that describes the issue and solutions in more detail.  By default, those files live on the DevSkim github repo however, with this setting, organizations can clone and customize that repo, and specify their own base URL for the guidance."
+				},				
 				"devskim.ignoreFilesList": {
 					"type" :"array",
 					"default": ["out/*","bin/*", "node_modules/*", ".vscode/*","yarn.lock", "logs/*", "*.log"],

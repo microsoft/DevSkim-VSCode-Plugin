@@ -222,18 +222,39 @@ export class DevSkimWorker
     /**
      * the pattern type governs how we form the regex.  regex-word is wrapped in \b, string is as well, but is also escaped.
      * substring is not wrapped in \b, but is escapped, and regex/the default behavior is a vanilla regular expression
-     * @param regexType regex-word|string|substring
+     * @param regexType regex|regex-word|string|substring
      * @param pattern 
+     * @param modifiers modifiers to use when creating regex. can be null
      */
-    public MakeRegex(regexType : string, pattern : string) : RegExp
+    public MakeRegex(regexType : string, pattern : string, modifiers : string[]) : RegExp
     {
-         let XRegExp = require('xregexp');
-        switch(regexType.toLowerCase())
+        //create any regex modifiers
+        let regexModifer = "g"; //always want to do a global search
+        if(modifiers != undefined && modifiers != null)
         {
-            case 'regex-word': return XRegExp('\\b'+pattern+'\\b', "g");    
-            case 'string': return XRegExp('\\b'+pattern+'\\b', "g");                            
-            case 'substring': return XRegExp(XRegExp.escape(pattern), "g");                              
-            default: return XRegExp(pattern, "g");                                                
+            for(let mod of modifiers)
+            {
+                //xregexp implemented dotmatchall as s instead of d
+                if(mod == "d")
+                {
+                    regexModifer = regexModifer + "s";
+                }
+                else
+                {
+                    regexModifer = regexModifer + mod;
+                }
+                
+            }
+        }
+
+        //now create a regex based on the 
+        let XRegExp = require('xregexp');
+        switch(regexType.toLowerCase())
+        {            
+            case 'regex-word': return XRegExp('\\b'+pattern+'\\b', regexModifer);    
+            case 'string': return XRegExp('\\b'+XRegExp.escape(pattern)+'\\b', regexModifer);                            
+            case 'substring': return XRegExp(XRegExp.escape(pattern), regexModifer);                              
+            default: return XRegExp(pattern, regexModifer);                                                
         }            
     }
 
@@ -259,15 +280,13 @@ export class DevSkimWorker
             var ruleSeverity : DevskimRuleSeverity = this.MapRuleSeverity(rule.severity);
             //if the rule doesn't apply to whatever language we are analyzing (C++, Java, etc.) or we aren't processing
             //that particular severity skip the rest
-            if((rule.active === undefined || rule.active == null || rule.active == true) && 
-               DevSkimWorker.settings.devskim.ignoreRulesList.indexOf(rule.id) == -1 &&  /*check to see if this is a rule the user asked to ignore */
+            if(DevSkimWorker.settings.devskim.ignoreRulesList.indexOf(rule.id) == -1 &&  /*check to see if this is a rule the user asked to ignore */
                this.appliesToLangOrFile(langID, rule.applies_to, documentURI) &&
                this.RuleSeverityEnabled(ruleSeverity))
             {
                 for(let patternIndex:number = 0; patternIndex < rule.patterns.length; patternIndex++)
-                {
-                    
-                    var matchPattern: RegExp = this.MakeRegex(rule.patterns[patternIndex].type,rule.patterns[patternIndex].pattern );
+                {                    
+                    var matchPattern: RegExp = this.MakeRegex(rule.patterns[patternIndex].type,rule.patterns[patternIndex].pattern, rule.patterns[patternIndex].modifiers );
                     
                     let matchPosition: number = 0;
                     var match;
@@ -306,7 +325,7 @@ export class DevSkimWorker
 
                         //look for the suppression comment for that finding
                         if(!suppressionFinding.showFinding && 
-                           this.matchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex) &&
+                           this.matchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex,rule.patterns[patternIndex].scope ) &&
                             this.matchesConditions(rule.conditions,match[0],documentContents,range))
                         {
                             let problem : DevSkimProblem = this.makeProblem(rule,this.MapRuleSeverity(rule.severity), range);
@@ -339,21 +358,30 @@ export class DevSkimWorker
     }
 
     /**
-     * 
+     * Check to see if the finding occurs within the scope expected
+     * see scope param for details
      * 
      * @private
      * @param {string} langID 
      * @param {string} docContentsToFinding 
      * @param {number} newlineIndex 
+     * @param {string} scope values are code (finding should only occur in code), comment (finding should only occur code comments), or all (finding occurs anywhere)
      * @returns {boolean} 
      * @memberof DevSkimWorker
      */
-    private matchIsInScope(langID : string, docContentsToFinding : string, newlineIndex : number) : boolean
+    private matchIsInScope(langID : string, docContentsToFinding : string, newlineIndex : number, scope : string) : boolean
     {
+        if(scope == "all")
+            return true;
+
         //this is a stub.  Once the new schema is accepted this will check if the rule scope is all, code, or comment
         //and then check where the finding occured.  If the finding is in the expected scope it will return true, otherwise false
-        let findingInCOmments : boolean = SourceComments.IsFindingInComment(langID,docContentsToFinding, newlineIndex);
-        return !findingInCOmments;
+        let findingInComment : boolean = SourceComments.IsFindingInComment(langID,docContentsToFinding, newlineIndex);
+
+        if((scope == "code" && !findingInComment) || (scope == "comment" && findingInComment))
+            return true;
+
+        return false;
     }
 
     /**
@@ -435,20 +463,21 @@ export class DevSkimWorker
     {
         var fixes : DevSkimAutoFixEdit[] = [];
         //if there are any fixes, add them to the fix collection so they can be used in code fix commands
-        if(rule.fix_it !== undefined && rule.fix_it.length > 0)
+        if(rule.fix_its !== undefined && rule.fix_its.length > 0)
         {   
 
             //recordCodeAction below acts like a stack, putting the most recently added rule first.
             //Since the very first fix in the rule is usually the prefered one (when there are multiples)
             //we want it to be first in the fixes collection, so we go through in reverse order 
-            for(var fixIndex = rule.fix_it.length -1; fixIndex >= 0; fixIndex--) 
+            for(var fixIndex = rule.fix_its.length -1; fixIndex >= 0; fixIndex--) 
             {
                 let fix : DevSkimAutoFixEdit = Object.create(null);
-                var replacePattern = RegExp(rule.fix_it[fixIndex].search);
+                //TO DO - support the rest of the pattern object
+                var replacePattern = RegExp(rule.fix_its[fixIndex].pattern.pattern);
                 try
                 {
-                    fix.text = replacementSource.replace(replacePattern,rule.fix_it[fixIndex].replace); 
-                    fix.fixName = "DevSkim: "+ rule.fix_it[fixIndex].name;
+                    fix.text = replacementSource.replace(replacePattern,rule.fix_its[fixIndex].replacement); 
+                    fix.fixName = "DevSkim: "+ rule.fix_its[fixIndex].name;
                     
                     fix.range = range;
                     fixes.push(fix);    
