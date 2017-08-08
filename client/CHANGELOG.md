@@ -3,6 +3,8 @@
 ## Version 0.1.5
 * Added ability to apply rules to specific files (e.g. package.json or project.json, instead of all .json files)
 * New manual review rules for deserialization in different languages (e.g. pickle.load in Python, or ReadObject in Java).  Manual review rules are not enabled by default and must be turned on via settings.  These are *potentially* severe security issues, but as DevSkim does not have strong data flow capabilities these rules will also flag safe uses
+* Updated to support the new rules schema (documentation at https://github.com/Microsoft/DevSkim/wiki).  This includes:
+    * Ability to scope rules to specific parts of a source file (e.g. just executable source, just code comments, just HTML blocks, or a combinations of those)
 
 
 ## Version 0.1.4

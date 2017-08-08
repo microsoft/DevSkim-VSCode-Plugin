@@ -46,7 +46,7 @@ export interface Pattern {
     pattern: string;
     type: string;
 	modifiers?:string[];
-    scope?: string;
+    scopes?: string[];
     _comment ? : string;
 }
 
@@ -97,7 +97,7 @@ export interface Rule {
 export interface Condition {
 	pattern: Pattern;
 	search_in: string;
-	case_sensitive?: boolean;
+	_comment?: string;
 	negate_finding?: boolean;
 
 }

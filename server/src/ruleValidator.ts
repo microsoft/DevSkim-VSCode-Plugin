@@ -39,8 +39,7 @@ export class RuleValidator
         {
             try 
             {
-                //use outputValidation conditional here to see if we should call makeRule or makeRuleNoValidaiton
-                let newRule : Rule = this.makeRule(loadedRule);
+                let newRule : Rule = (outputValidation) ? this.makeRule(loadedRule) : this.makeRuleNoValidation(loadedRule);
                 rules.push(newRule);
             }
             catch (err){}
@@ -113,7 +112,7 @@ export class RuleValidator
         for(let x = 0; x < newRule.patterns.length; x++)
         {
             //despite *mostly* not doing validation in this function, we do validate scope, as it may be missing and need a default value
-            newRule.patterns[x].scope = this.validatePatternScope(newRule.patterns[x].scope, loadedRule);
+            newRule.patterns[x].scopes = this.validatePatternScopeArray(newRule.patterns[x].scopes, loadedRule);
         }
 
         newRule.fix_its = loadedRule.fix_it;
@@ -263,7 +262,7 @@ export class RuleValidator
             let pattern : Pattern = Object.create(null);
             pattern.pattern = loadedFixit.search;
             pattern.type = "regex";
-            pattern.scope = "code";
+            pattern.scopes = ["code"];
             fixit.pattern = pattern;
 
             outcome = Object.create(null);
@@ -378,7 +377,31 @@ export class RuleValidator
             pattern.pattern = loadedPattern.pattern;
         }
         pattern.type = this.validatePatternType(loadedPattern.type, loadedPattern);
-        pattern.scope = this.validatePatternScope(loadedPattern.scope, loadedRule);
+        
+        //check if using the scopes array, the old single string value, or if it is absent
+        if(this.isSet(loadedPattern.scopes,"array") && this.verifyType(loadedPattern.scopes,"array",loadedRule,OutputAlert.Info,""))
+        {
+            pattern.scopes = this.validatePatternScopeArray(loadedPattern.scopes, loadedRule);
+        }
+        else if(this.isSet(loadedPattern.scope,"string") && this.verifyType(loadedPattern.scope,"string",loadedRule,OutputAlert.Info,""))
+        {
+            //convert to an array if a single value
+            let scopes : string [] = [loadedPattern.scope];
+            pattern.scopes = this.validatePatternScopeArray(scopes, loadedRule);
+
+            let outcome : OutputMessages = Object.create(null);
+            outcome.alert = OutputAlert.Warning;
+            outcome.message = "pattern.scope has been changed to pattern.scopes, and is now an array.  please update rule";
+            outcome.ruleid = loadedRule.id;
+            outcome.file = loadedRule.filepath;
+            this.writeoutNewRules = true;
+            this.outputMessages.push(outcome);              
+        }
+        else
+        {
+            pattern.scopes = ["code"];
+        }
+        
 
         pattern._comment = (this.isSet(loadedPattern._comment, "string")) ? loadedPattern._comment : "";
 
@@ -394,19 +417,24 @@ export class RuleValidator
      * @param scope one of the following values code, any, comment
      * @param loadedRule  rule loaded from File System whose severity is being validated 
      */
-    private validatePatternScope(scope : string, loadedRule) : string
+    private validatePatternScopeArray(scope : string[], loadedRule) : string[]
     {
-        if(!this.isSet(scope, "string"))
-        {
-            return "code";
-        }
+        let scopes : string[] = this.validateStringArray(scope,"scopes",loadedRule,this.validateSpecificScope);
+        if(scopes.length == 0)
+            scope.push("code");
 
+        return scopes;    
+    }
+
+    private validateSpecificScope(scope : string, loadedRule) : string
+    {
         scope = scope.toLowerCase();
         switch(scope)
         {
             case "code":
             case "any":
             case "comment":
+            case "html":
                 return scope;
             
             default:

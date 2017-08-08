@@ -199,7 +199,8 @@ export class DevSkimWorker
 
     /**
      * maps the string for severity recieved from the rules into the enum (there is inconsistencies with the case used
-     * in the rules, so this is case incencitive)
+     * in the rules, so this is case incencitive).  We convert to the enum as we do comparisons in a number of places
+     * and by using an enum we can get a transpiler error if we remove/change a label
      * 
      * @param {string} severity
      * @returns {DevskimRuleSeverity}
@@ -226,10 +227,10 @@ export class DevSkimWorker
      * @param pattern 
      * @param modifiers modifiers to use when creating regex. can be null
      */
-    public MakeRegex(regexType : string, pattern : string, modifiers : string[]) : RegExp
+    public MakeRegex(regexType : string, pattern : string, modifiers : string[],forXregExp : boolean) : RegExp
     {
         //create any regex modifiers
-        let regexModifer = "g"; //always want to do a global search
+        let regexModifer : string = ""; 
         if(modifiers != undefined && modifiers != null)
         {
             for(let mod of modifiers)
@@ -237,7 +238,11 @@ export class DevSkimWorker
                 //xregexp implemented dotmatchall as s instead of d
                 if(mod == "d")
                 {
-                    regexModifer = regexModifer + "s";
+                    //also, Javascript doesn't support dotmatchall natively, so only use this if it will be used with XRegExp
+                    if(forXregExp)
+                    {
+                        regexModifer = regexModifer + "s";
+                    }
                 }
                 else
                 {
@@ -285,8 +290,11 @@ export class DevSkimWorker
                this.RuleSeverityEnabled(ruleSeverity))
             {
                 for(let patternIndex:number = 0; patternIndex < rule.patterns.length; patternIndex++)
-                {                    
-                    var matchPattern: RegExp = this.MakeRegex(rule.patterns[patternIndex].type,rule.patterns[patternIndex].pattern, rule.patterns[patternIndex].modifiers );
+                {   
+                    let modifiers : string[] = (rule.patterns[patternIndex].modifiers != undefined && rule.patterns[patternIndex].modifiers.length > 0) ?
+                        rule.patterns[patternIndex].modifiers.concat(["g"]) : ["g"];                 
+                    
+                    var matchPattern: RegExp = this.MakeRegex(rule.patterns[patternIndex].type,rule.patterns[patternIndex].pattern,modifiers , true );
                     
                     let matchPosition: number = 0;
                     var match;
@@ -325,7 +333,7 @@ export class DevSkimWorker
 
                         //look for the suppression comment for that finding
                         if(!suppressionFinding.showFinding && 
-                           this.matchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex,rule.patterns[patternIndex].scope ) &&
+                           this.matchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex,rule.patterns[patternIndex].scopes ) &&
                             this.matchesConditions(rule.conditions,match[0],documentContents,range))
                         {
                             let problem : DevSkimProblem = this.makeProblem(rule,this.MapRuleSeverity(rule.severity), range);
@@ -369,18 +377,18 @@ export class DevSkimWorker
      * @returns {boolean} 
      * @memberof DevSkimWorker
      */
-    private matchIsInScope(langID : string, docContentsToFinding : string, newlineIndex : number, scope : string) : boolean
+    private matchIsInScope(langID : string, docContentsToFinding : string, newlineIndex : number, scopes : string[]) : boolean
     {
-        if(scope == "all")
-            return true;
-
-        //this is a stub.  Once the new schema is accepted this will check if the rule scope is all, code, or comment
-        //and then check where the finding occured.  If the finding is in the expected scope it will return true, otherwise false
+        if(scopes.indexOf("all") > -1)
+                return true;
+        
         let findingInComment : boolean = SourceComments.IsFindingInComment(langID,docContentsToFinding, newlineIndex);
 
-        if((scope == "code" && !findingInComment) || (scope == "comment" && findingInComment))
-            return true;
-
+        for(let scope of scopes)
+        {          
+            if((scope == "code" && !findingInComment) || (scope == "comment" && findingInComment))
+                return true;
+        }
         return false;
     }
 
@@ -422,6 +430,22 @@ export class DevSkimWorker
     
     private matchesConditions(conditions : Condition[], findingContents: string, documentContents : string, findingRange : Range ) : boolean
     {
+        if(conditions != undefined && conditions != null && conditions.length != 0)
+        {
+            let conditionFound : boolean = false;
+            for(let condition of conditions)
+            {
+                let modifiers : string[] = (condition.pattern.modifiers != undefined && condition.pattern.modifiers.length > 0) ?
+                        condition.pattern.modifiers.concat(["g"]) : ["g"];  
+                        
+                let conditionRegex : RegExp = this.MakeRegex(condition.pattern.type, condition.pattern.pattern,modifiers,true );
+                let regionText : string = "";
+                if(condition.search_in == "finding-only")
+                {
+                    regionText = findingContents;
+                }
+            }
+        }
 
         return true;
     }
@@ -448,6 +472,30 @@ export class DevSkimWorker
         return lineStart;
     }
 
+    private getDocumentPosition(documentContents : string, lineNumber : number) : number
+    {
+        if(lineNumber <= 1)
+            return 0;
+
+        let newlinePattern : RegExp = /(\r\n|\n|\r)/gm;
+        let line : number = 1;
+        let matchPosition: number = 0;
+        let match;
+        let XRegExp = require('xregexp');
+
+        //go through all of the text looking for a match with the given pattern
+        while(match = XRegExp.exec(documentContents,newlinePattern,matchPosition))
+        {
+            line++;
+            matchPosition = match.index + match[0].length;
+            if(line == lineNumber)
+                return matchPosition;            
+        }
+
+        return documentContents.length;
+
+    }
+
     /**
      * Create an array of fixes from the rule and the vulnerable part of the file being scanned
      * 
@@ -472,8 +520,9 @@ export class DevSkimWorker
             for(var fixIndex = rule.fix_its.length -1; fixIndex >= 0; fixIndex--) 
             {
                 let fix : DevSkimAutoFixEdit = Object.create(null);
-                //TO DO - support the rest of the pattern object
-                var replacePattern = RegExp(rule.fix_its[fixIndex].pattern.pattern);
+                var replacePattern = this.MakeRegex(rule.fix_its[fixIndex].pattern.type, 
+                    rule.fix_its[fixIndex].pattern.pattern, rule.fix_its[fixIndex].pattern.modifiers, false);
+                
                 try
                 {
                     fix.text = replacementSource.replace(replacePattern,rule.fix_its[fixIndex].replacement); 
