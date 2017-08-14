@@ -91,17 +91,14 @@ export class RuleValidator
         newRule.description = loadedRule.description;
         newRule.recommendation = loadedRule.recommendation;
 
-        let overrides : string[] = loadedRule.overrides;;
-        if(overrides.length > 0)
-            newRule.overrides = overrides; 
+        if(this.isSet(loadedRule.overrides, "array") && loadedRule.overrides.length > 0)
+            newRule.overrides = loadedRule.overrides; 
 
-        let applies : string[] = loadedRule.applies_to;
-        if(applies.length > 0)
-            newRule.applies_to = applies; 
+        if(this.isSet(loadedRule.applies_to, "array") && loadedRule.applies_to.length > 0)
+            newRule.applies_to = loadedRule.applies_to; 
 
-        let tags : string[] = loadedRule.tags;
-        if(tags.length > 0)
-            newRule.tags = tags;        
+        if(this.isSet(loadedRule.tags, "array") && loadedRule.tags.length > 0)
+            newRule.tags = loadedRule.tags;        
         
         newRule.severity = loadedRule.severity.toLowerCase();
         newRule._comment = (this.isSet(loadedRule._comment, "string")) ? loadedRule._comment : "";
@@ -115,8 +112,11 @@ export class RuleValidator
             newRule.patterns[x].scopes = this.validatePatternScopeArray(newRule.patterns[x].scopes, loadedRule);
         }
 
-        newRule.fix_its = loadedRule.fix_it;
-        newRule.conditions = loadedRule.conditions;        
+        if(this.isSet(loadedRule.fix_its, "array") && loadedRule.fix_its.length > 0)
+            newRule.fix_its = loadedRule.fix_its;           
+
+        if(this.isSet(loadedRule.conditions, "array") && loadedRule.conditions.length > 0)
+            newRule.conditions = loadedRule.conditions;   
 
         return newRule;        
     }

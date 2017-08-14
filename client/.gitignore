@@ -2,6 +2,7 @@ out
 server
 node_modules
 rules
+package-lock.json
 
 !.gitignore
 rulesValidationLog.json

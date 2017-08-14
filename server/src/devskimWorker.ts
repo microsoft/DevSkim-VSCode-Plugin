@@ -334,7 +334,7 @@ export class DevSkimWorker
                         //look for the suppression comment for that finding
                         if(!suppressionFinding.showFinding && 
                            this.matchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex,rule.patterns[patternIndex].scopes ) &&
-                            this.matchesConditions(rule.conditions,match[0],documentContents,range))
+                            this.matchesConditions(rule.conditions,match[0],documentContents,range, langID))
                         {
                             let problem : DevSkimProblem = this.makeProblem(rule,this.MapRuleSeverity(rule.severity), range);
 
@@ -428,22 +428,90 @@ export class DevSkimWorker
         return problem;
     }
     
-    private matchesConditions(conditions : Condition[], findingContents: string, documentContents : string, findingRange : Range ) : boolean
+    private matchesConditions(conditions : Condition[], findingContents: string, documentContents : string, findingRange : Range, langID: string ) : boolean
     {
         if(conditions != undefined && conditions != null && conditions.length != 0)
         {
             let conditionFound : boolean = false;
+            let regionRegex : RegExp = /finding-region\((-*\d+),(-*\d+)\)/;
+            let XRegExp = require('xregexp');
+
             for(let condition of conditions)
             {
+                if(condition.negate_finding == undefined)
+                {
+                    condition.negate_finding = false;
+                }
+                    
                 let modifiers : string[] = (condition.pattern.modifiers != undefined && condition.pattern.modifiers.length > 0) ?
                         condition.pattern.modifiers.concat(["g"]) : ["g"];  
                         
                 let conditionRegex : RegExp = this.MakeRegex(condition.pattern.type, condition.pattern.pattern,modifiers,true );
                 let regionText : string = "";
-                if(condition.search_in == "finding-only")
+
+                let startPos : number = findingRange.start.line;
+                let endPos : number = findingRange.end.line;
+
+                if(condition.search_in == undefined || condition.search_in == null)
                 {
-                    regionText = findingContents;
+                    startPos = this.getDocumentPosition(documentContents, findingRange.start.line);
+                    endPos = this.getDocumentPosition(documentContents,findingRange.end.line+1);
                 }
+                else if(condition.search_in == "finding-only")
+                {
+                    startPos = this.getDocumentPosition(documentContents, findingRange.start.line) + findingRange.start.character;
+                    endPos = this.getDocumentPosition(documentContents,findingRange.end.line) + findingRange.end.character;                
+                }
+                else
+                {
+                    let regionMatch = XRegExp.exec(condition.search_in,regionRegex);
+                    if(regionMatch && regionMatch.length > 2 )
+                    {
+                        startPos = this.getDocumentPosition(documentContents, findingRange.start.line +  regionMatch[1]);
+                        endPos = this.getDocumentPosition(documentContents,findingRange.end.line + regionMatch[2]+1);
+                    }
+                }
+                let match;
+                let foundPattern : boolean = false;
+                //go through all of the text looking for a match with the given pattern
+                while(match = XRegExp.exec(documentContents,conditionRegex,startPos))
+                {
+                    //if we are passed the point we should be looking
+                    if(match.index > endPos)
+                    {
+                        if (condition.negate_finding == false)
+                        {
+                            return false;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+
+                    //calculate what line we are on by grabbing the text before the match & counting the newlines in it
+                    let lineStart: number = this.getLineNumber(documentContents,match.index);
+                    let newlineIndex : number = (lineStart == 0 ) ? -1 : documentContents.substr(0,match.index).lastIndexOf("\n");
+                  
+                    //look for the suppression comment for that finding
+                    if(this.matchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex,condition.pattern.scopes ) )
+                    {
+                        if (condition.negate_finding == true)
+                        {
+                            return false;
+                        }
+                        else
+                        {
+                            foundPattern = true;
+                            break;
+                        }
+                    }
+                }
+                if(condition.negate_finding == false && foundPattern == false)
+                {
+                    return false;
+                }                
             }
         }
 
