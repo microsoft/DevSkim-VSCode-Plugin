@@ -223,9 +223,10 @@ export class DevSkimWorker
     /**
      * the pattern type governs how we form the regex.  regex-word is wrapped in \b, string is as well, but is also escaped.
      * substring is not wrapped in \b, but is escapped, and regex/the default behavior is a vanilla regular expression
-     * @param regexType regex|regex-word|string|substring
-     * @param pattern 
-     * @param modifiers modifiers to use when creating regex. can be null
+     * @param {string} regexType regex|regex-word|string|substring
+     * @param {string} pattern 
+     * @param {string[]} modifiers modifiers to use when creating regex. can be null.  a value of "d" will be ignored if forXregExp is false
+     * @param {boolean} forXregExp whether this is for the XRegExp regex engine (true) or the vanilla javascript regex engine (false)
      */
     public MakeRegex(regexType : string, pattern : string, modifiers : string[],forXregExp : boolean) : RegExp
     {
@@ -334,7 +335,7 @@ export class DevSkimWorker
                         //look for the suppression comment for that finding
                         if(!suppressionFinding.showFinding && 
                            this.matchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex,rule.patterns[patternIndex].scopes ) &&
-                            this.matchesConditions(rule.conditions,match[0],documentContents,range, langID))
+                            this.matchesConditions(rule.conditions,documentContents,range, langID))
                         {
                             let problem : DevSkimProblem = this.makeProblem(rule,this.MapRuleSeverity(rule.severity), range);
 
@@ -428,11 +429,17 @@ export class DevSkimWorker
         return problem;
     }
     
-    private matchesConditions(conditions : Condition[], findingContents: string, documentContents : string, findingRange : Range, langID: string ) : boolean
+    /**
+     * 
+     * @param {Condition[]} conditions the condition objects we are checking for
+     * @param {string} documentContents the document we are finding the conditions in
+     * @param {Range} findingRange the location of the finding we are looking for more conditions around
+     * @param {string} langID the language we are working in
+     */
+    private matchesConditions(conditions : Condition[], documentContents : string, findingRange : Range, langID: string ) : boolean
     {
         if(conditions != undefined && conditions != null && conditions.length != 0)
         {
-            let conditionFound : boolean = false;
             let regionRegex : RegExp = /finding-region\((-*\d+),(-*\d+)\)/;
             let XRegExp = require('xregexp');
 
@@ -447,11 +454,13 @@ export class DevSkimWorker
                         condition.pattern.modifiers.concat(["g"]) : ["g"];  
                         
                 let conditionRegex : RegExp = this.MakeRegex(condition.pattern.type, condition.pattern.pattern,modifiers,true );
-                let regionText : string = "";
 
                 let startPos : number = findingRange.start.line;
                 let endPos : number = findingRange.end.line;
 
+                //calculate where to look for the condition.  finding-only is just within the actual finding the original pattern flagged.
+                //finding-region(#,#) specifies an area around the finding.  A 0 for # means the line of the finding, negative values mean 
+                //that many lines prior to the finding, and positive values mean that many line later in the code
                 if(condition.search_in == undefined || condition.search_in == null)
                 {
                     startPos = this.getDocumentPosition(documentContents, findingRange.start.line);
@@ -507,6 +516,7 @@ export class DevSkimWorker
                             break;
                         }
                     }
+                    startPos = match.index + match[0].length;  
                 }
                 if(condition.negate_finding == false && foundPattern == false)
                 {
@@ -540,10 +550,17 @@ export class DevSkimWorker
         return lineStart;
     }
 
+    /**
+     * Given the line number, find the number of characters in the document to get to that line number
+     * @param {string} documentContents the document we are parsing for the line
+     * @param {number} lineNumber the VS Code line number (internally, not UI - internally lines are 0 indexed, in the UI they start at 1)
+     */
     private getDocumentPosition(documentContents : string, lineNumber : number) : number
     {
-        if(lineNumber <= 1)
+        if(lineNumber < 1)
             return 0;
+        //the line number is 0 indexed, but we are counting newlines, which isn't, so add 1
+        lineNumber ++;
 
         let newlinePattern : RegExp = /(\r\n|\n|\r)/gm;
         let line : number = 1;

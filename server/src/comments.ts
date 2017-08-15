@@ -1,4 +1,8 @@
-/**
+/* --------------------------------------------------------------------------------------------
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License. See License.txt in the project root for license information.
+ * ------------------------------------------------------------------------------------------ 
+ *
  * Class for dealing with code comments, since VS Code doesn't (currently, as of this authoring)
  * expose an API to understand the comment characters for a language, or whether or not the current
  * code is commented
@@ -92,6 +96,9 @@ export class SourceComments
 
             case "fsharp" : return "(*";
 
+            case "html" :
+            case "xml": return "<!--";
+
             default: return "";
         }
     } 
@@ -125,6 +132,9 @@ export class SourceComments
             case "rust": return "*/";
 
             case "fsharp" : return "*)";
+
+            case "html" :
+            case "xml": return "-->";
 
             default: return "";
         }

@@ -1,3 +1,11 @@
+/* --------------------------------------------------------------------------------------------
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License. See License.txt in the project root for license information.
+ * ------------------------------------------------------------------------------------------ 
+ * contains the logic to validate each rule in a file to make sure it matches the expected format 
+ * 
+ */
+
 import {DevskimRuleSeverity,AutoFix, Rule,FixIt,Pattern} from "./devskimObjects";
 import * as path from 'path';
 
@@ -79,7 +87,7 @@ export class RuleValidator
 
  
     /**
-     * 
+     * Loads a rule with fairly little validation (some default values, like scope, are filled in if missing)
      * @param loadedRule  rule loaded from File System whose severity is being validated 
      */
     private makeRuleNoValidation(loadedRule) : Rule
@@ -174,8 +182,8 @@ export class RuleValidator
 
 
     /**
-     * 
-     * @param loadedRule 
+     * go through the array of Fixits and make sure each is in the expected format
+     * @param loadedRule the rule loaded from the file system
      */
     private validateFixitArray(loadedRule) : FixIt[]
     {
@@ -220,7 +228,7 @@ export class RuleValidator
     }
 
     /**
-     * 
+     * Go through an individual fixit to make sure it is in the expected format
      * @param loadedFixit 
      * @param loadedRule 
      */
