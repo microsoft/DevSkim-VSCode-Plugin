@@ -84,11 +84,6 @@ connection.onDidChangeConfiguration((change) => {
 	documents.all().forEach(validateTextDocument);
 });
 
-function onValidateAll() 
-{
-
-}
-
 //this is the mechanism that populates VS Code with the various code actions associated
 //with DevSkim findings.  VS Code invokes this to get an array of commands.  This happens
 //independent of populating the text document with diagnostics, yet the code actions are

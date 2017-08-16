@@ -8,7 +8,7 @@ import * as path from 'path';
 
 import { workspace, window, commands, ExtensionContext, StatusBarAlignment, TextEditor, Disposable } from 'vscode';
 import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TextEdit,
-	RequestType, TextDocumentIdentifier, ResponseError, InitializeError, State as ClientState, NotificationType, TransportKind
+	RequestType, TextDocumentIdentifier, TextDocument, ResponseError, InitializeError, State as ClientState, NotificationType, TransportKind
 } from 'vscode-languageclient';
 
 //the following interface and namespace define a format to invoke a function on the server via
@@ -93,6 +93,13 @@ export function activate(context: ExtensionContext) {
 
 	function command_ScanEverything()
 	{
+		var textDocuments: TextDocumentIdentifier[] = [];
+		for(var x: number = 0; x < workspace.textDocuments.length; x++)
+		{
+			textDocuments[x] = Object.create(null);
+			textDocuments[x].uri = workspace.textDocuments[x].uri.toString();
+		}
+		client.sendRequest(ValidateDocsRequest.type, {textDocuments});	
 
 	}
 	
