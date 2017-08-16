@@ -33,6 +33,7 @@ export interface DevSkimSettings {
 	ignoreRulesList: string[];
 	validateRulesFiles: boolean;
 	guidanceBaseURL: string;	
+	removeFindingsOnClose: boolean;
 }
 
 /**

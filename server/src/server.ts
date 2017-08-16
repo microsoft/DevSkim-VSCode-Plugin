@@ -61,6 +61,16 @@ documents.onDidOpen((change) => {
 	validateTextDocument(change.document);	
 });
 
+//if the user has specified in settings, all findings will be cleared when they close a document
+documents.onDidClose((change) => {	
+	if(DevSkimWorker.settings.devskim.removeFindingsOnClose)
+	{	
+		let diagnostics : Diagnostic[] = [];
+		connection.sendDiagnostics({ uri: change.document.uri, diagnostics });
+	}
+});
+
+
 
 
 // The settings have changed. Is send on server activation

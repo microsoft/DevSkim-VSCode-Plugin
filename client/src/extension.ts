@@ -7,8 +7,7 @@
 import * as path from 'path';
 
 import { workspace, window, commands, ExtensionContext, StatusBarAlignment, TextEditor, Disposable } from 'vscode';
-import {
-	LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TextEdit,
+import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TextEdit,
 	RequestType, TextDocumentIdentifier, ResponseError, InitializeError, State as ClientState, NotificationType, TransportKind
 } from 'vscode-languageclient';
 
