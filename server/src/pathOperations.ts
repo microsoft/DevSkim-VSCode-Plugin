@@ -17,6 +17,12 @@ export class PathOperations
     {        
         if(filePath.length > 1)
         {
+            //we don't want to run analysis on commit files
+            if(filePath.indexOf("git") == 0)
+            {
+                return true;
+            }
+
             let XRegExp = require('xregexp');
             for(var ignorePattern of ignoreList)
             {
