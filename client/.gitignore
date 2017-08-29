@@ -2,8 +2,10 @@ out
 server
 node_modules
 rules
+package-lock.json
 
 !.gitignore
+rulesValidationLog.json
 
 #exclude everything in .vscode except launch and tasks
 !.vscode

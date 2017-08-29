@@ -12,20 +12,26 @@
  * ------------------------------------------------------------------------------------------ */
 import { Range } from 'vscode-languageserver';
 import {computeKey, Condition, DevSkimProblem, Settings, DevSkimSettings,DevskimRuleSeverity, Fixes, Map, AutoFix, Rule,FixIt,Pattern, DevSkimAutoFixEdit} from "./devskimObjects";
-import {DevSkimSuppression, DevSkimSuppressionFinding} from "./suppressions"
-import {PathOperations} from "./pathOperations"
+import {DevSkimSuppression, DevSkimSuppressionFinding} from "./suppressions";
+import {PathOperations} from "./pathOperations";
 import * as path from 'path';
 import {SourceComments} from "./comments";
+import {RuleValidator} from "./ruleValidator";
 
+
+/**
+ * The bulk of the DevSkim analysis logic.  Loads rules in, exposes functions to run rules across a file
+ */
 export class DevSkimWorker
 {
     public static settings : Settings;
 
     //directory that the extension rules live in.  
-    private rulesDirectory: String;
+    private rulesDirectory: string;
 
     //collection of rules to run analysis with
     private analysisRules: Rule[];
+    private tempRules: Object[];
    
     private dir = require('node-dir'); 
 
@@ -49,7 +55,7 @@ export class DevSkimWorker
         //this file runs out of the server directory.  The rules directory should be in ../rules
         //so pop over to it
         this.rulesDirectory =  path.join(__dirname,"..","rules");
-        
+
         this.loadRules();
     }
 
@@ -134,6 +140,7 @@ export class DevSkimWorker
      */
     private loadRules() : void 
     {
+        this.tempRules = [];
         this.analysisRules = [];
 
         //read the rules files recursively from the file system - get all of the .json files under the rules directory.  
@@ -143,17 +150,28 @@ export class DevSkimWorker
             (err, content, file, next) => 
             { 
                 if (err) throw err;
-                //Load the rules from files add the file path & whether the rule is required 
-                //or optional (based on the file path) to the rule objects
+                //Load the rules from files add the file path 
                 var loadedRules : Rule[] = JSON.parse(content);
                 for(var rule of loadedRules)
                 {
                     rule.filepath = file;
                 }
 
-                this.analysisRules = this.analysisRules.concat(loadedRules);
+                this.tempRules = this.tempRules.concat(loadedRules);
                 next();  
-            });          
+            },
+            (err, files) => 
+            {
+                //now that we have all of the rules objects, lets clean them up and make
+                //sure they are in a format we can use.  This will overwrite any badly formed JSON files
+                //with good ones so that it passes validation in the future
+                let validator : RuleValidator = new RuleValidator(this.rulesDirectory,__dirname);
+                this.analysisRules = validator.validateRules(this.tempRules, DevSkimWorker.settings.devskim.validateRulesFiles);
+                
+                //don't need to keep this around anymore
+                delete this.tempRules;
+            }
+        );          
     }
 
     /**
@@ -181,7 +199,8 @@ export class DevSkimWorker
 
     /**
      * maps the string for severity recieved from the rules into the enum (there is inconsistencies with the case used
-     * in the rules, so this is case incencitive)
+     * in the rules, so this is case incencitive).  We convert to the enum as we do comparisons in a number of places
+     * and by using an enum we can get a transpiler error if we remove/change a label
      * 
      * @param {string} severity
      * @returns {DevskimRuleSeverity}
@@ -204,18 +223,44 @@ export class DevSkimWorker
     /**
      * the pattern type governs how we form the regex.  regex-word is wrapped in \b, string is as well, but is also escaped.
      * substring is not wrapped in \b, but is escapped, and regex/the default behavior is a vanilla regular expression
-     * @param regexType regex-word|string|substring
-     * @param pattern 
+     * @param {string} regexType regex|regex-word|string|substring
+     * @param {string} pattern 
+     * @param {string[]} modifiers modifiers to use when creating regex. can be null.  a value of "d" will be ignored if forXregExp is false
+     * @param {boolean} forXregExp whether this is for the XRegExp regex engine (true) or the vanilla javascript regex engine (false)
      */
-    public MakeRegex(regexType : string, pattern : string) : RegExp
+    public MakeRegex(regexType : string, pattern : string, modifiers : string[],forXregExp : boolean) : RegExp
     {
-         let XRegExp = require('xregexp');
-        switch(regexType.toLowerCase())
+        //create any regex modifiers
+        let regexModifer : string = ""; 
+        if(modifiers != undefined && modifiers != null)
         {
-            case 'regex-word': return XRegExp('\\b'+pattern+'\\b', "g");    
-            case 'string': return XRegExp('\\b'+pattern+'\\b', "g");                            
-            case 'substring': return XRegExp(XRegExp.escape(pattern), "g");                              
-            default: return XRegExp(pattern, "g");                                                
+            for(let mod of modifiers)
+            {
+                //xregexp implemented dotmatchall as s instead of d
+                if(mod == "d")
+                {
+                    //also, Javascript doesn't support dotmatchall natively, so only use this if it will be used with XRegExp
+                    if(forXregExp)
+                    {
+                        regexModifer = regexModifer + "s";
+                    }
+                }
+                else
+                {
+                    regexModifer = regexModifer + mod;
+                }
+                
+            }
+        }
+
+        //now create a regex based on the 
+        let XRegExp = require('xregexp');
+        switch(regexType.toLowerCase())
+        {            
+            case 'regex-word': return XRegExp('\\b'+pattern+'\\b', regexModifer);    
+            case 'string': return XRegExp('\\b'+XRegExp.escape(pattern)+'\\b', regexModifer);                            
+            case 'substring': return XRegExp(XRegExp.escape(pattern), regexModifer);                              
+            default: return XRegExp(pattern, regexModifer);                                                
         }            
     }
 
@@ -241,15 +286,16 @@ export class DevSkimWorker
             var ruleSeverity : DevskimRuleSeverity = this.MapRuleSeverity(rule.severity);
             //if the rule doesn't apply to whatever language we are analyzing (C++, Java, etc.) or we aren't processing
             //that particular severity skip the rest
-            if((rule.active === undefined || rule.active == null || rule.active == true) && 
-               DevSkimWorker.settings.devskim.ignoreRulesList.indexOf(rule.id) == -1 &&  /*check to see if this is a rule the user asked to ignore */
+            if(DevSkimWorker.settings.devskim.ignoreRulesList.indexOf(rule.id) == -1 &&  /*check to see if this is a rule the user asked to ignore */
                this.appliesToLangOrFile(langID, rule.applies_to, documentURI) &&
                this.RuleSeverityEnabled(ruleSeverity))
             {
                 for(let patternIndex:number = 0; patternIndex < rule.patterns.length; patternIndex++)
-                {
+                {   
+                    let modifiers : string[] = (rule.patterns[patternIndex].modifiers != undefined && rule.patterns[patternIndex].modifiers.length > 0) ?
+                        rule.patterns[patternIndex].modifiers.concat(["g"]) : ["g"];                 
                     
-                    var matchPattern: RegExp = this.MakeRegex(rule.patterns[patternIndex].type,rule.patterns[patternIndex].pattern );
+                    var matchPattern: RegExp = this.MakeRegex(rule.patterns[patternIndex].type,rule.patterns[patternIndex].pattern,modifiers , true );
                     
                     let matchPosition: number = 0;
                     var match;
@@ -288,8 +334,8 @@ export class DevSkimWorker
 
                         //look for the suppression comment for that finding
                         if(!suppressionFinding.showFinding && 
-                           this.matchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex) &&
-                            this.matchesConditions(rule.conditions,match[0],documentContents,range))
+                           this.matchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex,rule.patterns[patternIndex].scopes ) &&
+                            this.matchesConditions(rule.conditions,documentContents,range, langID))
                         {
                             let problem : DevSkimProblem = this.makeProblem(rule,this.MapRuleSeverity(rule.severity), range);
 
@@ -321,21 +367,30 @@ export class DevSkimWorker
     }
 
     /**
-     * 
+     * Check to see if the finding occurs within the scope expected
+     * see scope param for details
      * 
      * @private
      * @param {string} langID 
      * @param {string} docContentsToFinding 
      * @param {number} newlineIndex 
+     * @param {string} scope values are code (finding should only occur in code), comment (finding should only occur code comments), or all (finding occurs anywhere)
      * @returns {boolean} 
      * @memberof DevSkimWorker
      */
-    private matchIsInScope(langID : string, docContentsToFinding : string, newlineIndex : number) : boolean
+    private matchIsInScope(langID : string, docContentsToFinding : string, newlineIndex : number, scopes : string[]) : boolean
     {
-        //this is a stub.  Once the new schema is accepted this will check if the rule scope is all, code, or comment
-        //and then check where the finding occured.  If the finding is in the expected scope it will return true, otherwise false
-        let findingInCOmments : boolean = SourceComments.IsFindingInComment(langID,docContentsToFinding, newlineIndex);
-        return !findingInCOmments;
+        if(scopes.indexOf("all") > -1)
+                return true;
+        
+        let findingInComment : boolean = SourceComments.IsFindingInComment(langID,docContentsToFinding, newlineIndex);
+
+        for(let scope of scopes)
+        {          
+            if((scope == "code" && !findingInComment) || (scope == "comment" && findingInComment))
+                return true;
+        }
+        return false;
     }
 
     /**
@@ -358,7 +413,7 @@ export class DevSkimWorker
     private makeProblem(rule: Rule, warningLevel : DevskimRuleSeverity, problemRange: Range, suppressedFindingRange?:Range) : DevSkimProblem
     {
         let problem : DevSkimProblem = new DevSkimProblem(rule.description,rule.name,
-            rule.id, warningLevel, rule.replacement, rule.rule_info, problemRange);
+            rule.id, warningLevel, rule.recommendation, rule.rule_info, problemRange);
 
         if(suppressedFindingRange != undefined && suppressedFindingRange != null)
         {
@@ -374,8 +429,101 @@ export class DevSkimWorker
         return problem;
     }
     
-    private matchesConditions(conditions : Condition[], findingContents: string, documentContents : string, findingRange : Range ) : boolean
+    /**
+     * 
+     * @param {Condition[]} conditions the condition objects we are checking for
+     * @param {string} documentContents the document we are finding the conditions in
+     * @param {Range} findingRange the location of the finding we are looking for more conditions around
+     * @param {string} langID the language we are working in
+     */
+    private matchesConditions(conditions : Condition[], documentContents : string, findingRange : Range, langID: string ) : boolean
     {
+        if(conditions != undefined && conditions != null && conditions.length != 0)
+        {
+            let regionRegex : RegExp = /finding-region\((-*\d+),(-*\d+)\)/;
+            let XRegExp = require('xregexp');
+
+            for(let condition of conditions)
+            {
+                if(condition.negate_finding == undefined)
+                {
+                    condition.negate_finding = false;
+                }
+                    
+                let modifiers : string[] = (condition.pattern.modifiers != undefined && condition.pattern.modifiers.length > 0) ?
+                        condition.pattern.modifiers.concat(["g"]) : ["g"];  
+                        
+                let conditionRegex : RegExp = this.MakeRegex(condition.pattern.type, condition.pattern.pattern,modifiers,true );
+
+                let startPos : number = findingRange.start.line;
+                let endPos : number = findingRange.end.line;
+
+                //calculate where to look for the condition.  finding-only is just within the actual finding the original pattern flagged.
+                //finding-region(#,#) specifies an area around the finding.  A 0 for # means the line of the finding, negative values mean 
+                //that many lines prior to the finding, and positive values mean that many line later in the code
+                if(condition.search_in == undefined || condition.search_in == null)
+                {
+                    startPos = this.getDocumentPosition(documentContents, findingRange.start.line);
+                    endPos = this.getDocumentPosition(documentContents,findingRange.end.line+1);
+                }
+                else if(condition.search_in == "finding-only")
+                {
+                    startPos = this.getDocumentPosition(documentContents, findingRange.start.line) + findingRange.start.character;
+                    endPos = this.getDocumentPosition(documentContents,findingRange.end.line) + findingRange.end.character;                
+                }
+                else
+                {
+                    let regionMatch = XRegExp.exec(condition.search_in,regionRegex);
+                    if(regionMatch && regionMatch.length > 2 )
+                    {
+                        startPos = this.getDocumentPosition(documentContents, findingRange.start.line +  regionMatch[1]);
+                        endPos = this.getDocumentPosition(documentContents,findingRange.end.line + regionMatch[2]+1);
+                    }
+                }
+                let match;
+                let foundPattern : boolean = false;
+                //go through all of the text looking for a match with the given pattern
+                while(match = XRegExp.exec(documentContents,conditionRegex,startPos))
+                {
+                    //if we are passed the point we should be looking
+                    if(match.index > endPos)
+                    {
+                        if (condition.negate_finding == false)
+                        {
+                            return false;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+
+                    //calculate what line we are on by grabbing the text before the match & counting the newlines in it
+                    let lineStart: number = this.getLineNumber(documentContents,match.index);
+                    let newlineIndex : number = (lineStart == 0 ) ? -1 : documentContents.substr(0,match.index).lastIndexOf("\n");
+                  
+                    //look for the suppression comment for that finding
+                    if(this.matchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex,condition.pattern.scopes ) )
+                    {
+                        if (condition.negate_finding == true)
+                        {
+                            return false;
+                        }
+                        else
+                        {
+                            foundPattern = true;
+                            break;
+                        }
+                    }
+                    startPos = match.index + match[0].length;  
+                }
+                if(condition.negate_finding == false && foundPattern == false)
+                {
+                    return false;
+                }                
+            }
+        }
 
         return true;
     }
@@ -403,6 +551,37 @@ export class DevSkimWorker
     }
 
     /**
+     * Given the line number, find the number of characters in the document to get to that line number
+     * @param {string} documentContents the document we are parsing for the line
+     * @param {number} lineNumber the VS Code line number (internally, not UI - internally lines are 0 indexed, in the UI they start at 1)
+     */
+    private getDocumentPosition(documentContents : string, lineNumber : number) : number
+    {
+        if(lineNumber < 1)
+            return 0;
+        //the line number is 0 indexed, but we are counting newlines, which isn't, so add 1
+        lineNumber ++;
+
+        let newlinePattern : RegExp = /(\r\n|\n|\r)/gm;
+        let line : number = 1;
+        let matchPosition: number = 0;
+        let match;
+        let XRegExp = require('xregexp');
+
+        //go through all of the text looking for a match with the given pattern
+        while(match = XRegExp.exec(documentContents,newlinePattern,matchPosition))
+        {
+            line++;
+            matchPosition = match.index + match[0].length;
+            if(line == lineNumber)
+                return matchPosition;            
+        }
+
+        return documentContents.length;
+
+    }
+
+    /**
      * Create an array of fixes from the rule and the vulnerable part of the file being scanned
      * 
      * @private
@@ -417,20 +596,22 @@ export class DevSkimWorker
     {
         var fixes : DevSkimAutoFixEdit[] = [];
         //if there are any fixes, add them to the fix collection so they can be used in code fix commands
-        if(rule.fix_it !== undefined && rule.fix_it.length > 0)
+        if(rule.fix_its !== undefined && rule.fix_its.length > 0)
         {   
 
             //recordCodeAction below acts like a stack, putting the most recently added rule first.
             //Since the very first fix in the rule is usually the prefered one (when there are multiples)
             //we want it to be first in the fixes collection, so we go through in reverse order 
-            for(var fixIndex = rule.fix_it.length -1; fixIndex >= 0; fixIndex--) 
+            for(var fixIndex = rule.fix_its.length -1; fixIndex >= 0; fixIndex--) 
             {
                 let fix : DevSkimAutoFixEdit = Object.create(null);
-                var replacePattern = RegExp(rule.fix_it[fixIndex].search);
+                var replacePattern = this.MakeRegex(rule.fix_its[fixIndex].pattern.type, 
+                    rule.fix_its[fixIndex].pattern.pattern, rule.fix_its[fixIndex].pattern.modifiers, false);
+                
                 try
                 {
-                    fix.text = replacementSource.replace(replacePattern,rule.fix_it[fixIndex].replace); 
-                    fix.fixName = "DevSkim: "+ rule.fix_it[fixIndex].name;
+                    fix.text = replacementSource.replace(replacePattern,rule.fix_its[fixIndex].replacement); 
+                    fix.fixName = "DevSkim: "+ rule.fix_its[fixIndex].name;
                     
                     fix.range = range;
                     fixes.push(fix);    
@@ -527,15 +708,15 @@ export class DevSkimWorker
         //if the parameters are empty, assume it applies.  Also, apply all the rules to plaintext documents	
         if(appliesTo != undefined && appliesTo != null && appliesTo.length > 0)
         {	
-            for(let i: number = 0; i < appliesTo.length; i++)
+            for(let applies of appliesTo)
             {
                 //if the list of languages this rule applies to matches the current lang ID
-                if(languageID !== undefined && languageID != null && languageID.toLowerCase() == appliesTo[i].toLowerCase() )
+                if(languageID !== undefined && languageID != null && languageID.toLowerCase() == applies.toLowerCase() )
                 {
                     return true;
                 }
-                else if(appliesTo[i].indexOf(".") != -1 /*applies to is probably a specific file name instead of a langID*/
-                    && documentURI.toLowerCase().indexOf(appliesTo[i].toLowerCase()) != -1) /*and its in the current doc URI*/
+                else if(applies.indexOf(".") != -1 /*applies to is probably a specific file name instead of a langID*/
+                    && documentURI.toLowerCase().indexOf(applies.toLowerCase()) != -1) /*and its in the current doc URI*/
                 {
                     return true;
                 }

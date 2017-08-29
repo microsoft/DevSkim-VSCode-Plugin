@@ -150,7 +150,6 @@ export class DevSkimSuppression
         var match;
 
         let newlinePattern : RegExp = /(\r\n|\n|\r)/gm;  
-
         if(match = XRegExp.exec(documentContents,newlinePattern,startCharacter))
         {             
             let columnStart : number = (lineStart == 0) ? match.index : match.index -  documentContents.substr(0,match.index).lastIndexOf("\n") -1;
@@ -160,7 +159,8 @@ export class DevSkimSuppression
         else
         {
             //replace with end of file
-            let columnStart : number = documentContents.length - startCharacter;
+            let columnStart : number = (lineStart == 0) ? documentContents.length:
+                 documentContents.length -  documentContents.lastIndexOf("\n") -1;
             range = Range.create(lineStart,columnStart ,lineStart,columnStart);
         }          
 
@@ -196,7 +196,7 @@ export class DevSkimSuppression
         { 
             let StartComment: string = SourceComments.GetLineComment(langID);
             let EndComment : string = "";
-            if(StartComment == null)
+            if(StartComment == undefined || StartComment == null || StartComment.length < 1)
             {
                 StartComment =  SourceComments.GetBlockCommentStart(langID);
                 EndComment = SourceComments.GetBlockCommentEnd(langID);

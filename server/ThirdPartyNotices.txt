@@ -9,7 +9,8 @@ granted, whether by implication, estoppel or otherwise.
  
 1. DefinitelyTyped version 0.0.1 (https://github.com/borisyankov/DefinitelyTyped)
 2. XRegExp version >=3.1.1 (http://xregexp.com/)
-3. node-dir version >=0.1.15" (https://www.npmjs.com/package/node-dir)     
+3. node-dir version >=0.1.15 (https://www.npmjs.com/package/node-dir)    
+4. mkdirp >= 0.5.1 (https://github.com/substack/node-mkdirp) 
  
 This project is licensed under the MIT license.
 Copyrights are respective of each contributor listed at the beginning of each definition file.

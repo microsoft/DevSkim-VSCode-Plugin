@@ -31,6 +31,9 @@ export interface DevSkimSettings {
 	manualReviewerName: string;
 	ignoreFilesList: string[];
 	ignoreRulesList: string[];
+	validateRulesFiles: boolean;
+	guidanceBaseURL: string;	
+	removeFindingsOnClose: boolean;
 }
 
 /**
@@ -44,7 +47,7 @@ export interface Pattern {
     pattern: string;
     type: string;
 	modifiers?:string[];
-    subtype?: string[];
+    scopes?: string[];
     _comment ? : string;
 }
 
@@ -58,10 +61,10 @@ export interface Pattern {
  * @interface FixIt
  */
 export interface FixIt {
-    type?: string;
+    type: string;
     name: string;
-    search: string;
-    replace: string;
+    pattern: Pattern;
+    replacement: string;
 	_comment ? : string;
 }
 
@@ -83,11 +86,11 @@ export interface Rule {
     applies_to?: string[];
     severity: string;
     description: string;
-    replacement: string;
+    recommendation: string;
     rule_info: string;
 	patterns: Pattern[];
 	conditions?: Condition[];
-    fix_it?: FixIt[];
+    fix_its?: FixIt[];
 	filepath? : string; //filepath to the rules file the rule came from
 	_comment ? : string;
 }
@@ -95,7 +98,7 @@ export interface Rule {
 export interface Condition {
 	pattern: Pattern;
 	search_in: string;
-	case_sensitive?: boolean;
+	_comment?: string;
 	negate_finding?: boolean;
 
 }
@@ -263,7 +266,7 @@ export class DevSkimProblem {
 			fullMessage;
 
 		fullMessage = (this.issueURL.length > 0 ) ? 
-			fullMessage + "\n\nMore Info:\n" + this.issueURL : 
+			fullMessage + "\n\nMore Info:\n" + DevSkimWorker.settings.devskim.guidanceBaseURL + this.issueURL : 
 			fullMessage;
 
 		diagnostic.message = fullMessage;

@@ -61,6 +61,16 @@ documents.onDidOpen((change) => {
 	validateTextDocument(change.document);	
 });
 
+//if the user has specified in settings, all findings will be cleared when they close a document
+documents.onDidClose((change) => {	
+	if(DevSkimWorker.settings.devskim.removeFindingsOnClose)
+	{	
+		let diagnostics : Diagnostic[] = [];
+		connection.sendDiagnostics({ uri: change.document.uri, diagnostics });
+	}
+});
+
+
 
 
 // The settings have changed. Is send on server activation
@@ -73,11 +83,6 @@ connection.onDidChangeConfiguration((change) => {
 	// Revalidate any open text documents
 	documents.all().forEach(validateTextDocument);
 });
-
-function onValidateAll() 
-{
-
-}
 
 //this is the mechanism that populates VS Code with the various code actions associated
 //with DevSkim findings.  VS Code invokes this to get an array of commands.  This happens
@@ -153,7 +158,7 @@ connection.onDidChangeWatchedFiles((change) => {
 });
 
 
-//the following interface, namespace and onRequest define a way for the client to invoke validation via
+//the following interface, namespace and onRequest define a way for the client to invoke validation of a source file via
 //a message sent to the server.  The same interfaces need to be defined (or included) in the client
 //so it knows the format to use
 interface ValidateDocsParams {	textDocuments: TextDocumentIdentifier[];}
@@ -164,11 +169,19 @@ connection.onRequest(ValidateDocsRequest.type, (params) => {
 	for(var docs of params.textDocuments)
 	{
 		let textDocument = documents.get(docs.uri);
+
 		validateTextDocument(textDocument);		
 	}		
 });
 
 
+interface ReloadRulesParams {null}
+namespace ReloadRulesRequest {
+	export const type = new RequestType<ReloadRulesParams,void, void, void>('devskim/validaterules')}
+
+connection.onRequest(ReloadRulesRequest.type, (params) => {
+	analysisEngine.refreshAnalysisRules();
+});
 
 
 // Listen on the connection
