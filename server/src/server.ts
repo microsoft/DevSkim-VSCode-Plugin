@@ -169,6 +169,7 @@ connection.onRequest(ValidateDocsRequest.type, (params) => {
 	for(var docs of params.textDocuments)
 	{
 		let textDocument = documents.get(docs.uri);
+
 		validateTextDocument(textDocument);		
 	}		
 });

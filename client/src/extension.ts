@@ -93,13 +93,29 @@ export function activate(context: ExtensionContext) {
 
 	function command_ScanEverything()
 	{
-		var textDocuments: TextDocumentIdentifier[] = [];
-		for(var x: number = 0; x < workspace.textDocuments.length; x++)
+		if(workspace.rootPath != undefined)
 		{
-			textDocuments[x] = Object.create(null);
-			textDocuments[x].uri = workspace.textDocuments[x].uri.toString();
+			let dir = require('node-dir'); 
+			dir.files(workspace.rootPath, function(err, files) {
+				    if (err) throw err;
+					
+				    for(let curFile of files)
+					{						
+						if(curFile.indexOf(".git") == -1)
+						{
+							workspace.openTextDocument(curFile).then(doc => {
+								var textDocuments: TextDocumentIdentifier[] = [];
+								let td : TextDocumentIdentifier = 	Object.create(null);
+								td.uri = doc.fileName;
+								textDocuments.push(td);
+								client.sendRequest(ValidateDocsRequest.type, {textDocuments});
+							});
+								
+						}						
+					}
+					
+				});			
 		}
-		client.sendRequest(ValidateDocsRequest.type, {textDocuments});	
 
 	}
 	

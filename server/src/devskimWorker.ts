@@ -708,15 +708,15 @@ export class DevSkimWorker
         //if the parameters are empty, assume it applies.  Also, apply all the rules to plaintext documents	
         if(appliesTo != undefined && appliesTo != null && appliesTo.length > 0)
         {	
-            for(let i: number = 0; i < appliesTo.length; i++)
+            for(let applies of appliesTo)
             {
                 //if the list of languages this rule applies to matches the current lang ID
-                if(languageID !== undefined && languageID != null && languageID.toLowerCase() == appliesTo[i].toLowerCase() )
+                if(languageID !== undefined && languageID != null && languageID.toLowerCase() == applies.toLowerCase() )
                 {
                     return true;
                 }
-                else if(appliesTo[i].indexOf(".") != -1 /*applies to is probably a specific file name instead of a langID*/
-                    && documentURI.toLowerCase().indexOf(appliesTo[i].toLowerCase()) != -1) /*and its in the current doc URI*/
+                else if(applies.indexOf(".") != -1 /*applies to is probably a specific file name instead of a langID*/
+                    && documentURI.toLowerCase().indexOf(applies.toLowerCase()) != -1) /*and its in the current doc URI*/
                 {
                     return true;
                 }
