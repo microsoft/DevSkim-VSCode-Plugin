@@ -1,5 +1,8 @@
 # Changelog
 
+## Version 0.2.1
+* There is now an experimental "Scan All" command that, when invoked, will scan every applicable file in the root workspace.  There are a couple of caveats due to limitations with VS Code - other extensions will also generate "problems" (everyone gets the message that the files were opened for analysis at the moment in VSC), and there is a maximum number of problems that the problems pane can display, so large code bases potentially won't see every issue.  When VSC addresses the first issue (its in their backlog) the latter issue should be less likley. 
+
 ## Version 0.2.0
 * Added ability to apply rules to specific files (e.g. package.json or project.json, instead of all .json files)
 * New manual review rules for deserialization in different languages (e.g. pickle.load in Python, or ReadObject in Java).  Manual review rules are not enabled by default and must be turned on via settings.  These are *potentially* severe security issues, but as DevSkim does not have strong data flow capabilities these rules will also flag safe uses.  
