@@ -15,7 +15,7 @@ this will install the necessary dependencies from NPM
 The README.md in the root directory of this project contains the bulk of details relevant to working with the DevSkim VS Code plugin
 
 ## Project files
-Within this project the relevent files are:
+Within this project the relevant files are:
 * **package.json** - a vs code package definition, but very similar to the node.js format.  This is where NPM dependencies are listed. also contains instructions to copy build output to ../client/server so the client can use it
 * **src/server.ts** - contains the main VS Code language server functionality, i.e. responding to connection events, response handlers, etc.  This file orchestrates most of the activity
 * **src/devskimWorker.ts** - contains the class that handles all of the analysis logic
@@ -27,7 +27,7 @@ Within this project the relevent files are:
 If you are looking to just add/edit the rules, they are loaded as a git submodule in ../client/rules 
 
 ## Debugging
-Have the client and server open in seperate VS Code instances, and build both (CTRL+Shift+b).  Hit "F5" in both instancs of code to get debugging running for both.  The server component automatically attaches after the client project has spawned a VS Code extension host window, however the server times out after 10 seconds if there is nothing to attach to.
+Have the client and server open in separate VS Code instances, and build both (CTRL+Shift+b).  Hit "F5" in both instancs of code to get debugging running for both.  The server component automatically attaches after the client project has spawned a VS Code extension host window, however the server times out after 10 seconds if there is nothing to attach to.
 
 
 
