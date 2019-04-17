@@ -1,6 +1,5 @@
 {
 	"version": "0.1.0",
-	// List of configurations. Add new configurations or edit existing ones.
 	"configurations": [
 		{
 			"name": "Attach",
@@ -9,7 +8,7 @@
 			"port": 6004,
 			"sourceMaps": true,
 			"outFiles": [
-				"${workspaceRoot}/../client/server/**/*.js"
+				"${workspaceRoot}/../dist/server/**/*.js"
 			]
 		}
 	]

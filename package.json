@@ -1,0 +1,82 @@
+{
+  "name": "devskim-vscode-plugin",
+  "version": "1.0.0",
+  "description": "This is the VS Code plugin project for DevSkim.  It is implemented in two parts - a Client that handles the integration and interaction with VS Code, and an out of proc server that handles the analysis.  This allows for more process intensive analysis without interfering in the responsiveness of the IDE.",
+  "main": "index.js",
+  "scripts": {
+    "clean": "rm -rf *.log */*.log */out node_modules client/node_modules server/node_modules",
+    "postinstall": "cd server && yarn install && cd ../client && yarn install && cd ..",
+    "compile": "yarn run compile:server && yarn run compile:client",
+    "compile:client": "cd client && yarn run compile",
+    "compile:server": "cd server && yarn run compile",
+    "lint": "tslint --project client --fix && tslint --project server --fix",
+    "lint:bail": "tslint --project client && tslint --project server",
+    "test": "jest --runInBand --forceExit",
+    "test:coverage": "yarn run test -- --coverage",
+    "test:watch": "yarn run test -- --watch",
+    "check": "yarn run lint && yarn run compile && yarn run test",
+    "check:bail": "yarn run lint:bail && yarn run compile && yarn run test",
+    "reinstall-server": "npm uninstall -g devskim-server && yarn compile:server && npm i -g ./server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Microsoft/DevSkim-VSCode-Plugin.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Microsoft/DevSkim-VSCode-Plugin/issues"
+  },
+  "homepage": "https://github.com/Microsoft/DevSkim-VSCode-Plugin#readme",
+  "devDependencies": {
+    "@types/jest": "^24.0.11",
+    "@types/node": "^11.13.4",
+    "eslint": "^5.16.0",
+    "jest": "^24.7.1",
+    "ts-jest": "^24.0.2",
+    "typescript": "^3.4.3",
+    "vscode-languageserver": "^4.4.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "timers": "fake",
+    "clearMocks": true,
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "node",
+      "ts"
+    ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/server/out"
+    ],
+    "transform": {
+      "\\.ts$": "ts-jest"
+    },
+    "globals": {
+      "ts-jest": {
+        "tsConfigFile": "server/tsconfig.json"
+      }
+    },
+    "testMatch": [
+      "<rootDir>/**/*.spec.ts",
+      "<rootDir>/**/*.test.ts"
+    ],
+    "setupFiles": [
+      "./server/setupJest.ts"
+    ],
+    "collectCoverageFrom": [
+      "**/*.ts",
+      "!**/test/*",
+      "!testing/*"
+    ],
+    "coverageReporters": [
+      "text-summary",
+      "html"
+    ],
+    "preset": "ts-jest"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^5.2.1"
+  }
+}

@@ -3,7 +3,7 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ 
  * 
- * This file handles most of the VS Code language server functionality - syncronizing data and 
+ * This file handles most of the VS Code language server functionality - synchronizing data and
  * settings with the client, building diagnostics and code actions, etc.  The actual work of analysis
  * is handled in devskimWorker.ts
  * 
@@ -11,14 +11,14 @@
 'use strict';
 import {
 	IPCMessageReader, IPCMessageWriter,
-	createConnection, IConnection, TextDocumentSyncKind,
-	TextDocuments, TextDocument, Diagnostic, DiagnosticSeverity,
-	InitializeParams, InitializeResult, 
-	RequestType, Command, TextEdit, Range , TextDocumentIdentifier
+	createConnection, IConnection,
+	TextDocuments, TextDocument, Diagnostic,
+	InitializeResult,
+	RequestType, Command, TextEdit, TextDocumentIdentifier
 } from 'vscode-languageserver';
 
 
-import {Settings, DevSkimSettings, computeKey, DevSkimProblem, Fixes, Map, AutoFix, FixIt, DevSkimAutoFixEdit} from "./devskimObjects";
+import {Settings, DevSkimProblem, Fixes, AutoFix } from "./devskimObjects";
 import {DevSkimWorker} from "./devskimWorker";
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
@@ -27,6 +27,7 @@ let connection: IConnection = createConnection(new IPCMessageReader(process), ne
 // Create a simple text document manager. The text document manager
 // supports full document sync only
 let documents: TextDocuments = new TextDocuments();
+
 // Make the text document manager listen on the connection
 // for open, change and close text document events
 documents.listen(connection);
@@ -40,6 +41,7 @@ var analysisEngine : DevSkimWorker = new DevSkimWorker();
 // After the server has started the client sends an initialize request. The server receives
 // in the passed params the rootPath of the workspace plus the client capabilities. 
 let workspaceRoot: string;
+
 connection.onInitialize((params): InitializeResult => {
 	workspaceRoot = params.rootPath;
 	return {
@@ -73,6 +75,7 @@ documents.onDidClose((change) => {
 
 
 
+
 // The settings have changed. Is send on server activation
 // as well.
 connection.onDidChangeConfiguration((change) => {
@@ -102,8 +105,8 @@ connection.onCodeAction((params) => {
 		return result;
 	}
 
-	let textDocument = documents.get(uri);
-	let documentVersion: number = -1;
+	// let textDocument = documents.get(uri);
+	let documentVersion: number;
 	let ruleId: string;
 
 	function createTextEdit(editInfo: AutoFix): TextEdit {
@@ -116,7 +119,7 @@ connection.onCodeAction((params) => {
 		result.push(Command.create(editInfo.label, 'devskim.applySingleFix', uri, documentVersion, [
 			createTextEdit(editInfo)
 		]));
-	};	
+	}
 
 	return result;
 });

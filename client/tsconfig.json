@@ -1,16 +1,14 @@
 {
+	"extends": "../tsconfig.base.json",
 	"compilerOptions": {
-		"target": "ES6",
-		"module": "commonjs",
-		"moduleResolution": "node",
 		"outDir": "out",
-		"lib": [
-			"es6"
-		],
-		"sourceMap": true
+      	"noUnusedLocals": false,
+		"noUnusedParameters": false,
+		"noImplicitAny": false,
+		"noImplicitReturns": true,
+		"strict": false
 	},
 	"exclude": [
-		"node_modules",
 		"server"
 	]
 }
