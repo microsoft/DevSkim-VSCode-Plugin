@@ -6,37 +6,43 @@
 
 import * as path from 'path';
 
-import { workspace, window, commands, ExtensionContext, StatusBarAlignment, TextEditor, Disposable } from 'vscode';
-import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TextEdit,
-	RequestType, TextDocumentIdentifier, TextDocument, ResponseError, InitializeError, State as ClientState, NotificationType, TransportKind
+import { ExtensionContext, window, workspace, commands} from 'vscode';
+import { 
+	LanguageClient, LanguageClientOptions, ServerOptions, TextEdit,
+	RequestType, TextDocumentIdentifier, TransportKind
 } from 'vscode-languageclient';
 
 //the following interface and namespace define a format to invoke a function on the server via
 //LanguageClient.sendRequest
 interface ValidateDocsParams {	textDocuments: TextDocumentIdentifier[];}
 namespace ValidateDocsRequest {
-	export const type = new RequestType<ValidateDocsParams, void, void, void>('textDocument/devskim/validatedocuments');}
+	export const type = new RequestType<ValidateDocsParams, void, void, void>('textDocument/devskim/validatedocuments');
+}
 
-interface ReloadRulesParams {null}
+interface ReloadRulesParams {}
 namespace ReloadRulesRequest {
-	export const type = new RequestType<ReloadRulesParams,void, void, void>('devskim/validaterules')}
+	export const type = new RequestType<ReloadRulesParams,void, void, void>('devskim/validaterules')
+}
 
+export async function activate(context: ExtensionContext) {
 
-export function activate(context: ExtensionContext) {
-
+	function handleError(err: any) {
+		const message = `Could not start DevSim Server: [${err}]".`;
+  		window.showErrorMessage(message, { modal: false })
+	}
+	
+	try {
 	// The server is implemented in node
 	let serverModule = context.asAbsolutePath(path.join('server', 'server.js'));
 	// The debug options for the server
 	let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
 
-	let extensionPath = context.extensionPath;
-	
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used
 	let serverOptions: ServerOptions = {
 		run : { module: serverModule, transport: TransportKind.ipc },
 		debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
-	}
+	};
 	
 	// Options to control the language client
 	let clientOptions: LanguageClientOptions = {
@@ -51,7 +57,7 @@ export function activate(context: ExtensionContext) {
 			// Notify the server about file changes to '.clientrc files contain in the workspace
 			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
 		}
-	}
+	};
 
 	
 	/**
@@ -91,12 +97,13 @@ export function activate(context: ExtensionContext) {
 		client.sendRequest(ReloadRulesRequest.type, null);	
 	}
 
+
 	function command_ScanEverything()
 	{
 		if(workspace.rootPath != undefined)
 		{
 			let dir = require('node-dir'); 
-			dir.files(workspace.rootPath, function(err, files) {
+			dir.files(workspace.rootPath, function(err: any, files: [any]) {
 				    if (err) throw err;
 					
 				    for(let curFile of files)
@@ -110,40 +117,42 @@ export function activate(context: ExtensionContext) {
 								textDocuments.push(td);
 								client.sendRequest(ValidateDocsRequest.type, {textDocuments});
 							});
-								
 						}						
 					}
-					
 				});			
 		}
-
 	}
-	
-	let client : LanguageClient = new LanguageClient('Devskim', serverOptions, clientOptions);
-	// Create the language client and start the client.
-	let disposable = client.start();
-	
-	// Push the disposable to the context's subscriptions so that the 
-	// client can be deactivated on extension deactivation
-	context.subscriptions.push(disposable,
-		commands.registerCommand('devskim.applySingleFix', applyTextEdits),
-		commands.registerCommand('devskim.scanWorkspace', command_ScanEverything),
-		commands.registerCommand('devskim.reloadRules', command_ReloadRules)
-	);
+
+		let client : LanguageClient = new LanguageClient('Devskim', serverOptions, clientOptions);
+
+		// Create the language client and start the client.
+		let disposable = client.start();
+
+		// Push the disposable to the context's subscriptions so that the 
+		// client can be deactivated on extension deactivation
+		context.subscriptions.push(disposable,
+			commands.registerCommand('devskim.applySingleFix', applyTextEdits),
+			commands.registerCommand('devskim.scanWorkspace', command_ScanEverything),
+			commands.registerCommand('devskim.reloadRules', command_ReloadRules)
+		);
 
 	
 
-	//when the extension is first loading a lot of stuff is happening asyncronously in VS code
-	//as a result, often the first analysis doesn't happen until after the user types.  This will
-	//start the analysis a couple seconds after VS Code loads, so if the user doesn't do anything 
-	//an analysis still happens
-	setTimeout(function() {
-		var textDocuments: TextDocumentIdentifier[] = [];
-		for(var x: number = 0; x < workspace.textDocuments.length; x++)
-		{
-			textDocuments[x] = Object.create(null);
-			textDocuments[x].uri = workspace.textDocuments[x].uri.toString();
-		}
-		client.sendRequest(ValidateDocsRequest.type, {textDocuments});			
-	}, 3000);
+		//when the extension is first loading a lot of stuff is happening asyncronously in VS code
+		//as a result, often the first analysis doesn't happen until after the user types.  This will
+		//start the analysis a couple seconds after VS Code loads, so if the user doesn't do anything 
+		//an analysis still happens
+		setTimeout(function() {
+			var textDocuments: TextDocumentIdentifier[] = [];
+			for(var x: number = 0; x < workspace.textDocuments.length; x++)
+			{
+				textDocuments[x] = Object.create(null);
+				textDocuments[x].uri = workspace.textDocuments[x].uri.toString();
+			}
+			client.sendRequest(ValidateDocsRequest.type, {textDocuments});			
+		}, 3000);
+
+	} catch(err) {
+		handleError(err);
+	}
 }

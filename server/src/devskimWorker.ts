@@ -11,7 +11,7 @@
  * 
  * ------------------------------------------------------------------------------------------ */
 import { Range } from 'vscode-languageserver';
-import {computeKey, Condition, DevSkimProblem, Settings, DevSkimSettings,DevskimRuleSeverity, Fixes, Map, AutoFix, Rule,FixIt,Pattern, DevSkimAutoFixEdit} from "./devskimObjects";
+import {computeKey, Condition, DevSkimProblem, Settings, DevskimRuleSeverity, Map, AutoFix, Rule, DevSkimAutoFixEdit} from "./devskimObjects";
 import {DevSkimSuppression, DevSkimSuppressionFinding} from "./suppressions";
 import {PathOperations} from "./pathOperations";
 import * as path from 'path';
@@ -50,13 +50,26 @@ export class DevSkimWorker
     //map seemed a little excessive to me.  Then again, I just wrote 3 paragraphs for how this works, so maybe I'm being too clever
     public codeActions: Map<Map<AutoFix>> = Object.create(null);    
 
+    public ruleCount(): number {
+        if (this.analysisRules) {
+            return this.analysisRules.length;
+        }
+        return -1;
+    }
+
+    public getRulesDirectory(): string {
+        return this.rulesDirectory
+    }
+
     constructor()
     {
         //this file runs out of the server directory.  The rules directory should be in ../rules
         //so pop over to it
         this.rulesDirectory =  path.join(__dirname,"..","rules");
+    }
 
-        this.loadRules();
+    public async init() {
+        await this.loadRules();
     }
 
     /**
@@ -94,7 +107,7 @@ export class DevSkimWorker
      * 
      * @param {string} documentURI the path to the document, identifying it
      * @param {number} documentVersion the current revision of the document (vs code calculates this)
-     * @param {Diagnostic} diagnostic the diagnostic a fix is associated with
+     * @param {Diagnostic} diagnosticCode the diagnostic a fix is associated with
      * @param {DevSkimAutoFixEdit} fix the actual data about the fix being applied (location, name, action, etc.)
      * @param {string} ruleID an identifier for the rule that was triggered
      * @returns {void}
@@ -138,7 +151,7 @@ export class DevSkimWorker
      * 
      * @private
      */
-    private loadRules() : void 
+    private async loadRules() : Promise<void>
     {
         this.tempRules = [];
         this.analysisRules = [];
@@ -146,10 +159,13 @@ export class DevSkimWorker
         //read the rules files recursively from the file system - get all of the .json files under the rules directory.  
         //first read in the default & custom directories, as they contain the required rules (i.e. exclude the "optional" directory)
         //and then do the inverse to populate the optional rules
-        this.dir.readFiles(this.rulesDirectory, {	match: /.json$/ },
+        return this.dir.readFiles(this.rulesDirectory, {	match: /.json$/ },
             (err, content, file, next) => 
             { 
-                if (err) throw err;
+                if (err) {
+                    console.log()
+                    throw err;
+                }
                 //Load the rules from files add the file path 
                 var loadedRules : Rule[] = JSON.parse(content);
                 for(var rule of loadedRules)
@@ -207,14 +223,14 @@ export class DevSkimWorker
      * 
      * @memberOf DevSkimWorker
      */
-    public MapRuleSeverity(severity: string) : DevskimRuleSeverity
+    public static MapRuleSeverity(severity: string) : DevskimRuleSeverity
     {
         switch (severity.toLowerCase())
 		{
 			case "critical":         return DevskimRuleSeverity.Critical;
 			case "important":        return DevskimRuleSeverity.Important;
 			case "moderate":         return DevskimRuleSeverity.Moderate;
-			case "best-practice":    return DevskimRuleSeverity.BestPractice
+			case "best-practice":    return DevskimRuleSeverity.BestPractice;
             case "manual-review":    return DevskimRuleSeverity.ManualReview;
 			default:                 return DevskimRuleSeverity.BestPractice;
 		}  
@@ -232,7 +248,7 @@ export class DevSkimWorker
     {
         //create any regex modifiers
         let regexModifer : string = ""; 
-        if(modifiers != undefined && modifiers != null)
+        if(modifiers != undefined && modifiers)
         {
             for(let mod of modifiers)
             {
@@ -283,11 +299,11 @@ export class DevSkimWorker
         //iterate over all of the rules, and then all of the patterns within a rule looking for a match.  
         for(var rule of this.analysisRules)
         {
-            var ruleSeverity : DevskimRuleSeverity = this.MapRuleSeverity(rule.severity);
+            var ruleSeverity : DevskimRuleSeverity = DevSkimWorker.MapRuleSeverity(rule.severity);
             //if the rule doesn't apply to whatever language we are analyzing (C++, Java, etc.) or we aren't processing
             //that particular severity skip the rest
             if(DevSkimWorker.settings.devskim.ignoreRulesList.indexOf(rule.id) == -1 &&  /*check to see if this is a rule the user asked to ignore */
-               this.appliesToLangOrFile(langID, rule.applies_to, documentURI) &&
+               DevSkimWorker.appliesToLangOrFile(langID, rule.applies_to, documentURI) &&
                this.RuleSeverityEnabled(ruleSeverity))
             {
                 for(let patternIndex:number = 0; patternIndex < rule.patterns.length; patternIndex++)
@@ -304,7 +320,7 @@ export class DevSkimWorker
                     while(match = XRegExp.exec(documentContents,matchPattern,matchPosition))
                     {
                         //if the rule doesn't contain any conditions, set it to an empty array to make logic later easier
-                        if(rule.conditions == undefined || rule.conditions == null)
+                        if(!rule.conditions)
                         {
                             rule.conditions = [];
                         }
@@ -316,7 +332,7 @@ export class DevSkimWorker
                         let suppressionFinding : DevSkimSuppressionFinding = DevSkimSuppression.isFindingCommented(match.index,documentContents, rule.id,ruleSeverity);
                         
                         //calculate what line we are on by grabbing the text before the match & counting the newlines in it
-                        let lineStart: number = this.getLineNumber(documentContents,match.index);
+                        let lineStart: number = DevSkimWorker.getLineNumber(documentContents,match.index);
                         let newlineIndex : number = (lineStart == 0 ) ? -1 : documentContents.substr(0,match.index).lastIndexOf("\n");
                         let columnStart : number =  match.index - newlineIndex - 1;                    
                         
@@ -324,7 +340,7 @@ export class DevSkimWorker
                         //it's necessary to see if there are any newlines WITHIN the match so that we get the line the match ends on,
                         //not just the line it starts on.  Also, we use the substring for the match later when making fixes
                         let replacementSource : string = documentContents.substr(match.index, match[0].length);
-                        let lineEnd : number = this.getLineNumber(replacementSource,replacementSource.length) + lineStart;  
+                        let lineEnd : number = DevSkimWorker.getLineNumber(replacementSource,replacementSource.length) + lineStart;
 
                         let columnEnd = (lineStart == lineEnd) ?   
                             columnStart + match[0].length :
@@ -334,10 +350,10 @@ export class DevSkimWorker
 
                         //look for the suppression comment for that finding
                         if(!suppressionFinding.showFinding && 
-                           this.matchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex,rule.patterns[patternIndex].scopes ) &&
+                           DevSkimWorker.matchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex,rule.patterns[patternIndex].scopes ) &&
                             this.matchesConditions(rule.conditions,documentContents,range, langID))
                         {
-                            let problem : DevSkimProblem = this.makeProblem(rule,this.MapRuleSeverity(rule.severity), range);
+                            let problem : DevSkimProblem = DevSkimWorker.makeProblem(rule, DevSkimWorker.MapRuleSeverity(rule.severity), range);
 
                             //add in any fixes
                             problem.fixes = problem.fixes.concat(this.makeFixes(rule,replacementSource,range));
@@ -352,7 +368,7 @@ export class DevSkimWorker
                             //highlight suppression finding for context
                             //this will look
                             let suppressionRange : Range = Range.create(lineStart,columnStart + suppressionFinding.ruleColumn,lineStart, columnStart + suppressionFinding.ruleColumn + rule.id.length);
-                            let problem : DevSkimProblem = this.makeProblem(rule,DevskimRuleSeverity.WarningInfo, suppressionRange, range);
+                            let problem : DevSkimProblem = DevSkimWorker.makeProblem(rule,DevskimRuleSeverity.WarningInfo, suppressionRange, range);
                             
                             problems.push(problem);
 
@@ -378,7 +394,7 @@ export class DevSkimWorker
      * @returns {boolean} 
      * @memberof DevSkimWorker
      */
-    private matchIsInScope(langID : string, docContentsToFinding : string, newlineIndex : number, scopes : string[]) : boolean
+    private static matchIsInScope(langID : string, docContentsToFinding : string, newlineIndex : number, scopes : string[]) : boolean
     {
         if(scopes.indexOf("all") > -1)
                 return true;
@@ -410,12 +426,12 @@ export class DevSkimWorker
      * @param {Range} problemRange 
      * @param {Range} [suppressedFindingRange] 
      */
-    private makeProblem(rule: Rule, warningLevel : DevskimRuleSeverity, problemRange: Range, suppressedFindingRange?:Range) : DevSkimProblem
+    private static makeProblem(rule: Rule, warningLevel : DevskimRuleSeverity, problemRange: Range, suppressedFindingRange?:Range) : DevSkimProblem
     {
         let problem : DevSkimProblem = new DevSkimProblem(rule.description,rule.name,
             rule.id, warningLevel, rule.recommendation, rule.rule_info, problemRange);
 
-        if(suppressedFindingRange != undefined && suppressedFindingRange != null)
+        if(suppressedFindingRange != undefined && suppressedFindingRange)
         {
             problem.suppressedFindingRange = suppressedFindingRange;
         }
@@ -438,7 +454,7 @@ export class DevSkimWorker
      */
     private matchesConditions(conditions : Condition[], documentContents : string, findingRange : Range, langID: string ) : boolean
     {
-        if(conditions != undefined && conditions != null && conditions.length != 0)
+        if(conditions != undefined && conditions && conditions.length != 0)
         {
             let regionRegex : RegExp = /finding-region\((-*\d+),(-*\d+)\)/;
             let XRegExp = require('xregexp');
@@ -500,11 +516,11 @@ export class DevSkimWorker
 
 
                     //calculate what line we are on by grabbing the text before the match & counting the newlines in it
-                    let lineStart: number = this.getLineNumber(documentContents,match.index);
+                    let lineStart: number = DevSkimWorker.getLineNumber(documentContents,match.index);
                     let newlineIndex : number = (lineStart == 0 ) ? -1 : documentContents.substr(0,match.index).lastIndexOf("\n");
                   
                     //look for the suppression comment for that finding
-                    if(this.matchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex,condition.pattern.scopes ) )
+                    if(DevSkimWorker.matchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex,condition.pattern.scopes ) )
                     {
                         if (condition.negate_finding == true)
                         {
@@ -539,15 +555,13 @@ export class DevSkimWorker
      * 
      * @memberOf DevSkimWorker
      */
-    private getLineNumber(documentContents : string, currentPosition : number) : number
+    private static getLineNumber(documentContents : string, currentPosition : number) : number
     {
 
         let newlinePattern : RegExp = /(\r\n|\n|\r)/gm;
         let subDocument : string = documentContents.substr(0,currentPosition);        
         let linebreaks : RegExpMatchArray = subDocument.match(newlinePattern);
-        let lineStart = (linebreaks !== undefined && linebreaks !== null) ? linebreaks.length : 0;
-
-        return lineStart;
+        return (linebreaks !== undefined && linebreaks !== null) ? linebreaks.length : 0;
     }
 
     /**
@@ -703,10 +717,10 @@ export class DevSkimWorker
      * @param {string} documentURI the current document URI
      * @returns {boolean} true if it applies, false if it doesn't
      */
-    private appliesToLangOrFile(languageID : string, appliesTo : string[], documentURI : string) : boolean
+    private static appliesToLangOrFile(languageID : string, appliesTo : string[], documentURI : string) : boolean
     {
         //if the parameters are empty, assume it applies.  Also, apply all the rules to plaintext documents	
-        if(appliesTo != undefined && appliesTo != null && appliesTo.length > 0)
+        if(appliesTo != undefined && appliesTo && appliesTo.length > 0)
         {	
             for(let applies of appliesTo)
             {
