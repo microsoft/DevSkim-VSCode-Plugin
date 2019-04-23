@@ -6,7 +6,7 @@
  * 
  */
 
-import {DevskimRuleSeverity,AutoFix, Rule,FixIt,Pattern} from "./devskimObjects";
+import {Rule,FixIt,Pattern} from "./devskimObjects";
 import * as path from 'path';
 
 /**
@@ -15,15 +15,16 @@ import * as path from 'path';
 export class RuleValidator
 {
     private rulesDir: string;
-    private errorDir: string;
-    private fixedRules: { [fileName: string]: Rule[]; };
+    private readonly errorDir: string;
+    private readonly fixedRules: { [fileName: string]: Rule[]; };
     private outputMessages: OutputMessages[];
     private fs = require('fs');
     private writeoutNewRules : boolean;
 
     /**
-     * 
-     * @param ruleDir 
+     *
+     * @param rd
+     * @param ed
      */
     constructor(rd: string, ed: string)
     {
@@ -34,8 +35,9 @@ export class RuleValidator
     }
 
     /**
-     * 
-     * @param readRules 
+     *
+     * @param readRules
+     * @param outputValidation
      */
     public validateRules(readRules : Object[], outputValidation : boolean) : Rule[]
     {
@@ -65,12 +67,10 @@ export class RuleValidator
             {
                 let newrulePath : string =  path.join(this.errorDir,"..","newrules");
                                 
-                for (var key in this.fixedRules) 
+                for (let key in this.fixedRules)
                 {
                     let filePath : string = key.substr(key.indexOf("rules")+5);
-                    var dirname = path.dirname(filePath);
-
-                    var mkdirp = require('mkdirp');    
+                    let mkdirp = require('mkdirp');    
                     filePath = path.join(newrulePath,filePath);
 
                     try
@@ -99,17 +99,17 @@ export class RuleValidator
         newRule.description = loadedRule.description;
         newRule.recommendation = loadedRule.recommendation;
 
-        if(this.isSet(loadedRule.overrides, "array") && loadedRule.overrides.length > 0)
+        if(RuleValidator.isSet(loadedRule.overrides, "array") && loadedRule.overrides.length > 0)
             newRule.overrides = loadedRule.overrides; 
 
-        if(this.isSet(loadedRule.applies_to, "array") && loadedRule.applies_to.length > 0)
+        if(RuleValidator.isSet(loadedRule.applies_to, "array") && loadedRule.applies_to.length > 0)
             newRule.applies_to = loadedRule.applies_to; 
 
-        if(this.isSet(loadedRule.tags, "array") && loadedRule.tags.length > 0)
+        if(RuleValidator.isSet(loadedRule.tags, "array") && loadedRule.tags.length > 0)
             newRule.tags = loadedRule.tags;        
         
         newRule.severity = loadedRule.severity.toLowerCase();
-        newRule._comment = (this.isSet(loadedRule._comment, "string")) ? loadedRule._comment : "";
+        newRule._comment = (RuleValidator.isSet(loadedRule._comment, "string")) ? loadedRule._comment : "";
 
         newRule.rule_info = loadedRule.rule_info;
         
@@ -120,10 +120,10 @@ export class RuleValidator
             newRule.patterns[x].scopes = this.validatePatternScopeArray(newRule.patterns[x].scopes, loadedRule);
         }
 
-        if(this.isSet(loadedRule.fix_its, "array") && loadedRule.fix_its.length > 0)
+        if(RuleValidator.isSet(loadedRule.fix_its, "array") && loadedRule.fix_its.length > 0)
             newRule.fix_its = loadedRule.fix_its;           
 
-        if(this.isSet(loadedRule.conditions, "array") && loadedRule.conditions.length > 0)
+        if(RuleValidator.isSet(loadedRule.conditions, "array") && loadedRule.conditions.length > 0)
             newRule.conditions = loadedRule.conditions;   
 
         return newRule;        
@@ -148,16 +148,16 @@ export class RuleValidator
         if(overrides.length > 0)
             newRule.overrides = overrides; 
 
-        let applies : string[] = this.validateStringArray(loadedRule.applies_to,"applies_to",loadedRule,this.validateSpecificAppliesTo);
+        let applies : string[] = this.validateStringArray(loadedRule.applies_to,"applies_to",loadedRule,RuleValidator.validateSpecificAppliesTo);
         if(applies.length > 0)
             newRule.applies_to = applies; 
 
-        let tags : string[] = this.validateStringArray(loadedRule.tags,"tags",loadedRule,this.validateSpecificTags);
+        let tags : string[] = this.validateStringArray(loadedRule.tags,"tags",loadedRule,RuleValidator.validateSpecificTags);
         if(tags.length > 0)
             newRule.tags = tags;        
         
         newRule.severity = this.validateSeverity(loadedRule);
-        newRule._comment = (this.isSet(loadedRule._comment, "string")) ? loadedRule._comment : "";
+        newRule._comment = (RuleValidator.isSet(loadedRule._comment, "string")) ? loadedRule._comment : "";
 
         newRule.rule_info = this.validateRuleInfo(loadedRule);
         
@@ -170,7 +170,7 @@ export class RuleValidator
         newRule.conditions = loadedRule.conditions;        
 
 
-        if(!this.isSet(this.fixedRules[loadedRule.filepath],"array"))
+        if(!RuleValidator.isSet(this.fixedRules[loadedRule.filepath],"array"))
         {
             this.fixedRules[loadedRule.filepath] = [];
         }
@@ -239,10 +239,10 @@ export class RuleValidator
         fixit.type = this.validateFixitType(loadedFixit.type, loadedRule);
         let outcome : OutputMessages;
 
-        fixit._comment = (this.isSet(loadedFixit._comment, "string")) ? loadedFixit._comment : "";
+        fixit._comment = (RuleValidator.isSet(loadedFixit._comment, "string")) ? loadedFixit._comment : "";
 
         //the name of replacement is new, previously having been called replace.  check if the new or old values are present
-        if(this.isSet(loadedFixit.replacement, "string"))
+        if(RuleValidator.isSet(loadedFixit.replacement, "string"))
         {
             fixit.replacement = loadedFixit.replacement;
         }
@@ -261,7 +261,7 @@ export class RuleValidator
 
         //the schema was updated to use a full pattern object instead of the old 'search' value.  Check if a pattern is present
         //and if not, then check if search is present and make a pattern out of it
-        if(this.isSet(loadedFixit.pattern, "Pattern"))
+        if(RuleValidator.isSet(loadedFixit.pattern, "Pattern"))
         {
             fixit.pattern = this.validatePatternObject(loadedFixit.pattern, loadedRule);
         }
@@ -387,11 +387,11 @@ export class RuleValidator
         pattern.type = this.validatePatternType(loadedPattern.type, loadedPattern);
         
         //check if using the scopes array, the old single string value, or if it is absent
-        if(this.isSet(loadedPattern.scopes,"array") && this.verifyType(loadedPattern.scopes,"array",loadedRule,OutputAlert.Info,""))
+        if(RuleValidator.isSet(loadedPattern.scopes,"array") && this.verifyType(loadedPattern.scopes,"array",loadedRule,OutputAlert.Info,""))
         {
             pattern.scopes = this.validatePatternScopeArray(loadedPattern.scopes, loadedRule);
         }
-        else if(this.isSet(loadedPattern.scope,"string") && this.verifyType(loadedPattern.scope,"string",loadedRule,OutputAlert.Info,""))
+        else if(RuleValidator.isSet(loadedPattern.scope,"string") && this.verifyType(loadedPattern.scope,"string",loadedRule,OutputAlert.Info,""))
         {
             //convert to an array if a single value
             let scopes : string [] = [loadedPattern.scope];
@@ -411,7 +411,7 @@ export class RuleValidator
         }
         
 
-        pattern._comment = (this.isSet(loadedPattern._comment, "string")) ? loadedPattern._comment : "";
+        pattern._comment = (RuleValidator.isSet(loadedPattern._comment, "string")) ? loadedPattern._comment : "";
 
         let modifiers : string[] = this.validateStringArray(loadedPattern.modifiers,"pattern.modifiers",loadedRule,this.validateSpecificPatternModifiers);
         if(modifiers.length > 0)
@@ -503,6 +503,7 @@ export class RuleValidator
 
     /**
      * Ensure that the severity is one of the known allowed values
+     * @param patternType @todo: ??
      * @param loadedRule rule loaded from File System whose severity is being validated
      */
     private validatePatternType(patternType: string, loadedRule) : string
@@ -738,7 +739,7 @@ export class RuleValidator
         let stringArray : string [] = [];
         //check if the value is present.  It isn't required, so it is fine if absent
         //if absent, just return an empty array
-        if(this.isSet(arrayToValidate,"array"))
+        if(RuleValidator.isSet(arrayToValidate,"array"))
         {
             if(this.verifyType(arrayToValidate, "array", loadedRule,OutputAlert.Warning,arrayName +" is not an array"))
             {
@@ -822,13 +823,13 @@ export class RuleValidator
         return overridden;
     }
 
-    private validateSpecificAppliesTo(applies: string, loadedRule) : string
+    private static validateSpecificAppliesTo(applies: string, loadedRule) : string
     {
         //TODO: logic to validate applies
         return applies;
     }
 
-    private validateSpecificTags(tags: string, loadedRule) : string
+    private static validateSpecificTags(tags: string, loadedRule) : string
     {
         //TODO: logic to validate applies
         return tags;
@@ -848,13 +849,13 @@ export class RuleValidator
      */
     private checkValue(variable, loadedRule, varType : string, errorMessage : string, alertLevel : string)
     {
-        if(!this.isSet(variable,varType) && errorMessage.length > 0)
+        if(!RuleValidator.isSet(variable,varType) && errorMessage.length > 0)
         {
             let outcome : OutputMessages = Object.create(null);
             outcome.alert = alertLevel;
             outcome.message = errorMessage;
             //use the ID so we know which rule is broken, or another error message if ID is missing
-            outcome.ruleid = this.isSet(loadedRule.id, "string") ? loadedRule.id : "ID NOT FOUND";
+            outcome.ruleid = RuleValidator.isSet(loadedRule.id, "string") ? loadedRule.id : "ID NOT FOUND";
             //this is generated when the object is read in, so should reliably be present
             outcome.file = loadedRule.filepath;
 
@@ -871,13 +872,9 @@ export class RuleValidator
      * @param variable value to check 
      * @param varType types to check for: string, array, boolean, or number 
      */
-    private isSet(variable, varType : string) : boolean
+    private static isSet(variable, varType : string) : boolean
     {
-        if(variable == undefined || variable == null || ((varType == "string" || varType == "array") && variable.length < 1))
-        {
-            return false;
-        }
-        return true;
+        return !(!variable || ((varType == "string" || varType == "array") && variable.length < 1));
     }
 
     /**

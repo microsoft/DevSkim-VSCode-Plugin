@@ -13,7 +13,7 @@ export class PathOperations
      * @param filePath 
      * @param ignoreList 
      */
-    public ignoreFile(filePath : string, ignoreList : string[]) : boolean
+    public static ignoreFile(filePath : string, ignoreList : string[]) : boolean
     {        
         if(filePath.length > 1)
         {
@@ -27,7 +27,7 @@ export class PathOperations
             }
 
             let XRegExp = require('xregexp');
-            for(var ignorePattern of ignoreList)
+            for(let ignorePattern of ignoreList)
             {
                 let ignoreRegex : RegExp = XRegExp(XRegExp.escape(ignorePattern).replace("\\*", ".*").replace("\\?", "."), "i");
                 

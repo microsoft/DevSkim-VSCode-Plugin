@@ -9,7 +9,7 @@
  * 
  *  ------------------------------------------------------------------------------------------ */
 
-import { Diagnostic, DiagnosticSeverity,Command, Range 
+import { Diagnostic, DiagnosticSeverity, Range
 } from 'vscode-languageserver';
 
 import {DevSkimWorker} from "./devskimWorker";
@@ -188,6 +188,7 @@ export class DevSkimProblem {
      * @param {string} source the name of the rule that was triggered (name in the rules JSON)
      * @param {string} ruleId a unique identifier for that particular rule (id in the rules JSON)
      * @param {string} severity MSRC based severity for the rule - Critical, Important, Moderate, Low, Informational (severity in rules JSON)
+     * @param replacement @todo update this
      * @param {string} issueURL a URL to some place the dev can get more information on the problem (rules_info in the rules JSON)
      * @param {Range} range where the problem was found in the file (line start, column start, line end, column end) 
      */
@@ -215,7 +216,7 @@ export class DevSkimProblem {
 	 * 
 	 * @memberOf DevSkimProblem
 	 */
-	public getSeverityName(severity : DevskimRuleSeverity) : string
+	public static getSeverityName(severity : DevskimRuleSeverity) : string
 	{
 		switch (severity)
 		{
@@ -257,9 +258,9 @@ export class DevSkimProblem {
      */
     public makeDiagnostic(): Diagnostic 
 	{
-		var diagnostic : Diagnostic = Object.create(null);
+		const diagnostic : Diagnostic = Object.create(null);
 		//truncate the severity so that the message looks a bit more succinct in the output window
-		let fullMessage : string = "\n" + this.source + "\nSeverity: " + this.getSeverityName(this.severity) + "\n\n" + this.message;
+		let fullMessage : string = "\n" + this.source + "\nSeverity: " + DevSkimProblem.getSeverityName(this.severity) + "\n\n" + this.message;
 
 		fullMessage = (this.replacement.length > 0 ) ? 
 			fullMessage + "\n\nFix Guidance: " + this.replacement : 

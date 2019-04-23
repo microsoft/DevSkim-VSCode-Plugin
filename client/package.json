@@ -126,7 +126,7 @@
 				},
 				"devskim.validateRulesFiles": {
 					"type": "boolean",
-					"default": false,
+					"default": true,
 					"description": "Intended to help while authoring new rules. When loading the DevSkim rules, analyze the JSON files that contain the rules for mistakes.  If the mistakes are correctable, DevSkim will create a Fixed-Rules folder containing the corrected rules within its extension directory.  rulesValidationLog.json is also created in the DevSkim directory logging any issues found.  This setting is off by default, to reduce load time."
 				},
 				"devskim.removeFindingsOnClose": {
@@ -138,24 +138,26 @@
 		}
 	},
 	"scripts": {
-		"clean": "rm -rf *.log out node_modules package-lock.json yarn.lock",
-		"vscode:prepublish": "yarn run compile",
-		"compile": "rm -rf out && npx tsc -p ./",
-		"compile:watch": "npx tsc -watch -p ./",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
 		"update-vscode": "node ./node_modules/vscode/bin/install",
-		"postinstall": "node ./node_modules/vscode/bin/install"
+		"postinstall": "node ./node_modules/vscode/bin/install",
+		"clean": "rm -rf *.log out node_modules package-lock.json yarn.lock"
 	},
 	"devDependencies": {
 		"@types/jest": "^24.0.11",
 		"@types/node": "^6.14.4",
-		"@types/semver-compare": "^1.0.0",
+		"@types/semver": "^6.0.0",
 		"jest": "^24.7.1",
+		"shx": "^0.3.2",
 		"typescript": "^3.4.3"
 	},
 	"dependencies": {
-		"node-dir": "^0.1.17",
-		"semver-compare": "^1.0.0",
-		"vscode": "1.1.14",
-		"vscode-languageclient": "4.1.3"
+		"semver": "^6.0.0",
+		"vscode": "^1.1.33",
+		"vscode-jsonrpc": "^4.0.0",
+		"vscode-languageclient": "^5.2.1",
+		"vscode-languageserver-protocol": "^3.14.1",
+		"vscode-languageserver-types": "^3.14.0"
 	}
 }

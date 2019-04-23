@@ -100,10 +100,10 @@ export async function activate(context: ExtensionContext) {
 
 	function command_ScanEverything()
 	{
-		if(workspace.rootPath != undefined)
+		if(workspace.workspaceFolders != undefined)
 		{
 			let dir = require('node-dir'); 
-			dir.files(workspace.rootPath, function(err: any, files: [any]) {
+			dir.files(workspace.workspaceFolders, function(err: any, files: [any]) {
 				    if (err) throw err;
 					
 				    for(let curFile of files)
@@ -111,7 +111,7 @@ export async function activate(context: ExtensionContext) {
 						if(curFile.indexOf(".git") == -1)
 						{
 							workspace.openTextDocument(curFile).then(doc => {
-								var textDocuments: TextDocumentIdentifier[] = [];
+								const textDocuments: TextDocumentIdentifier[] = [];
 								let td : TextDocumentIdentifier = 	Object.create(null);
 								td.uri = doc.fileName;
 								textDocuments.push(td);
@@ -143,8 +143,8 @@ export async function activate(context: ExtensionContext) {
 		//start the analysis a couple seconds after VS Code loads, so if the user doesn't do anything 
 		//an analysis still happens
 		setTimeout(function() {
-			var textDocuments: TextDocumentIdentifier[] = [];
-			for(var x: number = 0; x < workspace.textDocuments.length; x++)
+			const textDocuments: TextDocumentIdentifier[] = [];
+			for(let x: number = 0; x < workspace.textDocuments.length; x++)
 			{
 				textDocuments[x] = Object.create(null);
 				textDocuments[x].uri = workspace.textDocuments[x].uri.toString();
