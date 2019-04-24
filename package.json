@@ -1,32 +1,20 @@
 {
   "name": "devskim-vscode-plugin",
-  "version": "1.0.0",
   "description": "This is the VS Code plugin project for DevSkim.  It is implemented in two parts - a Client that handles the integration and interaction with VS Code, and an out of proc server that handles the analysis.  This allows for more process intensive analysis without interfering in the responsiveness of the IDE.",
-  "main": "index.js",
-  "scripts": {
-    "clean": "yarn run clean:local && yarn run clean:server && yarn run clean:client",
-    "clean:local": "rm -rf *.log out node_modules package-lock.json yarn.lock",
-    "clean:server": "cd server && npm run clean && cd ..",
-    "clean:client": "cd client && npm run clean && cd ..",
-    "postinstall": "cd server && yarn install && cd ../client && yarn install && cd ..",
-    "compile": "yarn run compile:server && yarn run compile:client",
-    "compile:client": "cd client && yarn run compile",
-    "compile:server": "cd server && yarn run compile",
-    "lint": "tslint --project client --fix && tslint --project server --fix",
-    "lint:bail": "tslint --project client && tslint --project server",
-    "test": "jest --runInBand --forceExit",
-    "test:coverage": "yarn run test -- --coverage",
-    "test:watch": "yarn run test -- --watch",
-    "check": "yarn run lint && yarn run compile && yarn run test",
-    "check:bail": "yarn run lint:bail && yarn run compile && yarn run test",
-    "reinstall-server": "npm uninstall -g devskim-server && yarn compile:server && npm i -g ./server"
-  },
+  "author": "Microsoft Corporation",
+  "license": "ISC",
+  "version": "1.0.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Microsoft/DevSkim-VSCode-Plugin.git"
   },
-  "author": "",
-  "license": "ISC",
+  "engines": {
+    "vscode": "^1.33.1"
+  },
+  "activationEvents": [
+    "onLanguage:plaintext"
+  ],
+  "main": "./client/out/extension",
   "bugs": {
     "url": "https://github.com/Microsoft/DevSkim-VSCode-Plugin/issues"
   },
@@ -70,15 +58,34 @@
     "preset": "ts-jest"
   },
   "dependencies": {
+    "semver": "^6.0.0",
+    "vscode-languageclient": "^5.2.1",
     "vscode-languageserver": "^4.1.1"
   },
   "devDependencies": {
     "@types/jest": "^24.0.11",
-    "@types/node": "^11.13.4",
+    "@types/node": "^11.13.7",
     "eslint": "^5.16.0",
     "jest": "^24.7.1",
     "ts-jest": "^24.0.2",
     "ts-node": "^8.1.0",
     "typescript": "^3.4.3"
+  },
+  "scripts": {
+    "clean": "yarn run clean:local && yarn run clean:server && yarn run clean:client",
+    "clean:local": "rm -rf *.log out node_modules package-lock.json yarn.lock",
+    "clean:server": "cd server && npm run clean && cd ..",
+    "clean:client": "cd client && npm run clean && cd ..",
+    "vscode:prepublish": "cd client && npm run update-vscode && cd .. && npm run compile",
+    "compile": "tsc -b",
+    "watch": "tsc -b -w",
+    "postinstall": "cd client && npm install && cd ../server && npm  install && cd ..",
+    "lint": "tslint --project client --fix && tslint --project server --fix",
+    "lint:bail": "tslint --project client && tslint --project server",
+    "test": "jest --runInBand --forceExit",
+    "test:coverage": "yarn run test -- --coverage",
+    "test:watch": "yarn run test -- --watch",
+    "check": "yarn run lint && yarn run compile && yarn run test",
+    "check:bail": "yarn run lint:bail && yarn run compile && yarn run test"
   }
 }

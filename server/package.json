@@ -25,12 +25,6 @@
   },
   "private": true,
   "scripts": {
-    "clean": "rm -rf *.log out node_modules package-lock.json yarn.lock",
-    "compile": "npm run compile:install && npm run compile:code",
-    "compile:code": "tsc -p ./",
-    "compile:install": "installServerIntoExtension ../client ./package.json ./tsconfig.json",
-    "watch": "npm run watch:install && npm run watch:code",
-    "watch:code": "tsc --watch -p ./",
-    "watch:install": "installServerIntoExtension ../client ./package.json ./tsconfig.json "
+    "clean": "rm -rf *.log out node_modules package-lock.json yarn.lock"
   }
 }

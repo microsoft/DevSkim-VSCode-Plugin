@@ -19,7 +19,7 @@
 		"theme": "dark"
 	},
 	"engines": {
-		"vscode": "^1.18.x"
+		"vscode": "^1.33.x"
 	},
 	"categories": [
 		"Linters"
@@ -62,7 +62,7 @@
 		"onLanguage:plaintext",
 		"onLanguage:python"
 	],
-	"main": "./out/src/extension",
+	"main": "./client/out/extension.js",
 	"contributes": {
 		"commands": [
 			{
@@ -133,28 +133,38 @@
 					"type": "boolean",
 					"default": false,
 					"description": "By default, when a source file is closed the findings remain in the 'Problems' window.  Setting this value to true will cause findings to be removed from 'Problems' when the document is closed.  Note, setting this to true will cause findings that are listed when invoking the 'Scan all files in workspace' command to automatically clear away after a couple of minutes"
+				},
+				"devskim.trace.server": {
+					"scope": "window",
+					"type": "string",
+					"enum": [
+						"off",
+						"messages",
+						"verbose"
+					],
+					"default": "off",
+					"description": "Traces the communication between VS Code and the language server."
 				}
 			}
 		}
 	},
 	"scripts": {
-		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
-		"update-vscode": "node ./node_modules/vscode/bin/install",
-		"postinstall": "node ./node_modules/vscode/bin/install",
+		"update-vscode": "vscode-install",
+		"postinstall": "vscode-install",
 		"clean": "rm -rf *.log out node_modules package-lock.json yarn.lock"
 	},
 	"devDependencies": {
 		"@types/jest": "^24.0.11",
-		"@types/node": "^6.14.4",
+		"@types/node": "^11.13.7",
 		"@types/semver": "^6.0.0",
 		"jest": "^24.7.1",
+		"jest-cli": "^24.7.1",
 		"shx": "^0.3.2",
-		"typescript": "^3.4.3"
+		"typescript": "^3.4.3",
+		"vscode": "^1.1.33"
 	},
 	"dependencies": {
 		"semver": "^6.0.0",
-		"vscode": "^1.1.33",
 		"vscode-jsonrpc": "^4.0.0",
 		"vscode-languageclient": "^5.2.1",
 		"vscode-languageserver-protocol": "^3.14.1",
