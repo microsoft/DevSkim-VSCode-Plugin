@@ -18,6 +18,8 @@ import {
 import {Settings, DevSkimProblem, Fixes, AutoFix} from "./devskimObjects";
 import {DevSkimWorker} from "./devskimWorker";
 
+import * as config from './config';
+
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: IConnection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
 
@@ -31,7 +33,7 @@ documents.listen(connection);
 
 //Set up a new instance of a DevSkimWorker analysis engine.  This is the object that does all the real
 //work of analyzing a file.  
-const analysisEngine: DevSkimWorker = new DevSkimWorker();
+const analysisEngine: DevSkimWorker = new DevSkimWorker(connection);
 
 // After the server has started the client sends an initialize request. The server receives
 // in the passed params the rootPath of the workspace plus the client capabilities. 
@@ -45,7 +47,7 @@ connection.onInitialize((params): InitializeResult => {
             textDocumentSync: documents.syncKind,
             codeActionProvider: true
         }
-    }
+    };
 });
 
 // The content of a text document has changed. This event is emitted
@@ -71,6 +73,7 @@ connection.onDidChangeConfiguration((change) => {
     //this was part of the template but I basically ignore it.  The settings should
     //be updated to allow rulesets to be turned on and off, and this is where we would
     //get notified that the user did so
+    connection.console.log(`onDidChangeConfiguration: change.settings: ${JSON.stringify(change.settings)}`);
     DevSkimWorker.settings = <Settings>change.settings;
     // Revalidate any open text documents
     documents.all().forEach(validateTextDocument);

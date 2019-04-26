@@ -11,6 +11,7 @@ import {
 	LanguageClient, LanguageClientOptions, ServerOptions, TextEdit,
 	RequestType, TextDocumentIdentifier, TransportKind
 } from 'vscode-languageclient';
+import {DevSkimSettings, DevSkimSettingsObject } from "./devskim.settings";
 
 //the following interface and namespace define a format to invoke a function on the server via
 //LanguageClient.sendRequest
@@ -28,22 +29,31 @@ let client: LanguageClient;
 
 export async function activate(context: ExtensionContext) {
 
-	function handleError(err: any) {
-		const message = `Could not start DevSim Server: [${err}]".`;
-		window.showErrorMessage(message, { modal: false })
-	}
-
 	try {
 		// The server is implemented in node
 		let serverModule = context.asAbsolutePath(path.join('server', "out", 'server.js'));
 		console.log(`Server module: ${serverModule}`);
 		// The debug options for the server
-		let debugOptions = { execArgv: ["--nolazy", "--inspect=6004"] };
+		let devSkimProperties = getDevSkimConfiguration();
+		console.log(`client props: ${JSON.stringify(devSkimProperties)}`);
+		const env: any = {
+			...process.env,
+            devSkimProperties
+		};
+		let debugOptions = {
+			execArgv: ["--nolazy", "--inspect=6004"],
+			env
+		};
 
 		// If the extension is launched in debug mode then the debug server options are used
 		// Otherwise the run options are used
 		let serverOptions: ServerOptions = {
-			run: { module: serverModule, transport: TransportKind.ipc },
+			run: {
+				module: serverModule,
+				transport: TransportKind.ipc,
+				options: {
+					env,
+				}},
 			debug: {
 				module: serverModule,
 				transport: TransportKind.ipc,
@@ -66,7 +76,7 @@ export async function activate(context: ExtensionContext) {
 			}
 		};
 
-		client = new LanguageClient('Devskim', serverOptions, clientOptions);
+		client = new LanguageClient('Devskim', 'Devskim', serverOptions, clientOptions);
 
 		// Create the language client and start the client.
 		let disposable = client.start();
@@ -94,6 +104,29 @@ export async function activate(context: ExtensionContext) {
 
 	} catch (err) {
 		handleError(err);
+	}
+
+	function getDevSkimConfiguration(section='devskim' ): DevSkimSettings {
+		let settings: DevSkimSettings = new DevSkimSettingsObject();
+		settings.enableBestPracticeRules = workspace.getConfiguration(section).get('enableBestPracticeRules', false);
+		settings.enableDefenseInDepthSeverityRules = workspace.getConfiguration(section).get('enableDefenseInDepthSeverityRules', false);
+        settings.enableInformationalSeverityRules = workspace.getConfiguration(section).get('enableInformationalSeverityRules', false);
+        settings.enableLowSeverityRules = workspace.getConfiguration(section).get('enableLowSeverityRules', false);
+		settings.enableManualReviewRules = workspace.getConfiguration(section).get('enableManualReviewRules', false);
+		settings.guidanceBaseURL = workspace.getConfiguration(section).get('guidanceBaseURL', "https://github.com/Microsoft/DevSkim/blob/master/guidance/");
+		settings.ignoreFilesList = workspace.getConfiguration(section).get('ignoreFilesList',
+			[ "out/*", "bin/*", "node_modules/*", ".vscode/*", "yarn.lock", "logs/*", "*.log", "*.git" ]);
+		settings.ignoreRulesList = workspace.getConfiguration(section).get('ignoreRulesList', []); 
+		settings.manualReviewerName = workspace.getConfiguration(section).get('manualReviewerName', '');
+		settings.removeFindingsOnClose = workspace.getConfiguration(section).get('removeFindingsOnClose', false);
+		settings.suppressionDurationInDays = workspace.getConfiguration(section).get('suppressionDurationInDays', 30);
+		settings.validateRulesFiles = workspace.getConfiguration(section).get('validateRulesFiles', true);
+		return settings;
+
+	}
+	function handleError(err: any) {
+		const message = `Could not start DevSim Server: [${err}]".`;
+		window.showErrorMessage(message, { modal: false })
 	}
 
 	/**
