@@ -1,5 +1,6 @@
 import {Settings} from "./devskimObjects";
 import {DevSkimWorker} from "./devskimWorker";
+import {IConnection} from "vscode-languageserver";
 
 describe('DevSkimWorker', () => {
     let dsw: DevSkimWorker;
@@ -11,6 +12,7 @@ describe('DevSkimWorker', () => {
     });
 
     it('is created', async () => {
+        let connection: IConnection;
         jest.mock("./devskimWorker", () => ( {
               DevSkimWorker: jest.fn().mockImplementation(() => ({
                   constructor: mockConstructor,
@@ -19,7 +21,7 @@ describe('DevSkimWorker', () => {
             }));
 
         let rulesDir = String.raw`C:\Users\v-dakit\.vscode\extensions\ms-devskim.vscode-devskim-0.2.2\rules`;
-        dsw = new DevSkimWorker(rulesDir, getSettingsFromClient());
+        dsw = new DevSkimWorker(connection, rulesDir, getSettingsFromClient());
         expect(dsw).toBeInstanceOf(DevSkimWorker);
         const dsDir = dsw.getRulesDirectory();
         expect(dsDir).toEqual(rulesDir);
