@@ -10,7 +10,7 @@
  * problems found in a file, are in devskimObjects.ts
  * 
  * ------------------------------------------------------------------------------------------ */
-import { Range } from 'vscode-languageserver';
+import {IConnection, Range} from 'vscode-languageserver';
 import {computeKey, Condition, DevSkimProblem, Settings, DevskimRuleSeverity, Map, AutoFix, Rule, DevSkimAutoFixEdit}
     from "./devskimObjects";
 import {DevSkimSuppression, DevSkimSuppressionFinding} from "./suppressions";
@@ -18,6 +18,7 @@ import {PathOperations} from "./pathOperations";
 import * as path from 'path';
 import {SourceComments} from "./comments";
 import {RuleValidator} from "./ruleValidator";
+import * as devSkimConfig from './config';
 
 /**
  * The bulk of the DevSkim analysis logic.  Loads rules in, exposes functions to run rules across a file
@@ -26,13 +27,9 @@ export class DevSkimWorker
 {
     public static settings : Settings;
 
-    //directory that the extension rules live in.  
-    private rulesDirectory: string;
-
-    //collection of rules to run analysis with
+    private readonly rulesDirectory: string;
     private analysisRules: Rule[];
     private tempRules: Object[];
-
     private dir = require('node-dir');
 
     //codeActions is the object that holds all of the autofix mappings. we need to store them because
@@ -61,7 +58,7 @@ export class DevSkimWorker
         return this.rulesDirectory
     }
 
-    constructor(rulesDir?: string, testSettings?: Settings)
+    constructor(private connection: IConnection, rulesDir?: string, testSettings?: Settings)
     {
         //this file runs out of the server directory.  The rules directory should be in ../rules
         //so pop over to it
@@ -73,7 +70,9 @@ export class DevSkimWorker
         if (testSettings) {
             DevSkimWorker.settings = testSettings;
         }
-        this.rulesDirectory = rulesDir || path.join(__dirname,"..","rules");
+
+        let configRulesDir = devSkimConfig.getDevskimRulesDirectory();
+        this.rulesDirectory = configRulesDir || path.join(__dirname,"..","rules");
         this.loadRules();
     }
 
@@ -92,13 +91,15 @@ export class DevSkimWorker
 
         //Before we do any processing, see if the file (or its directory) are in the ignore list.  If so
         //skip doing any analysis on the file
-        if(!PathOperations.ignoreFile(documentURI,DevSkimWorker.settings.devskim.ignoreFilesList))
-        {
-            //find out what issues are in the current document
-            problems = this.runAnalysis(documentContents,langID,documentURI);
-            
-            //remove any findings from rules that have been overridden by other rules
-            problems = this.processOverrides(problems);
+        if (DevSkimWorker.settings && DevSkimWorker.settings.devskim &&
+            DevSkimWorker.settings.devskim.ignoreFilesList) {
+            if (!PathOperations.ignoreFile(documentURI, DevSkimWorker.settings.devskim.ignoreFilesList)) {
+                //find out what issues are in the current document
+                problems = this.runAnalysis(documentContents, langID, documentURI);
+
+                //remove any findings from rules that have been overridden by other rules
+                problems = this.processOverrides(problems);
+            }
         }
 
         return problems;
@@ -118,7 +119,7 @@ export class DevSkimWorker
      * @param {string} ruleID an identifier for the rule that was triggered
      * @returns {void}
      */
-    public recordCodeAction(documentURI: string, documentVersion: number, range: Range, diagnosticCode : string | number, fix: DevSkimAutoFixEdit, ruleID : string): void 
+    public recordCodeAction(documentURI: string, documentVersion: number, range: Range, diagnosticCode : string | number, fix: DevSkimAutoFixEdit, ruleID : string): void
     {
         if (!fix || !ruleID) {
             return;
@@ -165,6 +166,8 @@ export class DevSkimWorker
         //read the rules files recursively from the file system - get all of the .json files under the rules directory.  
         //first read in the default & custom directories, as they contain the required rules (i.e. exclude the "optional" directory)
         //and then do the inverse to populate the optional rules
+
+        this.connection.console.log(`loadRules() ... from: ${this.rulesDirectory}`);
         this.dir.readFiles(this.rulesDirectory, {match: /.json$/},
             (err, content, file, next) => {
                 if (err) {
@@ -174,8 +177,8 @@ export class DevSkimWorker
                 const loadedRules: Rule[] = JSON.parse(content);
                 for (let rule of loadedRules) {
                     rule.filepath = file;
+                    this.connection.console.log(`loadRules() rule name: "${rule.name}"`);
                 }
-
                 this.tempRules = this.tempRules.concat(loadedRules);
                 next();
             },
@@ -186,6 +189,8 @@ export class DevSkimWorker
                 let validator: RuleValidator = new RuleValidator(this.rulesDirectory, path.join(this.rulesDirectory, ".."));
                 this.analysisRules = validator.validateRules(this.tempRules,
                     DevSkimWorker.settings.devskim.validateRulesFiles);
+
+                this.connection.console.log(`loadRules() - analysisRules: count ${this.analysisRules.length}`);
 
                 //don't need to keep this around anymore
                 delete this.tempRules;
@@ -424,8 +429,8 @@ export class DevSkimWorker
      * is important, as we need to save that info for later to cover overrides that also should be suppressed
      * @param {Rule} rule
      * @param {DevskimRuleSeverity} warningLevel 
-     * @param {Range} problemRange 
-     * @param {Range} [suppressedFindingRange] 
+     * @param {Range} problemRange
+     * @param {Range} [suppressedFindingRange]
      */
     private static makeProblem(rule: Rule, warningLevel : DevskimRuleSeverity, problemRange: Range, suppressedFindingRange?:Range) : DevSkimProblem
     {
