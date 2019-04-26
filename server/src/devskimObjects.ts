@@ -36,6 +36,21 @@ export interface DevSkimSettings {
 	removeFindingsOnClose: boolean;
 }
 
+export class DevSkimSettingsObject implements DevSkimSettings {
+	enableBestPracticeRules: boolean;
+	enableDefenseInDepthSeverityRules: boolean;
+	enableInformationalSeverityRules: boolean;
+	enableLowSeverityRules: boolean;
+	enableManualReviewRules: boolean;
+	guidanceBaseURL: string;
+	ignoreFilesList: string[];
+	ignoreRulesList: string[];
+	manualReviewerName: string;
+	removeFindingsOnClose: boolean;
+	suppressionDurationInDays: number;
+	validateRulesFiles: boolean;
+};
+
 /**
  * An Interface corresponding to the Pattern section of the JSON
  * rules files.  The pattern is used to match a problem within the source
