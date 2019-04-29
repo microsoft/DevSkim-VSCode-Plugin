@@ -12,13 +12,17 @@
 import {
     IPCMessageReader, IPCMessageWriter, createConnection, IConnection,
     TextDocuments, TextDocument, Diagnostic,
-    InitializeResult, RequestType, Command, TextEdit, TextDocumentIdentifier
+    InitializeResult, RequestType, Command, TextEdit, TextDocumentIdentifier, DidChangeConfigurationNotification
 } from 'vscode-languageserver';
 
-import {Settings, DevSkimProblem, Fixes, AutoFix} from "./devskimObjects";
+import {DevSkimProblem, Fixes, AutoFix, DevSkimSettings} from "./devskimObjects";
 import {DevSkimWorker} from "./devskimWorker";
 
 import * as config from './config';
+
+let hasConfigurationCapability: boolean = false;
+let hasWorkspaceFolderCapability: boolean = false;
+let hasDiagnosticRelatedInformationCapability: boolean = false;
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: IConnection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
@@ -40,7 +44,22 @@ const analysisEngine: DevSkimWorker = new DevSkimWorker(connection);
 let workspaceRoot: string;
 
 connection.onInitialize((params): InitializeResult => {
-    workspaceRoot = params.rootPath;
+    let capabilities = params.capabilities;
+    hasConfigurationCapability = !!( capabilities.workspace && !!capabilities.workspace.configuration);
+    hasWorkspaceFolderCapability = !!( capabilities.workspace && !!capabilities.workspace.workspaceFolders);
+
+    hasDiagnosticRelatedInformationCapability = !!(
+        capabilities.textDocument &&
+        capabilities.textDocument.publishDiagnostics &&
+        capabilities.textDocument.publishDiagnostics.relatedInformation
+    );
+
+    // console.log(`server: onInitialize() - ${JSON.stringify(params)}`);
+    console.log(`server: onInitialize() - workspaceRoot - ${JSON.stringify(params.rootPath)}`);
+    const myRoot = `C:/Users/v-dakit/Code/DevSkimHome/DevSkim-VSCode-Plugin/client`;
+    console.log(`server: onInitialize() - myRoot - ${JSON.stringify(myRoot)}`);
+    params.rootPath = myRoot;
+
     return {
         capabilities: {
             // Tell the client that the server works in FULL text document sync mode
@@ -48,6 +67,17 @@ connection.onInitialize((params): InitializeResult => {
             codeActionProvider: true
         }
     };
+});
+
+connection.onInitialized(() => {
+  if (hasConfigurationCapability) {
+      connection.client.register(DidChangeConfigurationNotification.type, undefined);
+  }
+  if (hasWorkspaceFolderCapability) {
+      connection.workspace.onDidChangeWorkspaceFolders( ev => {
+          connection.console.log('Workspace folder change event received.');
+      })
+  }
 });
 
 // The content of a text document has changed. This event is emitted
@@ -60,24 +90,53 @@ documents.onDidOpen((change) => {
     validateTextDocument(change.document);
 });
 
+//
+// Settings
+//
+const defaultSettings: DevSkimSettings = DevSkimWorker.defaultSettings();
+let globalSettings: DevSkimSettings = defaultSettings;
+
 //if the user has specified in settings, all findings will be cleared when they close a document
 documents.onDidClose((change) => {
-    if (DevSkimWorker.settings.devskim.removeFindingsOnClose) {
+    if (this.settings.devskim.removeFindingsOnClose) {
         let diagnostics: Diagnostic[] = [];
         connection.sendDiagnostics({uri: change.document.uri, diagnostics});
     }
 });
+
+//Cache settings of all open documents
+let documentSettings: Map<string, Thenable<DevSkimSettings>> = new Map();
 
 // The settings have changed. Is send on server activation as well.
 connection.onDidChangeConfiguration((change) => {
     //this was part of the template but I basically ignore it.  The settings should
     //be updated to allow rulesets to be turned on and off, and this is where we would
     //get notified that the user did so
-    connection.console.log(`onDidChangeConfiguration: change.settings: ${JSON.stringify(change.settings)}`);
-    DevSkimWorker.settings = <Settings>change.settings;
+    // connection.console.log(`onDidChangeConfiguration: change.settings: ${JSON.stringify(change.settings)}`);
+    if (hasConfigurationCapability) {
+        documentSettings.clear();
+    } else {
+        globalSettings = change.settings || defaultSettings;
+    }
+
     // Revalidate any open text documents
     documents.all().forEach(validateTextDocument);
 });
+
+function getDocumentSettings(resource: string): Thenable<DevSkimSettings> {
+    if (!hasConfigurationCapability) {
+        return Promise.resolve(globalSettings);
+    }
+    let result: any = documentSettings.get(resource);
+    if (!result) {
+        result = connection.workspace.getConfiguration({
+            scopeUri: resource,
+            section: 'devskim'
+        });
+        documentSettings.set(resource, result);
+    }
+    return result;
+}
 
 //this is the mechanism that populates VS Code with the various code actions associated
 //with DevSkim findings.  VS Code invokes this to get an array of commands.  This happens
@@ -121,24 +180,37 @@ connection.onCodeAction((params) => {
  *
  * @param {TextDocument} textDocument document to analyze
  */
-function validateTextDocument(textDocument: TextDocument): void {
-    let diagnostics: Diagnostic[] = [];
-    delete analysisEngine.codeActions[textDocument.uri];
+async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 
-    const problems: DevSkimProblem[] =
-        analysisEngine.analyzeText(textDocument.getText(), textDocument.languageId, textDocument.uri);
+    if (textDocument && textDocument.uri) {
+        let diagnostics: Diagnostic[] = [];
+        let settings = await getDocumentSettings(textDocument.uri);
+        if (!settings) {
+            settings = globalSettings;
+        }
+        if (settings) {
+            DevSkimWorker.setSettings(settings);
 
-    for (let problem of problems) {
-        let diagnostic: Diagnostic = problem.makeDiagnostic();
-        diagnostics.push(diagnostic);
+            if (textDocument.uri) {
+                delete analysisEngine.codeActions[textDocument.uri];
+            }
 
-        for (let fix of problem.fixes) {
-            analysisEngine.recordCodeAction(textDocument.uri, textDocument.version,
-                diagnostic.range, diagnostic.code, fix, problem.ruleId);
+            const problems: DevSkimProblem[] =
+                analysisEngine.analyzeText(textDocument.getText(), textDocument.languageId, textDocument.uri);
+
+            for (let problem of problems) {
+                let diagnostic: Diagnostic = problem.makeDiagnostic();
+                diagnostics.push(diagnostic);
+
+                for (let fix of problem.fixes) {
+                    analysisEngine.recordCodeAction(textDocument.uri, textDocument.version,
+                        diagnostic.range, diagnostic.code, fix, problem.ruleId);
+                }
+            }
+            // Send the computed diagnostics to VSCode.
+            connection.sendDiagnostics({uri: textDocument.uri, diagnostics});
         }
     }
-    // Send the computed diagnostics to VSCode.
-    connection.sendDiagnostics({uri: textDocument.uri, diagnostics});
 }
 
 //currently DevSkim doesn't watch any files, but this is stubbed out as concievably it should watch the

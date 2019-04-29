@@ -8,6 +8,7 @@
 
 import {Rule,FixIt,Pattern} from "./devskimObjects";
 import * as path from 'path';
+import {IConnection} from "vscode-languageserver";
 
 /**
  * 
@@ -26,7 +27,7 @@ export class RuleValidator
      * @param rd
      * @param ed
      */
-    constructor(rd: string, ed: string)
+    constructor(private connection: IConnection, rd: string, ed: string)
     {
         this.rulesDir = rd;
         this.errorDir = ed;        
@@ -45,6 +46,7 @@ export class RuleValidator
         this.outputMessages = [];
         this.writeoutNewRules = false;
 
+        this.connection.console.log(`validateRules: ${readRules.length}`);
         for(let loadedRule of readRules)
         {
             try 

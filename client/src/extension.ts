@@ -35,7 +35,6 @@ export async function activate(context: ExtensionContext) {
 		console.log(`Server module: ${serverModule}`);
 		// The debug options for the server
 		let devSkimProperties = getDevSkimConfiguration();
-		console.log(`client props: ${JSON.stringify(devSkimProperties)}`);
 		const env: any = {
 			...process.env,
             devSkimProperties

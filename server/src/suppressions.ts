@@ -64,10 +64,10 @@ export class DevSkimSuppression
             actionString = (isReviewRule) ? actionString + " on " :actionString + " until ";
             actionString = actionString + date.getFullYear() + "-" + month + "-" + day;
         }
-        if(isReviewRule && DevSkimWorker.settings.devskim.manualReviewerName !== undefined && DevSkimWorker.settings.devskim.manualReviewerName != null &&
-            DevSkimWorker.settings.devskim.manualReviewerName.length > 0)
+        if(isReviewRule && DevSkimWorker.settings.manualReviewerName !== undefined && DevSkimWorker.settings.manualReviewerName != null &&
+            DevSkimWorker.settings.manualReviewerName.length > 0)
         {
-            actionString = actionString + " by " + DevSkimWorker.settings.devskim.manualReviewerName;
+            actionString = actionString + " by " + DevSkimWorker.settings.manualReviewerName;
         }
         return actionString;
     }      
@@ -93,9 +93,9 @@ export class DevSkimSuppression
 
         //if this is a suppression and temporary suppressions are enabled (i.e. the setting for suppression duration is > 0) then
         //first add a code action for a temporary suppression
-        if(!isReviewRule && DevSkimWorker.settings.devskim.suppressionDurationInDays > 0)
+        if(!isReviewRule && DevSkimWorker.settings.suppressionDurationInDays > 0)
         {
-            codeActions.push(DevSkimSuppression.addAction(ruleID,documentContents,startCharacter,lineStart,langID,isReviewRule,DevSkimWorker.settings.devskim.suppressionDurationInDays));
+            codeActions.push(DevSkimSuppression.addAction(ruleID,documentContents,startCharacter,lineStart,langID,isReviewRule,DevSkimWorker.settings.suppressionDurationInDays));
         }
 
         //now either add a code action to mark this reviewed, or to suppress the finding indefinitely

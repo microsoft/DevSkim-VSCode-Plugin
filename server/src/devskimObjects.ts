@@ -14,29 +14,9 @@ import { Diagnostic, DiagnosticSeverity, Range
 
 import {DevSkimWorker} from "./devskimWorker";
 
-// The settings interface describe the server relevant settings part
-export interface Settings {
-	devskim: DevSkimSettings;
-}
-
 // These are the example settings we defined in the client's package.json
 // file
 export interface DevSkimSettings {
-	enableManualReviewRules: boolean;
-	enableInformationalSeverityRules: boolean;
-	enableDefenseInDepthSeverityRules: boolean;
-	enableBestPracticeRules: boolean;
-	enableLowSeverityRules: boolean;
-	suppressionDurationInDays: number;
-	manualReviewerName: string;
-	ignoreFilesList: string[];
-	ignoreRulesList: string[];
-	validateRulesFiles: boolean;
-	guidanceBaseURL: string;	
-	removeFindingsOnClose: boolean;
-}
-
-export class DevSkimSettingsObject implements DevSkimSettings {
 	enableBestPracticeRules: boolean;
 	enableDefenseInDepthSeverityRules: boolean;
 	enableInformationalSeverityRules: boolean;
@@ -49,6 +29,21 @@ export class DevSkimSettingsObject implements DevSkimSettings {
 	removeFindingsOnClose: boolean;
 	suppressionDurationInDays: number;
 	validateRulesFiles: boolean;
+}
+
+export class DevSkimSettingsObject implements DevSkimSettings {
+	enableBestPracticeRules: boolean = false;
+	enableDefenseInDepthSeverityRules: boolean = false;
+	enableInformationalSeverityRules: boolean = false;
+	enableLowSeverityRules: boolean = false;
+	enableManualReviewRules: boolean = false;
+	guidanceBaseURL: string = '';
+	ignoreFilesList: string[] = [];
+	ignoreRulesList: string[] = [];
+	manualReviewerName: string = '';
+	removeFindingsOnClose: boolean = false;
+	suppressionDurationInDays: number = 0;
+	validateRulesFiles: boolean = true;
 };
 
 /**
@@ -282,7 +277,7 @@ export class DevSkimProblem {
 			fullMessage;
 
 		fullMessage = (this.issueURL.length > 0 ) ? 
-			fullMessage + "\n\nMore Info:\n" + DevSkimWorker.settings.devskim.guidanceBaseURL + this.issueURL : 
+			fullMessage + "\n\nMore Info:\n" + DevSkimWorker.settings.guidanceBaseURL + this.issueURL :
 			fullMessage;
 
 		diagnostic.message = fullMessage;

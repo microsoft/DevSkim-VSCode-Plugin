@@ -13,9 +13,9 @@ export class PathOperations
      * @param filePath 
      * @param ignoreList 
      */
-    public static ignoreFile(filePath : string, ignoreList : string[]) : boolean
+    public static ignoreFile(filePath : string, ignoreList : string[] = []) : boolean
     {        
-        if(filePath.length > 1)
+        if(filePath && filePath.length > 1)
         {
             //we don't want to run analysis on commit files which could, depending
             //on scenario, be either git://filepath or filepath.git, so we check
