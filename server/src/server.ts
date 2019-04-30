@@ -18,7 +18,7 @@ import {
 import {DevSkimProblem, Fixes, AutoFix, DevSkimSettings} from "./devskimObjects";
 import {DevSkimWorker} from "./devskimWorker";
 
-import * as config from './config';
+import {DevSkimWorkerSettings} from "./devskimWorkerSettings";
 
 let hasConfigurationCapability: boolean = false;
 let hasWorkspaceFolderCapability: boolean = false;
@@ -54,12 +54,7 @@ connection.onInitialize((params): InitializeResult => {
         capabilities.textDocument.publishDiagnostics.relatedInformation
     );
 
-    // console.log(`server: onInitialize() - ${JSON.stringify(params)}`);
-    console.log(`server: onInitialize() - workspaceRoot - ${JSON.stringify(params.rootPath)}`);
-    const myRoot = `C:/Users/v-dakit/Code/DevSkimHome/DevSkim-VSCode-Plugin/client`;
-    console.log(`server: onInitialize() - myRoot - ${JSON.stringify(myRoot)}`);
-    params.rootPath = myRoot;
-
+    workspaceRoot = params.rootPath;
     return {
         capabilities: {
             // Tell the client that the server works in FULL text document sync mode
@@ -75,9 +70,10 @@ connection.onInitialized(() => {
   }
   if (hasWorkspaceFolderCapability) {
       connection.workspace.onDidChangeWorkspaceFolders( ev => {
-          connection.console.log('Workspace folder change event received.');
-      })
+          connection.console.log('Server - workspace folder change event received');
+      });
   }
+  connection.console.log('Server - onInitialized: connection is now initialized');
 });
 
 // The content of a text document has changed. This event is emitted
@@ -93,12 +89,11 @@ documents.onDidOpen((change) => {
 //
 // Settings
 //
-const defaultSettings: DevSkimSettings = DevSkimWorker.defaultSettings();
-let globalSettings: DevSkimSettings = defaultSettings;
+let globalSettings: DevSkimSettings = DevSkimWorkerSettings.getSettings();
 
 //if the user has specified in settings, all findings will be cleared when they close a document
 documents.onDidClose((change) => {
-    if (this.settings.devskim.removeFindingsOnClose) {
+    if (this.settings.removeFindingsOnClose) {
         let diagnostics: Diagnostic[] = [];
         connection.sendDiagnostics({uri: change.document.uri, diagnostics});
     }
@@ -112,12 +107,12 @@ connection.onDidChangeConfiguration((change) => {
     //this was part of the template but I basically ignore it.  The settings should
     //be updated to allow rulesets to be turned on and off, and this is where we would
     //get notified that the user did so
-    // connection.console.log(`onDidChangeConfiguration: change.settings: ${JSON.stringify(change.settings)}`);
     if (hasConfigurationCapability) {
         documentSettings.clear();
     } else {
-        globalSettings = change.settings || defaultSettings;
+        globalSettings = change.settings || globalSettings;
     }
+    connection.console.log(`Server - onDidChangeConfiguration: ${JSON.stringify(change)}`);
 
     // Revalidate any open text documents
     documents.all().forEach(validateTextDocument);
@@ -189,11 +184,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
             settings = globalSettings;
         }
         if (settings) {
-            DevSkimWorker.setSettings(settings);
-
-            if (textDocument.uri) {
-                delete analysisEngine.codeActions[textDocument.uri];
-            }
+            delete analysisEngine.codeActions[textDocument.uri];
 
             const problems: DevSkimProblem[] =
                 analysisEngine.analyzeText(textDocument.getText(), textDocument.languageId, textDocument.uri);
@@ -207,9 +198,9 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
                         diagnostic.range, diagnostic.code, fix, problem.ruleId);
                 }
             }
-            // Send the computed diagnostics to VSCode.
-            connection.sendDiagnostics({uri: textDocument.uri, diagnostics});
         }
+        // Send the computed diagnostics to VSCode.
+        connection.sendDiagnostics({uri: textDocument.uri, diagnostics});
     }
 }
 
@@ -217,7 +208,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 //rules directory for changes
 connection.onDidChangeWatchedFiles((/* change */) => {
     // Monitored files have change in VSCode
-    // connection.console.log('We received an file change event');
+    connection.console.log('Server - received a file change event');
 });
 
 
