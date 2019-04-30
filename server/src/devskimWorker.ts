@@ -11,22 +11,24 @@
  * 
  * ------------------------------------------------------------------------------------------ */
 import {IConnection, Range} from 'vscode-languageserver';
-import { computeKey, Condition, DevSkimProblem, DevskimRuleSeverity, Map, AutoFix,
-    Rule, DevSkimAutoFixEdit, DevSkimSettingsObject, DevSkimSettings }
+import {
+    computeKey, Condition, DevSkimProblem, DevskimRuleSeverity, Map, AutoFix,
+    Rule, DevSkimAutoFixEdit, IDevSkimSettings
+}
     from "./devskimObjects";
 import {DevSkimSuppression, DevSkimSuppressionFinding} from "./suppressions";
 import {PathOperations} from "./pathOperations";
 import * as path from 'path';
 import {SourceComments} from "./comments";
 import {RuleValidator} from "./ruleValidator";
-import * as devSkimConfig from './config';
+import {DevSkimWorkerSettings} from "./devskimWorkerSettings";
 
 /**
  * The bulk of the DevSkim analysis logic.  Loads rules in, exposes functions to run rules across a file
  */
 export class DevSkimWorker {
-    public static settings: DevSkimSettings;
-    private readonly rulesDirectory: string;
+    public static settings: IDevSkimSettings;
+    public readonly rulesDirectory: string;
     private analysisRules: Rule[];
     private tempRules: Object[];
     private dir = require('node-dir');
@@ -46,39 +48,10 @@ export class DevSkimWorker {
     //map seemed a little excessive to me.  Then again, I just wrote 3 paragraphs for how this works, so maybe I'm being too clever
     public codeActions: Map<Map<AutoFix>> = Object.create(null);
 
-    constructor(private connection: IConnection, rulesDir?: string, testSettings?: DevSkimSettings) {
-        //this file runs out of the server directory.  The rules directory should be in ../rules
-        //so pop over to it
-        let configRulesDir = devSkimConfig.getDevskimRulesDirectory();
-        this.rulesDirectory = configRulesDir || path.join(__dirname, "..", "rules");
-        DevSkimWorker.settings = new DevSkimSettingsObject();
+    constructor(private connection: IConnection, settings?: IDevSkimSettings) {
+        this.rulesDirectory = DevSkimWorkerSettings.getRulesDirectory();
+        DevSkimWorker.settings = DevSkimWorkerSettings.getSettings(settings);
         this.loadRules();
-    }
-
-    public static defaultSettings(): DevSkimSettings {
-        return {
-            enableBestPracticeRules: true,
-            enableDefenseInDepthSeverityRules: false,
-            enableInformationalSeverityRules: false,
-            enableLowSeverityRules: false,
-            enableManualReviewRules: true,
-            guidanceBaseURL: "https://github.com/Microsoft/DevSkim/blob/master/guidance/",
-            ignoreFilesList: [
-                "out/*",
-                "bin/*",
-                "node_modules/*",
-                ".vscode/*",
-                "yarn.lock",
-                "logs/*",
-                "*.log",
-                "*.git"
-            ],
-            ignoreRulesList: [],
-            manualReviewerName: "",
-            removeFindingsOnClose: false,
-            suppressionDurationInDays: 30,
-            validateRulesFiles: true,
-        };
     }
 
     /**
@@ -95,19 +68,18 @@ export class DevSkimWorker {
 
         //Before we do any processing, see if the file (or its directory) are in the ignore list.  If so
         //skip doing any analysis on the file
-        if (DevSkimWorker.settings && DevSkimWorker.settings &&
-            DevSkimWorker.settings.ignoreFilesList) {
-            if (!PathOperations.ignoreFile(documentURI, DevSkimWorker.settings.ignoreFilesList)) {
-                //find out what issues are in the current document
-                problems = this.runAnalysis(documentContents, langID, documentURI);
+        if (this.analysisRules && this.analysisRules.length) {
+            if (DevSkimWorker.settings && DevSkimWorker.settings.ignoreFilesList) {
+                if (!PathOperations.ignoreFile(documentURI, DevSkimWorker.settings.ignoreFilesList)) {
+                    //find out what issues are in the current document
+                    problems = this.runAnalysis(documentContents, langID, documentURI);
 
-                //remove any findings from rules that have been overridden by other rules
-                problems = this.processOverrides(problems);
+                    //remove any findings from rules that have been overridden by other rules
+                    problems = this.processOverrides(problems);
+                }
             }
         }
-
         return problems;
-
     }
 
     /**
@@ -163,10 +135,6 @@ export class DevSkimWorker {
         this.loadRules();
     }
 
-    public static setSettings(settings: DevSkimSettings) {
-        DevSkimWorker.settings = settings;
-    }
-
     /**
      * recursively load all of the JSON files in the $userhome/.vscode/extensions/vscode-devskim/rules sub directories
      *
@@ -179,14 +147,22 @@ export class DevSkimWorker {
         //read the rules files recursively from the file system - get all of the .json files under the rules directory.  
         //first read in the default & custom directories, as they contain the required rules (i.e. exclude the "optional" directory)
         //and then do the inverse to populate the optional rules
+        this.connection.console.log(`DevSkimWorker: rulesDirectory: ${this.rulesDirectory}`);
         this.dir.readFiles(this.rulesDirectory, {match: /.json$/},
             (err, content, file, next) => {
                 if (err) {
+                    this.connection.console.log(`DevSkimWorker - loadRules() - err: ${err}`);
                     throw err;
+                }
+                if (!file) {
+                    next();
                 }
                 //Load the rules from files add the file path
                 const loadedRules: Rule[] = JSON.parse(content);
                 for (let rule of loadedRules) {
+                    if (!rule.name) {
+                       continue;
+                    }
                     rule.filepath = file;
                 }
                 this.tempRules = this.tempRules.concat(loadedRules);
@@ -196,8 +172,9 @@ export class DevSkimWorker {
                 //now that we have all of the rules objects, lets clean them up and make
                 //sure they are in a format we can use.  This will overwrite any badly formed JSON files
                 //with good ones so that it passes validation in the future
+                this.connection.console.log(`DevSkimWorker - loadRules() - all rules read, validating rules`);
                 let validator: RuleValidator =
-                    new RuleValidator(this.connection, this.rulesDirectory, path.join(this.rulesDirectory, ".."));
+                    new RuleValidator(this.connection, this.rulesDirectory, this.rulesDirectory);
                 this.analysisRules =
                     validator.validateRules(this.tempRules, DevSkimWorker.settings.validateRulesFiles);
 
@@ -303,12 +280,9 @@ export class DevSkimWorker {
      */
     private runAnalysis(documentContents: string, langID: string, documentURI: string): DevSkimProblem[] {
         let problems: DevSkimProblem[] = [];
-        let suppression: DevSkimSuppression = new DevSkimSuppression();
-
         let XRegExp = require('xregexp');
 
-
-        this.connection.console.log(`runAnalysis()`);
+        this.connection.console.log(`DevSkimWorker - runAnalysis() on ${this.analysisRules.length} rules`);
         //iterate over all of the rules, and then all of the patterns within a rule looking for a match.  
         for (let rule of this.analysisRules) {
             const ruleSeverity: DevskimRuleSeverity = DevSkimWorker.MapRuleSeverity(rule.severity);
@@ -385,6 +359,7 @@ export class DevSkimWorker {
                 }
             }
         }
+        this.connection.console.log(`DevSkimWorker - runAnalysis() on ${problems.length} problems`);
         return problems;
     }
 
@@ -625,6 +600,7 @@ export class DevSkimWorker {
     private processOverrides(problems: DevSkimProblem[]): DevSkimProblem[] {
         let overrideRemoved: boolean = false;
 
+        this.connection.console.log(`DevSkimWorker - processOverrides on ${problems.length} rules`);
         for (let problem of problems) {
             //if this problem overrides other ones, THEN do the processing
             if (problem.overrides.length > 0) {
