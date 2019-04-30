@@ -12,17 +12,14 @@ describe('DevSkimWorker', () => {
     });
 
     it('is created', async () => {
+        let ruleDir = String.raw`C:\Users\v-dakit\.vscode\extensions\ms-devskim.vscode-devskim-0.2.2\rules`;
+        process.env.DEV_SKIM_RULES_DIRECTORY = ruleDir;
         let connection: IConnection;
-        jest.mock("./devskimWorker", () => ( {
-              DevSkimWorker: jest.fn().mockImplementation(() => ({
-                  constructor: mockConstructor,
-                  loadRules: mockLoadRules
-              })),
-            }));
 
-        let rulesDir = String.raw`C:\Users\v-dakit\.vscode\extensions\ms-devskim.vscode-devskim-0.2.2\rules`;
-        dsw = new DevSkimWorker(connection, rulesDir, DevSkimWorker.defaultSettings());
+        let dsw = new DevSkimWorker(connection);
         expect(dsw).toBeInstanceOf(DevSkimWorker);
+        expect(dsw.rulesDirectory).toBe(ruleDir)
+
     });
 
 });
