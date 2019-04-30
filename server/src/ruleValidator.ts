@@ -9,6 +9,7 @@
 import {Rule,FixIt,Pattern} from "./devskimObjects";
 import * as path from 'path';
 import {IConnection} from "vscode-languageserver";
+import ErrnoException = NodeJS.ErrnoException;
 
 /**
  * 
@@ -21,9 +22,11 @@ export class RuleValidator
     private outputMessages: OutputMessages[];
     private fs = require('fs');
     private writeoutNewRules : boolean;
+    private logFilePath: string = '';
 
     /**
      *
+     * @param connection
      * @param rd
      * @param ed
      */
@@ -32,7 +35,7 @@ export class RuleValidator
         this.rulesDir = rd;
         this.errorDir = ed;        
         this.fixedRules  = {};  
-        this.writeoutNewRules = false; 
+        this.writeoutNewRules = false;
     }
 
     /**
@@ -46,7 +49,9 @@ export class RuleValidator
         this.outputMessages = [];
         this.writeoutNewRules = false;
 
-        this.connection.console.log(`validateRules: ${readRules.length}`);
+        if (!readRules) readRules = [];
+
+        this.connection.console.log(`RuleValidator - rules to validate: ${readRules.length}`);
         for(let loadedRule of readRules)
         {
             try 
@@ -60,29 +65,41 @@ export class RuleValidator
         //if told to outputValidation, write out fixed rules (if any) and the output log
         if(outputValidation)
         {
-            if(this.outputMessages.length > 0)
-            {
-                let filePath : string =  path.join(this.errorDir,"..","rulesValidationLog.json");
-                this.fs.writeFile(filePath, JSON.stringify(this.outputMessages, null, 4));
+            if (this.outputMessages.length > 0) {
+                this.logFilePath = path.join(this.errorDir, "rulesValidationLog.json");
+                this.fs.writeFile(this.logFilePath, JSON.stringify(this.outputMessages, null, 4),
+                    (err: ErrnoException) => {
+                        if (err) {
+                            this.connection.console
+                                .log(`RuleValidator - outputValidation  err: ${err.message}`);
+                        }
+                    });
             }
             if(this.writeoutNewRules)
             {
-                let newrulePath : string =  path.join(this.errorDir,"..","newrules");
-                                
+                let newrulePath : string =  path.join(this.errorDir, "..", "newrules");
+                this.connection.console.log(`RuleValidator - outputValidation: ${newrulePath}`);
+
                 for (let key in this.fixedRules)
                 {
                     let filePath : string = key.substr(key.indexOf("rules")+5);
                     let mkdirp = require('mkdirp');    
-                    filePath = path.join(newrulePath,filePath);
-
+                    filePath = path.join(newrulePath, filePath);
                     try
                     {
                         mkdirp.sync(path.dirname(filePath));
+                        this.connection.console.log(`RuleValidator - newRulePath - file: ${filePath}`);
                         this.fs.writeFileSync(filePath, JSON.stringify(this.fixedRules[key], null, 4));
                     }
-                    catch(err){}
-                }                       
+                    catch(err) {
+                        this.connection.console.log(`RuleValidator - validateRules err: >>${err.message}<<`);
+                    }
+                }
             }          
+        }
+        if (readRules.length > rules.length) {
+           this.connection.console
+               .log(`RuleValidator - see ${this.logFilePath} for issues of ${readRules.length - rules.length} rules`);
         }
         return rules;
     }
@@ -283,7 +300,6 @@ export class RuleValidator
             this.outputMessages.push(outcome);    
             this.writeoutNewRules = true;                
         }
-
         return fixit;
     }
 
@@ -363,12 +379,10 @@ export class RuleValidator
                 this.outputMessages.push(outcome);              
                 throw "patterns value array is empty";      
         }
-
         for(let pattern of loadedRule.patterns)
         {
             patterns.push(this.validatePatternObject(pattern,loadedRule));
         }         
-
         return patterns;
     }
 
@@ -411,14 +425,12 @@ export class RuleValidator
         {
             pattern.scopes = ["code"];
         }
-        
 
         pattern._comment = (RuleValidator.isSet(loadedPattern._comment, "string")) ? loadedPattern._comment : "";
 
         let modifiers : string[] = this.validateStringArray(loadedPattern.modifiers,"pattern.modifiers",loadedRule,this.validateSpecificPatternModifiers);
         if(modifiers.length > 0)
            pattern.modifiers = modifiers; 
-
         return pattern;
     }
 
@@ -432,8 +444,7 @@ export class RuleValidator
         let scopes : string[] = this.validateStringArray(scope,"scopes",loadedRule,this.validateSpecificScope);
         if(scopes.length == 0)
             scope.push("code");
-
-        return scopes;    
+        return scopes;
     }
 
     private validateSpecificScope(scope : string, loadedRule) : string
@@ -499,7 +510,6 @@ export class RuleValidator
             this.writeoutNewRules = true; 
             break;              
         }
-
         return info;
     }
 
@@ -535,7 +545,6 @@ export class RuleValidator
                 
                 this.writeoutNewRules = true;
                 return "regex-word";
-
         }
         
         //if we made it this far, severity isn't any value we recognize, and it needs to be.  Write an error message and throw an exception
@@ -545,8 +554,7 @@ export class RuleValidator
         outcome.file = loadedRule.filepath;
 
         this.outputMessages.push(outcome);  
-        
-        throw "Unknown pattern.type in rule.  Please see documentation at https://github.com/microsoft/devskim/wiki";     
+        throw "Unknown pattern.type in rule.  Please see documentation at https://github.com/microsoft/devskim/wiki";
     }    
 
     /**
@@ -615,8 +623,7 @@ export class RuleValidator
         outcome.file = loadedRule.filepath;
 
         this.outputMessages.push(outcome);  
-        
-        throw "Unknown severity in rule.  Please see documentation at https://github.com/microsoft/devskim/wiki";     
+        throw "Unknown severity in rule.  Please see documentation at https://github.com/microsoft/devskim/wiki";
     }
 
     /**
@@ -633,10 +640,8 @@ export class RuleValidator
             outcome.message = "name is more than 128 characters, which is longer than desired";
             outcome.ruleid = loadedRule.id;
             outcome.file = loadedRule.filepath;
-
-            this.outputMessages.push(outcome);               
+            this.outputMessages.push(outcome);
         }     
-
         return loadedRule.name;
     }
 
@@ -656,8 +661,7 @@ export class RuleValidator
                 outcome.message = "recommendation is more than 512 characters, which is longer than desired";
                 outcome.ruleid = loadedRule.id;
                 outcome.file = loadedRule.filepath;
-
-                this.outputMessages.push(outcome);               
+                this.outputMessages.push(outcome);
             }  
             return loadedRule.recommendation;           
         }
@@ -679,7 +683,6 @@ export class RuleValidator
                 this.outputMessages.push(outcome);               
             }  
         }   
-
         return (valid) ? loadedRule.replacement : "";
     }    
 
@@ -796,8 +799,7 @@ export class RuleValidator
                 outcome.message = "Unknown modifier in pattern.";
                 outcome.ruleid = loadedRule.id;
                 outcome.file = loadedRule.filepath;
-
-                this.outputMessages.push(outcome);   
+                this.outputMessages.push(outcome);
                 return "";                      
         }
     }
@@ -837,8 +839,6 @@ export class RuleValidator
         return tags;
     }
     
-
-
     /**
      * Check that a required value is present, and if a string, longer than 0 chars. 
      * If it isn't, record an error message (which eventually gets written to file),
@@ -932,7 +932,6 @@ export class RuleValidator
                 throw warningMessage
             }               
         }
-
         return verifiedType;
     }
 }
