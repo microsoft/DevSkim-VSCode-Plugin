@@ -16,7 +16,7 @@ import {DevSkimWorker} from "./devskimWorker";
 
 // These are the example settings we defined in the client's package.json
 // file
-export interface DevSkimSettings {
+export interface IDevSkimSettings {
 	enableBestPracticeRules: boolean;
 	enableDefenseInDepthSeverityRules: boolean;
 	enableInformationalSeverityRules: boolean;
@@ -31,7 +31,7 @@ export interface DevSkimSettings {
 	validateRulesFiles: boolean;
 }
 
-export class DevSkimSettingsObject implements DevSkimSettings {
+export class DevSkimSettings implements IDevSkimSettings {
 	enableBestPracticeRules: boolean = false;
 	enableDefenseInDepthSeverityRules: boolean = false;
 	enableInformationalSeverityRules: boolean = false;
@@ -44,7 +44,7 @@ export class DevSkimSettingsObject implements DevSkimSettings {
 	removeFindingsOnClose: boolean = false;
 	suppressionDurationInDays: number = 0;
 	validateRulesFiles: boolean = true;
-};
+}
 
 /**
  * An Interface corresponding to the Pattern section of the JSON
@@ -334,8 +334,8 @@ export class Fixes {
 		for(let diagnostic of diagnostics) {
 			let key = computeKey(diagnostic.range, diagnostic.code);
 			let x : number = 0;
-			let editInfo : AutoFix;
-			while( editInfo = this.edits[key+x.toString(10)])
+			let editInfo : AutoFix = this.edits[key+x.toString(10)];
+			while( editInfo )
 			{
 				result.push(editInfo);
 				x++;
