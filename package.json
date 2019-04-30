@@ -98,7 +98,8 @@
             "yarn.lock",
             "logs/*",
             "*.log",
-            "*.git"
+            "*.git",
+            "*/rulesValidationLog.json"
           ],
           "description": "List of Files, File Extensions, and directories to ignore.  DevSkim will not run on any files that match one of these ignores.  To match any file of a give name, just list the file name. If there are multiple files and only one should be ignored, include at least the immediate folder path the file lives in. Whole directories can be ignored via <Dir Name>/* (use unix style paths), and all files of a specific extension can be ignored via *.<extension>"
         },
@@ -114,7 +115,7 @@
         },
         "devskim.removeFindingsOnClose": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "By default, when a source file is closed the findings remain in the 'Problems' window.  Setting this value to true will cause findings to be removed from 'Problems' when the document is closed.  Note, setting this to true will cause findings that are listed when invoking the 'Scan all files in workspace' command to automatically clear away after a couple of minutes"
         },
         "devskim.trace.server": {
