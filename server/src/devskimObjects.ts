@@ -334,8 +334,8 @@ export class Fixes {
 		for(let diagnostic of diagnostics) {
 			let key = computeKey(diagnostic.range, diagnostic.code);
 			let x : number = 0;
-			let editInfo : AutoFix = this.edits[key+x.toString(10)];
-			while( editInfo )
+			let editInfo: AutoFix;	
+			while(editInfo = this.edits[key+x.toString(10)])
 			{
 				result.push(editInfo);
 				x++;
