@@ -68,16 +68,15 @@ export class DevSkimWorker {
 
         //Before we do any processing, see if the file (or its directory) are in the ignore list.  If so
         //skip doing any analysis on the file
-        if (this.analysisRules && this.analysisRules.length) {
-            if (DevSkimWorker.settings && DevSkimWorker.settings.ignoreFilesList) {
-                if (!PathOperations.ignoreFile(documentURI, DevSkimWorker.settings.ignoreFilesList)) {
-                    //find out what issues are in the current document
-                    problems = this.runAnalysis(documentContents, langID, documentURI);
+        if (this.analysisRules && this.analysisRules.length
+            && DevSkimWorker.settings && DevSkimWorker.settings.ignoreFilesList
+            && !PathOperations.ignoreFile(documentURI, DevSkimWorker.settings.ignoreFilesList)) {
 
-                    //remove any findings from rules that have been overridden by other rules
-                    problems = this.processOverrides(problems);
-                }
-            }
+            //find out what issues are in the current document
+            problems = this.runAnalysis(documentContents, langID, documentURI);
+
+            //remove any findings from rules that have been overridden by other rules
+            problems = this.processOverrides(problems);
         }
         return problems;
     }
@@ -147,7 +146,6 @@ export class DevSkimWorker {
         //read the rules files recursively from the file system - get all of the .json files under the rules directory.  
         //first read in the default & custom directories, as they contain the required rules (i.e. exclude the "optional" directory)
         //and then do the inverse to populate the optional rules
-        this.connection.console.log(`DevSkimWorker: rulesDirectory: ${this.rulesDirectory}`);
         this.dir.readFiles(this.rulesDirectory, {match: /.json$/},
             (err, content, file, next) => {
                 if (err) {
@@ -172,7 +170,6 @@ export class DevSkimWorker {
                 //now that we have all of the rules objects, lets clean them up and make
                 //sure they are in a format we can use.  This will overwrite any badly formed JSON files
                 //with good ones so that it passes validation in the future
-                this.connection.console.log(`DevSkimWorker - loadRules() - all rules read, validating rules`);
                 let validator: RuleValidator =
                     new RuleValidator(this.connection, this.rulesDirectory, this.rulesDirectory);
                 this.analysisRules =
@@ -282,8 +279,7 @@ export class DevSkimWorker {
         let problems: DevSkimProblem[] = [];
         let XRegExp = require('xregexp');
 
-        this.connection.console.log(`DevSkimWorker - runAnalysis() on ${this.analysisRules.length} rules`);
-        //iterate over all of the rules, and then all of the patterns within a rule looking for a match.  
+        //iterate over all of the rules, and then all of the patterns within a rule looking for a match.
         for (let rule of this.analysisRules) {
             const ruleSeverity: DevskimRuleSeverity = DevSkimWorker.MapRuleSeverity(rule.severity);
             //if the rule doesn't apply to whatever language we are analyzing (C++, Java, etc.) or we aren't processing
@@ -359,7 +355,6 @@ export class DevSkimWorker {
                 }
             }
         }
-        this.connection.console.log(`DevSkimWorker - runAnalysis() on ${problems.length} problems`);
         return problems;
     }
 
@@ -600,7 +595,6 @@ export class DevSkimWorker {
     private processOverrides(problems: DevSkimProblem[]): DevSkimProblem[] {
         let overrideRemoved: boolean = false;
 
-        this.connection.console.log(`DevSkimWorker - processOverrides on ${problems.length} rules`);
         for (let problem of problems) {
             //if this problem overrides other ones, THEN do the processing
             if (problem.overrides.length > 0) {
