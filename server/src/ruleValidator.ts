@@ -51,7 +51,6 @@ export class RuleValidator
 
         if (!readRules) readRules = [];
 
-        this.connection.console.log(`RuleValidator - rules to validate: ${readRules.length}`);
         for(let loadedRule of readRules)
         {
             try 
@@ -96,10 +95,6 @@ export class RuleValidator
                     }
                 }
             }          
-        }
-        if (readRules.length > rules.length) {
-           this.connection.console
-               .log(`RuleValidator - see ${this.logFilePath} for issues of ${readRules.length - rules.length} rules`);
         }
         return rules;
     }
