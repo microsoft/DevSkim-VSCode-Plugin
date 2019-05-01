@@ -44,10 +44,6 @@
 		"vscode": "^1.1.33"
 	},
 	"dependencies": {
-		"semver": "^6.0.0",
-		"vscode-jsonrpc": "^4.0.0",
-		"vscode-languageclient": "^5.2.1",
-		"vscode-languageserver-protocol": "^3.14.1",
-		"vscode-languageserver-types": "^3.14.0"
+		"vscode-languageclient": "^5.2.1"
 	}
 }
