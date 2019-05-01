@@ -70,10 +70,10 @@ connection.onInitialized(() => {
   }
   if (hasWorkspaceFolderCapability) {
       connection.workspace.onDidChangeWorkspaceFolders( ev => {
-          connection.console.log('Server - workspace folder change event received');
+          // connection.console.log('Server - workspace folder change event received');
       });
   }
-  connection.console.log('Server - onInitialized: connection is now initialized');
+  // connection.console.log('Server - onInitialized: connection is now initialized');
 });
 
 // The content of a text document has changed. This event is emitted
@@ -93,7 +93,7 @@ let globalSettings: DevSkimSettings = DevSkimWorkerSettings.getSettings();
 
 //if the user has specified in settings, all findings will be cleared when they close a document
 documents.onDidClose((change) => {
-    if (this.settings.removeFindingsOnClose) {
+    if (globalSettings.removeFindingsOnClose) {
         let diagnostics: Diagnostic[] = [];
         connection.sendDiagnostics({uri: change.document.uri, diagnostics});
     }
@@ -112,7 +112,6 @@ connection.onDidChangeConfiguration((change) => {
     } else {
         globalSettings = change.settings || globalSettings;
     }
-    connection.console.log(`Server - onDidChangeConfiguration: ${JSON.stringify(change)}`);
 
     // Revalidate any open text documents
     documents.all().forEach(validateTextDocument);
@@ -142,6 +141,7 @@ connection.onCodeAction((params) => {
     let result: Command[] = [];
     let uri = params.textDocument.uri;
     let edits = analysisEngine.codeActions[uri];
+
     if (!edits) {
         return result;
     }
@@ -151,22 +151,20 @@ connection.onCodeAction((params) => {
         return result;
     }
 
-    // let textDocument = documents.get(uri);
-    let documentVersion: number;
+    let documentVersion: number = -1;
     let ruleId: string;
 
     function createTextEdit(editInfo: AutoFix): TextEdit {
         return TextEdit.replace(editInfo.edit.range, editInfo.edit.text || '');
     }
 
-    for (let editInfo of fixes.getScoped(params.context.diagnostics)) {
+    for (let editInfo of fixes.getScoped(params.context.diagnostics)){
         documentVersion = editInfo.documentVersion;
         ruleId = editInfo.ruleId;
         result.push(Command.create(editInfo.label, 'devskim.applySingleFix', uri, documentVersion, [
             createTextEdit(editInfo)
         ]));
     }
-
     return result;
 });
 
@@ -208,7 +206,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 //rules directory for changes
 connection.onDidChangeWatchedFiles((/* change */) => {
     // Monitored files have change in VSCode
-    connection.console.log('Server - received a file change event');
+    // connection.console.log('Server - received a file change event');
 });
 
 
