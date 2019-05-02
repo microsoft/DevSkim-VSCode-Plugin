@@ -9,31 +9,41 @@
  * 
  *  ------------------------------------------------------------------------------------------ */
 
-import { Diagnostic, DiagnosticSeverity,Command, Range 
+import { Diagnostic, DiagnosticSeverity, Range
 } from 'vscode-languageserver';
 
 import {DevSkimWorker} from "./devskimWorker";
 
-// The settings interface describe the server relevant settings part
-export interface Settings {
-	devskim: DevSkimSettings;
-}
-
 // These are the example settings we defined in the client's package.json
 // file
-export interface DevSkimSettings {
-	enableManualReviewRules: boolean;
-	enableInformationalSeverityRules: boolean;
-	enableDefenseInDepthSeverityRules: boolean;
+export interface IDevSkimSettings {
 	enableBestPracticeRules: boolean;
+	enableDefenseInDepthSeverityRules: boolean;
+	enableInformationalSeverityRules: boolean;
 	enableLowSeverityRules: boolean;
-	suppressionDurationInDays: number;
-	manualReviewerName: string;
+	enableManualReviewRules: boolean;
+	guidanceBaseURL: string;
 	ignoreFilesList: string[];
 	ignoreRulesList: string[];
-	validateRulesFiles: boolean;
-	guidanceBaseURL: string;	
+	manualReviewerName: string;
 	removeFindingsOnClose: boolean;
+	suppressionDurationInDays: number;
+	validateRulesFiles: boolean;
+}
+
+export class DevSkimSettings implements IDevSkimSettings {
+	enableBestPracticeRules: boolean = false;
+	enableDefenseInDepthSeverityRules: boolean = false;
+	enableInformationalSeverityRules: boolean = false;
+	enableLowSeverityRules: boolean = false;
+	enableManualReviewRules: boolean = false;
+	guidanceBaseURL: string = '';
+	ignoreFilesList: string[] = [];
+	ignoreRulesList: string[] = [];
+	manualReviewerName: string = '';
+	removeFindingsOnClose: boolean = false;
+	suppressionDurationInDays: number = 0;
+	validateRulesFiles: boolean = true;
 }
 
 /**
@@ -188,6 +198,7 @@ export class DevSkimProblem {
      * @param {string} source the name of the rule that was triggered (name in the rules JSON)
      * @param {string} ruleId a unique identifier for that particular rule (id in the rules JSON)
      * @param {string} severity MSRC based severity for the rule - Critical, Important, Moderate, Low, Informational (severity in rules JSON)
+     * @param replacement @todo update this
      * @param {string} issueURL a URL to some place the dev can get more information on the problem (rules_info in the rules JSON)
      * @param {Range} range where the problem was found in the file (line start, column start, line end, column end) 
      */
@@ -215,7 +226,7 @@ export class DevSkimProblem {
 	 * 
 	 * @memberOf DevSkimProblem
 	 */
-	public getSeverityName(severity : DevskimRuleSeverity) : string
+	public static getSeverityName(severity : DevskimRuleSeverity) : string
 	{
 		switch (severity)
 		{
@@ -257,16 +268,16 @@ export class DevSkimProblem {
      */
     public makeDiagnostic(): Diagnostic 
 	{
-		var diagnostic : Diagnostic = Object.create(null);
+		const diagnostic : Diagnostic = Object.create(null);
 		//truncate the severity so that the message looks a bit more succinct in the output window
-		let fullMessage : string = "\n" + this.source + "\nSeverity: " + this.getSeverityName(this.severity) + "\n\n" + this.message;
+		let fullMessage : string = "\n" + this.source + "\nSeverity: " + DevSkimProblem.getSeverityName(this.severity) + "\n\n" + this.message;
 
 		fullMessage = (this.replacement.length > 0 ) ? 
 			fullMessage + "\n\nFix Guidance: " + this.replacement : 
 			fullMessage;
 
 		fullMessage = (this.issueURL.length > 0 ) ? 
-			fullMessage + "\n\nMore Info:\n" + DevSkimWorker.settings.devskim.guidanceBaseURL + this.issueURL : 
+			fullMessage + "\n\nMore Info:\n" + DevSkimWorker.settings.guidanceBaseURL + this.issueURL :
 			fullMessage;
 
 		diagnostic.message = fullMessage;
@@ -323,8 +334,8 @@ export class Fixes {
 		for(let diagnostic of diagnostics) {
 			let key = computeKey(diagnostic.range, diagnostic.code);
 			let x : number = 0;
-			let editInfo : AutoFix;
-			while( editInfo = this.edits[key+x.toString(10)])
+			let editInfo: AutoFix;	
+			while(editInfo = this.edits[key+x.toString(10)])
 			{
 				result.push(editInfo);
 				x++;

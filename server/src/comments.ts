@@ -174,13 +174,7 @@ export class SourceComments
         //not a case we are worried about covering in preview, but may want to cover once we exit preview
         startComment = SourceComments.GetBlockCommentStart(langID);
         let endComment : string = SourceComments.GetBlockCommentEnd(langID);
-        if(startComment.length > 0 && endComment.length > 0 &&
-            documentContents.lastIndexOf(startComment) > documentContents.lastIndexOf(endComment))
-        {
-            return true;
-        }
-
-
-        return false;
-    }   
+        return startComment.length > 0 && endComment.length > 0 &&
+            documentContents.lastIndexOf(startComment) > documentContents.lastIndexOf(endComment);
+    }
 }
