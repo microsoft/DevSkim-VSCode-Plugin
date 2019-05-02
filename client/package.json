@@ -44,6 +44,7 @@
 		"vscode": "^1.1.33"
 	},
 	"dependencies": {
+		"node-dir": "^0.1.17",
 		"vscode-languageclient": "^5.2.1"
 	}
 }
