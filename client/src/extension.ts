@@ -165,23 +165,26 @@ export async function activate(context: ExtensionContext) {
 
 
 	function command_ScanEverything() {
-		if (workspace.workspaceFolders != undefined) {
+		if (workspace.workspaceFolders) {
 			let dir = require('node-dir');
-			dir.files(workspace.workspaceFolders, function (err: any, files: [any]) {
-				if (err) throw err;
+			let [rootFolder] = workspace.workspaceFolders;
+			if (rootFolder && rootFolder.uri && rootFolder.uri.fsPath) {
+				dir.files(rootFolder.uri.fsPath, function (err: any, files: [any]) {
+					if (err) throw err;
 
-				for (let curFile of files) {
-					if (curFile.indexOf(".git") == -1) {
-						workspace.openTextDocument(curFile).then(doc => {
-							const textDocuments: TextDocumentIdentifier[] = [];
-							let td: TextDocumentIdentifier = Object.create(null);
-							td.uri = doc.fileName;
-							textDocuments.push(td);
-							client.sendRequest(ValidateDocsRequest.type, { textDocuments });
-						});
+					for (let curFile of files) {
+						if (curFile.indexOf(".git") == -1) {
+							workspace.openTextDocument(curFile).then(doc => {
+								const textDocuments: TextDocumentIdentifier[] = [];
+								const td: TextDocumentIdentifier = Object.create(null);
+								td.uri = doc.fileName;
+								textDocuments.push(td);
+								client.sendRequest(ValidateDocsRequest.type, {textDocuments});
+							});
+						}
 					}
-				}
-			});
+				});
+			}
 		}
 	}
 }
