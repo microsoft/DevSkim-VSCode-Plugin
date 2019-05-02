@@ -1,1 +1,17 @@
+# include these to be ignored
+.idea
+out
+client/out
+server/out
+npm-debug.log
 node_modules
+**/node_modules
+**/rulesValidatiionLog.json
+
+#exclude these from being ignored
+!**/.gitignore
+
+#exclude everything in .vscode except launch and tasks
+.vscode/**
+!.vscode/launch.json
+!.vscode/tasks.json
