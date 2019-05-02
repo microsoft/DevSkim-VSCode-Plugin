@@ -329,9 +329,9 @@ export class DevSkimWorker {
                         if (!suppressionFinding.showFinding &&
                             DevSkimWorker.matchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex, rule.patterns[patternIndex].scopes) &&
                             DevSkimWorker.matchesConditions(rule.conditions, documentContents, range, langID)) {
-                            let problem: DevSkimProblem = DevSkimWorker.makeProblem(rule, DevSkimWorker.MapRuleSeverity(rule.severity), range);
 
                             //add in any fixes
+                            let problem: DevSkimProblem = DevSkimWorker.makeProblem(rule, DevSkimWorker.MapRuleSeverity(rule.severity), range);
                             problem.fixes = problem.fixes.concat(DevSkimWorker.makeFixes(rule, replacementSource, range));
                             problem.fixes = problem.fixes.concat(DevSkimSuppression.createActions(rule.id, documentContents, match.index, lineStart, langID, ruleSeverity));
 
@@ -404,12 +404,11 @@ export class DevSkimWorker {
         let problem: DevSkimProblem = new DevSkimProblem(rule.description, rule.name,
             rule.id, warningLevel, rule.recommendation, rule.rule_info, problemRange);
 
-        if (suppressedFindingRange != undefined && suppressedFindingRange) {
+        if (suppressedFindingRange) {
             problem.suppressedFindingRange = suppressedFindingRange;
         }
 
-
-        if (rule.overrides !== undefined && rule.overrides.length > 0) {
+        if (rule.overrides && rule.overrides.length > 0) {
             problem.overrides = rule.overrides;
         }
 
