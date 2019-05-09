@@ -4,12 +4,8 @@
   "author": "Microsoft Corporation",
   "license": "ISC",
   "version": "1.0.0",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Microsoft/DevSkim-VSCode-Plugin.git"
-  },
   "engines": {
-    "vscode": "^1.33.1"
+    "vscode": "^1.33.x"
   },
   "activationEvents": [
     "onLanguage:bat",
@@ -45,7 +41,7 @@
     "onLanguage:plaintext",
     "onLanguage:python"
   ],
-  "main": "./client/out/extension.js",
+  "main": "./client/out/extension",
   "contributes": {
     "commands": [
       {
@@ -147,7 +143,8 @@
       "ts"
     ],
     "modulePathIgnorePatterns": [
-      "<rootDir>/server/out"
+      "<rootDir>/server/out",
+      ".*__mocks__.*"
     ],
     "transform": {
       "\\.ts$": "ts-jest"
@@ -178,6 +175,8 @@
   "devDependencies": {
     "@types/jest": "^24.0.11",
     "@types/node": "^11.13.7",
+    "@typescript-eslint/eslint-plugin": "^1.7.0",
+    "@typescript-eslint/parser": "^1.7.0",
     "eslint": "^5.16.0",
     "jest": "^24.7.1",
     "ts-jest": "^24.0.2",
@@ -199,6 +198,7 @@
     "test:coverage": "yarn run test -- --coverage",
     "test:watch": "yarn run test -- --watch",
     "check": "yarn run lint && yarn run compile && yarn run test",
-    "check:bail": "yarn run lint:bail && yarn run compile && yarn run test"
+    "check:bail": "yarn run lint:bail && yarn run compile && yarn run test",
+    "reinstall-server": "npm uninstall -g devskim-language-server && yarn compile && npm i -g ./server"
   }
 }

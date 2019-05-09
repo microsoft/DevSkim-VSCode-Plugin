@@ -2,12 +2,18 @@
   "name": "devskim-server",
   "description": "Devskim Language Server component",
   "version": "0.2.1",
-  "author": "Microsoft Corporation",
+  "author": "Security Engineering",
+  "publisher": "Microsoft Corporation",
+  "main": "out/devskimServer.js",
+  "bin": {
+    "devskim-language-server": "./bin/main.js"
+  },
   "license": "MIT",
   "engines": {
     "node": "*"
   },
   "dependencies": {
+    "glob-promise": "^3.4.0",
     "lodash": "^4.17.11",
     "mkdirp": "^0.5.1",
     "node-dir": ">=0.1.17",
