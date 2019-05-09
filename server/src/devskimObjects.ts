@@ -92,14 +92,14 @@ export interface Rule {
     name: string;
     active: boolean;
     tags: string[];
-    applies_to?: string[];
+    appliesTo?: string[];
     severity: string;
     description: string;
     recommendation: string;
-    rule_info: string;
+    ruleInfo: string;
 	patterns: Pattern[];
 	conditions?: Condition[];
-    fix_its?: FixIt[];
+    fixIts?: FixIt[];
 	filepath? : string; //filepath to the rules file the rule came from
 	_comment? : string;
 }

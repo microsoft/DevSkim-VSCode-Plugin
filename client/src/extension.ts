@@ -9,20 +9,24 @@ import * as path from 'path';
 import { ExtensionContext, window, workspace, commands } from 'vscode';
 import {
 	LanguageClient, LanguageClientOptions, ServerOptions, TextEdit,
-	RequestType, TextDocumentIdentifier, TransportKind
+	RequestType, TextDocumentIdentifier, TransportKind,
 } from 'vscode-languageclient';
 import {DevSkimSettings, DevSkimSettingsObject } from "./devskim.settings";
+import {getServerInfo} from "./util";
 
 //the following interface and namespace define a format to invoke a function on the server via
 //LanguageClient.sendRequest
-interface ValidateDocsParams { textDocuments: TextDocumentIdentifier[]; }
-namespace ValidateDocsRequest {
-	export const type = new RequestType<ValidateDocsParams, void, void, void>('textDocument/devskim/validatedocuments');
+interface ValidateDocsParams {
+	textDocuments: TextDocumentIdentifier[];
 }
 
-interface ReloadRulesParams { }
-namespace ReloadRulesRequest {
-	export const type = new RequestType<ReloadRulesParams, void, void, void>('devskim/validaterules')
+export class ValidateDocsRequest {
+	public static type: RequestType<ValidateDocsParams,void,void,void> = new RequestType<ValidateDocsParams, void, void, void>('textDocument/devskim/validatedocuments');
+}
+
+
+export class ReloadRulesRequest {
+	public static type: RequestType<{},void,void,void> = new RequestType<{}, void, void, void>('devskim/validaterules')
 }
 
 let client: LanguageClient;
@@ -31,33 +35,38 @@ export async function activate(context: ExtensionContext) {
 
 	try {
 		// The server is implemented in node
-		let serverModule = context.asAbsolutePath(path.join('server', "out", 'server.js'));
+		const { command, version } = await getServerInfo()
+		let serverModule = context.asAbsolutePath(path.join('server', "out", 'index.js'));
 		console.log(`Server module: ${serverModule}`);
 		// The debug options for the server
 		let devSkimProperties = getDevSkimConfiguration();
 		const env: any = {
 			...process.env,
-            devSkimProperties
+            devSkimProperties,
 		};
 		let debugOptions = {
 			execArgv: ["--nolazy", "--inspect=6004"],
-			env
+			env,
 		};
 
 		// If the extension is launched in debug mode then the debug server options are used
 		// Otherwise the run options are used
 		let serverOptions: ServerOptions = {
 			run: {
+				command,
+				args: ['start'],
 				module: serverModule,
 				transport: TransportKind.ipc,
 				options: {
 					env,
 				}},
 			debug: {
+				command,
+				args: ['start'],
 				module: serverModule,
 				transport: TransportKind.ipc,
-				options: debugOptions
-			}
+				options: debugOptions,
+			},
 		};
 
 		// Options to control the language client
@@ -71,8 +80,8 @@ export async function activate(context: ExtensionContext) {
 				// Synchronize the setting section 'devskim' to the server
 				configurationSection: 'devskim',
 				// Notify the server about file changes to '.clientrc files contain in the workspace
-				fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
-			}
+				fileEvents: workspace.createFileSystemWatcher('**/.clientrc'),
+			},
 		};
 
 		client = new LanguageClient('Devskim', 'Devskim', serverOptions, clientOptions);
@@ -84,8 +93,8 @@ export async function activate(context: ExtensionContext) {
 		// client can be deactivated on extension deactivation
 		context.subscriptions.push(disposable,
 			commands.registerCommand('devskim.applySingleFix', applyTextEdits),
-			commands.registerCommand('devskim.scanWorkspace', command_ScanEverything),
-			commands.registerCommand('devskim.reloadRules', command_ReloadRules)
+			commands.registerCommand('devskim.scanWorkspace', commandScanEverything),
+			commands.registerCommand('devskim.reloadRules', commandReloadRules)
 		);
 
 		//when the extension is first loading a lot of stuff is happening asyncronously in VS code
@@ -94,7 +103,7 @@ export async function activate(context: ExtensionContext) {
 		//an analysis still happens
 		setTimeout(function () {
 			const textDocuments: TextDocumentIdentifier[] = [];
-			for (let x: number = 0; x < workspace.textDocuments.length; x++) {
+			for (let x = 0; x < workspace.textDocuments.length; x++) {
 				textDocuments[x] = Object.create(null);
 				textDocuments[x].uri = workspace.textDocuments[x].uri.toString();
 			}
@@ -124,7 +133,7 @@ export async function activate(context: ExtensionContext) {
 
 	}
 	function handleError(err: any) {
-		const message = `Could not start DevSim Server: [${err}]".`;
+		const message = `Could not start DevSkim Server: [${err.message}]".`;
 		window.showErrorMessage(message, { modal: false })
 	}
 
@@ -159,12 +168,12 @@ export async function activate(context: ExtensionContext) {
 		}
 	}
 
-	function command_ReloadRules() {
+	function commandReloadRules() {
 		client.sendRequest(ReloadRulesRequest.type, null);
 	}
 
 
-	function command_ScanEverything() {
+	function commandScanEverything() {
 		if (workspace.workspaceFolders) {
 			let dir = require('node-dir');
 			let [rootFolder] = workspace.workspaceFolders;
