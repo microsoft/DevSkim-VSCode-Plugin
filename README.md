@@ -15,7 +15,7 @@ and contributions!
 # Running DevSkim in VS Code
 For people simply interested in using DevSkim in VS Code, it can be installed and run from the [VS Code Extension Marketplace](https://marketplace.visualstudio.com/items?itemName=MS-DevSkim.vscode-devskim).  In VS Code launch the VS Code Quick Open (Ctrl + P), paste the folloiwng command, and press enter:
 
-    ext install vscode-devskim
+    ext install ms-devskim.vscode-devskim
 
 This will install the DevSkim Plugin in 
 - **Windows:** %USERPROFILE%\.vscode\extensions\vscode-devskim
