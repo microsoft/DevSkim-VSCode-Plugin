@@ -1,7 +1,7 @@
-import {DevSkimSettings} from "./devskimObjects";
-import {DevSkimWorker} from "./devskimWorker";
+import {DevSkimSettings} from "../src/devskimObjects";
+import {DevSkimWorker} from "../src/devskimWorker";
 import {IConnection} from "vscode-languageserver";
-import {DevSkimSuppression} from "./suppressions";
+import {DevSkimSuppression} from "../src/suppressions";
 
 describe('DevSkimWorker', () => {
     let dsw: DevSkimWorker;
@@ -14,7 +14,8 @@ describe('DevSkimWorker', () => {
     });
 
     it('is created', async () => {
-        let ruleDir = String.raw`C:\Users\v-dakit\.vscode\extensions\ms-devskim.vscode-devskim-0.2.2\rules`;
+        // let ruleDir = String.raw`C:\Users\v-dakit\.vscode\extensions\ms-devskim.vscode-devskim-0.2.2\rules`;
+        const ruleDir = String.raw`C:/Users/v-dakit/DevSkimRules`;
         process.env.DEV_SKIM_RULES_DIRECTORY = ruleDir;
         let connection: IConnection;
         let dsSuppressions: DevSkimSuppression;

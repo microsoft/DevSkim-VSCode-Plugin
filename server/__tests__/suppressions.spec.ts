@@ -1,7 +1,7 @@
-import {DevSkimSuppression} from "./suppressions";
-import {DevskimRuleSeverity, DevSkimSettings, IDevSkimSettings} from "./devskimObjects";
+import {DevSkimSuppression} from "../src/suppressions";
+import {DevskimRuleSeverity, DevSkimSettings, IDevSkimSettings} from "../src/devskimObjects";
 
-jest.mock("./devskimObjects");
+jest.mock("../src/devskimObjects");
 
 describe('DevSkimSuppression', () => {
     let mockedSettings: IDevSkimSettings;

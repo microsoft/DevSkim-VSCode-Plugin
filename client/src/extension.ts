@@ -41,7 +41,7 @@ export function activate(context: ExtensionContext) {
 	try {
 		// The server is implemented in node
 		// const { command, version } = getServerInfo()
-		const serverModule = context.asAbsolutePath(path.join("server", "out", 'index.js'));
+		const serverModule = context.asAbsolutePath(path.join("server", "out", '__tests__.index.js'));
 		console.log(`Server module: ${serverModule}`);
 
 		// The debug options for the server

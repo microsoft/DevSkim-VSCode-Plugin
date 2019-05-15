@@ -1,10 +1,10 @@
-import {DevSkimRules} from "./devskimRules";
-import {DevSkimWorkerSettings} from "./devskimWorkerSettings";
-import {RuleValidator} from "./ruleValidator";
+import {DevSkimRules} from "../src/devskimRules";
+import {DevSkimWorkerSettings} from "../src/devskimWorkerSettings";
+import {RuleValidator} from "../src/ruleValidator";
 import {IConnection} from "vscode-languageserver";
-import {IDevSkimSettings} from "./devskimObjects";
+import {IDevSkimSettings} from "../src/devskimObjects";
 
-jest.mock("./ruleValidator");
+jest.mock("../src/ruleValidator");
 // jest.mock("./devskimWorkerSettings");
 jest.mock('vscode-languageserver', )
 

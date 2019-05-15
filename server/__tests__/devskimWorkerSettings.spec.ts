@@ -1,4 +1,4 @@
-import {DevSkimWorkerSettings} from "./devskimWorkerSettings";
+import {DevSkimWorkerSettings} from "../src/devskimWorkerSettings";
 import * as path from "path";
 
 describe('DevSkimWorkerSettings', () => {

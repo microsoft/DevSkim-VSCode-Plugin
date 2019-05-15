@@ -1,6 +1,6 @@
 import {Connection} from 'vscode-languageserver';
 jest.mock('vscode-languageserver');
-import {RulesLoader} from './RulesLoader';
+import {RulesLoader} from '../src/rulesLoader';
 import {noop} from "@babel/types";
 
 describe('RulesLoader', () => {

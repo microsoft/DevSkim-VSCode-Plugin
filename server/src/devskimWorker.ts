@@ -154,8 +154,8 @@ export class DevSkimWorker {
         this.tempRules = [];
         this.analysisRules = [];
 
-        this.connection.console.log(`DevSkimWorker loadRules() starting ...`);
-        this.connection.console.log(`DevSkimWorker loadRules() from ${this.rulesDirectory}`); 
+        this.connection.console.log(`DevSkimWorker: loadRules() starting ...`);
+        this.connection.console.log(`DevSkimWorker: loadRules() from ${this.rulesDirectory}`);
 
         //read the rules files recursively from the file system - get all of the .json files under the rules directory.  
         //first read in the default & custom directories, as they contain the required rules (i.e. exclude the "optional" directory)
@@ -163,7 +163,7 @@ export class DevSkimWorker {
         this.dir.readFiles(this.rulesDirectory, {match: /.json$/},
             (err, content, file, next) => {
                 if (err) {
-                    this.connection.console.log(`DevSkimWorker - loadRules() - err: ${err}`);
+                    this.connection.console.log(`DevSkimWorker: - loadRules() - err: ${err}`);
                     throw err;
                 }
                 if (!file) {
@@ -180,11 +180,11 @@ export class DevSkimWorker {
                             rule.filepath = file;
                         }
                         this.tempRules = this.tempRules.concat(loadedRules);
-                        this.connection.console.log(`DevSkimWorker loadRules() so far: ${this.tempRules.length || 0}.`);
+                        this.connection.console.log(`DevSkimWorker: loadRules() so far: ${this.tempRules.length || 0}.`);
                     }
                 }
                 catch(e) {
-                    this.connection.console.log(`DevSkimWorker - loadRules Exception: ${e.message}`);
+                    this.connection.console.log(`DevSkimWorker: - loadRules Exception: ${e.message}`);
                 }
                 next();
             },
@@ -198,7 +198,7 @@ export class DevSkimWorker {
 
                 //don't need to keep this around anymore
                 delete this.tempRules;
-                this.connection.console.log(`DevSkimWorker loadRules() done. Rules found: ${this.analysisRules.length || 0}.`);
+                this.connection.console.log(`DevSkimWorker: loadRules() done. Rules found: ${this.analysisRules.length || 0}.`);
             });
     }
 
