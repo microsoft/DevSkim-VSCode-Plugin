@@ -27,5 +27,4 @@ describe('DevSkimRules', () => {
         dsr = new DevSkimRules(mockedConnection, mockedSettings, mockedRuleValidator);
         expect(dsr.rulesDirectory).toBe(rd);
     });
-
 });
