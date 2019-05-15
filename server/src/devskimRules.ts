@@ -16,10 +16,9 @@ const {promisify} = require('util');
 const {glob} = require('glob-promise');
 const readFile = promisify(fs.readFile);
 
-import {IConnection, Range} from 'vscode-languageserver';
+import {IConnection} from 'vscode-languageserver';
 import {
-    computeKey, Condition, DevSkimProblem, DevskimRuleSeverity, Map, AutoFix,
-    Rule, DevSkimAutoFixEdit, IDevSkimSettings
+    DevskimRuleSeverity, Rule, IDevSkimSettings,
 }
     from "./devskimObjects";
 import {IRuleValidator} from "./ruleValidator";
@@ -33,8 +32,6 @@ import * as Path from "path";
 export class DevSkimRules {
     public readonly rulesDirectory: string;
     private analysisRules: Rule[];
-    private tempRules: Object[];
-    private dir = require('node-dir');
 
 
     constructor(private connection: IConnection, private settings: IDevSkimSettings, private ruleValidator: IRuleValidator) {
@@ -54,75 +51,15 @@ export class DevSkimRules {
         this.loadRules();
     }
 
-    private fromRoot(connection: IConnection, rootPath: string|null) {
-        glob.promise('**/*.json$', { cwd: rootPath })
-            .then(paths => {
-                paths.forEach(p => {
-                   const fullPath = Path.join(rootPath, p);
-                   if (fs.existsSync(fullPath) && fs.lstatSync(fullPath).isFile()) {
-                       readFile(fullPath)
-                           .then(content => {
-                               const loadedRules: Rule[] = JSON.parse(content);
-                               for (let rule of loadedRules) {
-                                   if (!rule.name) {
-                                       continue;
-                                   }
-                                   rule.filepath = fullPath;
-                               }
-                               this.tempRules = this.tempRules.concat(loadedRules);
-                           });
-                   }
-                });
-            }).catch( err => {
-
-            });
-    }
 
     /**
      * recursively load all of the JSON files in the $userhome/.vscode/extensions/vscode-devskim/rules sub directories
      *
      * @private
      */
-    private loadRules(): void {
-        this.tempRules = [];
-        this.analysisRules = [];
-
-        //read the rules files recursively from the file system - get all of the .json files under the rules directory.
-        //first read in the default & custom directories, as they contain the required rules (i.e. exclude the "optional" directory)
-        //and then do the inverse to populate the optional rules
-        this.dir.readFiles(this.rulesDirectory, {match: /.json$/},
-            (err, content, file, next) => {
-                if (err) {
-                    this.connection.console.log(`DevSkimWorker - loadRules() - err: ${err}`);
-                    throw err;
-                }
-                if (!file) {
-                    next();
-                }
-                //Load the rules from files add the file path
-                const loadedRules: Rule[] = JSON.parse(content);
-                for (let rule of loadedRules) {
-                    if (!rule.name) {
-                        continue;
-                    }
-                    rule.filepath = file;
-                }
-                this.tempRules = this.tempRules.concat(loadedRules);
-                next();
-            },
-            (/* err, files */) => {
-                //now that we have all of the rules objects, lets clean them up and make
-                //sure they are in a format we can use.  This will overwrite any badly formed JSON files
-                //with good ones so that it passes validation in the future
-                // let validator: RuleValidator =
-                //     new RuleValidator(this.connection, this.rulesDirectory, this.rulesDirectory);
-                this.analysisRules =
-                    this.ruleValidator.validateRules(this.tempRules, this.settings.validateRulesFiles);
-
-                //don't need to keep this around anymore
-                delete this.tempRules;
-            });
-    };
+    private async loadRules(): Promise<void> {
+        return null;
+    }
 
     /**
      * Low, Defense In Depth, and Informational severity rules may be turned on and off via a setting

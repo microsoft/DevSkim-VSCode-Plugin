@@ -28,7 +28,7 @@ import {IRuleValidator} from "../ruleValidator";
 export class DevSkimRules {
     public readonly rulesDirectory: string;
     private analysisRules: Rule[];
-    private tempRules: Object[];
+    private tempRules: Rule[];
     private dir = require('node-dir');
 
 
