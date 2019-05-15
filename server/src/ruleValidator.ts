@@ -14,7 +14,7 @@ import {noop} from "@babel/types";
 const mkdirp = require('mkdirp');
 
 export interface IRuleValidator {
-    validateRules(readRules: Rule[], outputValidation: boolean): Rule[];
+    validateRules(readRules: Rule[], outputValidation: boolean): Promise<Rule[]>;
 }
 
 /**
@@ -51,7 +51,7 @@ export class RuleValidator implements IRuleValidator
      * @param readRules
      * @param outputValidation
      */
-    public validateRules(readRules: Rule[], outputValidation: boolean): Rule[]
+    public async validateRules(readRules: Rule[], outputValidation: boolean): Promise<Rule[]>
     {
         let rules: Rule [] = [];
         this.outputMessages = [];
@@ -63,7 +63,7 @@ export class RuleValidator implements IRuleValidator
         {
             try 
             {
-                let newRule: Rule = (outputValidation) ? this.makeRule(loadedRule): this.makeRuleNoValidation(loadedRule);
+                let newRule = (outputValidation) ? this.makeRule(loadedRule): this.makeRuleNoValidation(loadedRule);
                 rules.push(newRule);
             }
             catch (err) {
@@ -75,8 +75,8 @@ export class RuleValidator implements IRuleValidator
         if(outputValidation)
         {
             if (this.outputMessages.length > 0) {
-                this.logFilePath = path.join(this.errorDir, "rulesValidationLog.json");
-                this.fs.writeFile(this.logFilePath, JSON.stringify(this.outputMessages, null, 4),
+                this.logFilePath = path.join(this.errorDir, "rulesValidationLog.json1");
+                await this.fs.writeFile(this.logFilePath, JSON.stringify(this.outputMessages, null, 4),
                     (err: ErrnoException) => {
                         if (err) {
                             this.connection.console
@@ -86,7 +86,7 @@ export class RuleValidator implements IRuleValidator
             }
             if(this.writeoutNewRules)
             {
-                let newrulePath: string =  path.join(this.errorDir, "..", "newrules");
+                let newrulePath =  path.join(this.errorDir, "..", "newrules");
                 this.connection.console.log(`RuleValidator - outputValidation: ${newrulePath}`);
 
                 for (let key in this.fixedRules)
@@ -97,7 +97,7 @@ export class RuleValidator implements IRuleValidator
                     {
                         mkdirp.sync(path.dirname(filePath));
                         this.connection.console.log(`RuleValidator - newRulePath - file: ${filePath}`);
-                        this.fs.writeFileSync(filePath, JSON.stringify(this.fixedRules[key], null, 4));
+                        await this.fs.writeFileSync(filePath, JSON.stringify(this.fixedRules[key], null, 4));
                     }
                     catch(err) {
                         this.connection.console.log(`RuleValidator - validateRules err: >>${err.message}<<`);
@@ -133,7 +133,7 @@ export class RuleValidator implements IRuleValidator
         newRule.severity = loadedRule.severity.toLowerCase();
         newRule._comment = (RuleValidator.isSet(loadedRule._comment, "string")) ? loadedRule._comment: "";
 
-        newRule.ruleInfo = loadedRule.ruleInfo;
+        newRule.ruleInfo = loadedRule.rule_info;
         
         newRule.patterns = loadedRule.patterns;
         for(let x = 0; x < newRule.patterns.length; x++)
@@ -476,8 +476,8 @@ export class RuleValidator implements IRuleValidator
      */
     private validateRuleInfo(loadedRule): string
     {
-        this.checkValue(loadedRule.ruleInfo,loadedRule,"string","ruleInfo value is missing from object",OutputAlert.Error);
-        let info: string = loadedRule.ruleInfo;
+        this.checkValue(loadedRule.rule_info,loadedRule,"string","ruleInfo value is missing from object",OutputAlert.Error);
+        let info: string = loadedRule.rule_info;
         let slashIndex: number = info.lastIndexOf("/");
         //check to see if this is a url
         while(slashIndex != -1)

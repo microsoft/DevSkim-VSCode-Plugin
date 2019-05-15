@@ -1,24 +1,34 @@
-import * as LSP from 'vscode-languageserver'
 import DevSkimServer from './devskimServer'
-const pkg = require('../package')
+import {
+    createConnection, InitializeParams, InitializeResult, ProposedFeatures, TextDocuments,
+} from "vscode-languageserver";
+
+const pkg = require('../package');
 
 export function listen() {
-    const connection: LSP.IConnection = LSP.createConnection(
-        new LSP.StreamMessageReader(process.stdin),
-        new LSP.StreamMessageWriter(process.stdout),
-    );
+    console.log(`index: listen()`);
+    const connection = createConnection(ProposedFeatures.all);
+    const documents: TextDocuments = new TextDocuments();
 
-    connection.onInitialize((params: LSP.InitializeParams): Promise<LSP.InitializeResult> => {
-        connection.console.log(`Initialized server v. ${pkg.version}, ${params.workspaceFolders[0].uri}`);
-        return DevSkimServer.initialize(connection, params)
-            .then(server => {
-                server.register(connection);
+    connection.onInitialize((params: InitializeParams): Promise<InitializeResult> => {
+        connection.console.log(`Initialized server v. ${pkg.version}`);
+        return DevSkimServer.initialize(documents, connection, params)
+            .then(async server => {
+                await server.register(connection);
+                await server.loadRules();
                 return server;
             })
-            .then(server => ({
+            .then((server) => ({
                 capabilities: server.capabilities(),
             }));
     });
 
-    connection.listen()
+
+    documents.listen(connection);
+    connection.console.log(`index: now listening on documents ...`);
+
+    connection.listen();
+    connection.console.log(`index: now listening on connection ...`);
 }
+
+listen();

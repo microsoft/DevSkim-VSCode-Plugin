@@ -21,6 +21,7 @@ import {PathOperations} from "./pathOperations";
 import {SourceComments} from "./comments";
 import {RuleValidator} from "./ruleValidator";
 import {DevSkimWorkerSettings} from "./devskimWorkerSettings";
+import {RulesLoader} from "./rulesLoader";
 
 /**
  * The bulk of the DevSkim analysis logic.  Loads rules in, exposes functions to run rules across a file
@@ -49,8 +50,12 @@ export class DevSkimWorker {
 
     constructor(private connection: IConnection, private dsSuppressions: DevSkimSuppression, settings?: IDevSkimSettings) {
         this.rulesDirectory = DevSkimWorkerSettings.getRulesDirectory();
+        this.rulesDirectory = String.raw`C:/Users/v-dakit/DevSkimRules`; // @todo: fix this
         this.dswSettings.getSettings(settings);
-        this.loadRules();
+    }
+
+    public async init(): Promise<void> {
+        await this.loadRules();
     }
 
     /**
@@ -132,14 +137,25 @@ export class DevSkimWorker {
         this.loadRules();
     }
 
+    private async loadRules(): Promise<void> {
+       const loader = new RulesLoader(this.connection, true, this.rulesDirectory);
+       const rules = await loader.loadRules();
+
+        let validator = new RuleValidator(this.connection, this.rulesDirectory, this.rulesDirectory);
+        this.analysisRules = await validator.validateRules(rules, this.dswSettings.getSettings().validateRulesFiles);
+    }
+
     /**
      * recursively load all of the JSON files in the $userhome/.vscode/extensions/vscode-devskim/rules sub directories
      *
      * @private
      */
-    private loadRules(): void {
+    private loadRulesOld(): void {
         this.tempRules = [];
         this.analysisRules = [];
+
+        this.connection.console.log(`DevSkimWorker loadRules() starting ...`);
+        this.connection.console.log(`DevSkimWorker loadRules() from ${this.rulesDirectory}`); 
 
         //read the rules files recursively from the file system - get all of the .json files under the rules directory.  
         //first read in the default & custom directories, as they contain the required rules (i.e. exclude the "optional" directory)
@@ -154,27 +170,35 @@ export class DevSkimWorker {
                     next();
                 }
                 //Load the rules from files add the file path
-                const loadedRules: Rule[] = JSON.parse(content);
-                for (let rule of loadedRules) {
-                    if (!rule.name) {
-                       continue;
+                try {
+                    const loadedRules: Rule[] = JSON.parse(content);
+                    if (loadedRules) {
+                        for (let rule of loadedRules) {
+                            if (!rule.name) {
+                                continue;
+                            }
+                            rule.filepath = file;
+                        }
+                        this.tempRules = this.tempRules.concat(loadedRules);
+                        this.connection.console.log(`DevSkimWorker loadRules() so far: ${this.tempRules.length || 0}.`);
                     }
-                    rule.filepath = file;
                 }
-                this.tempRules = this.tempRules.concat(loadedRules);
+                catch(e) {
+                    this.connection.console.log(`DevSkimWorker - loadRules Exception: ${e.message}`);
+                }
                 next();
             },
-            (/* err, files */) => {
+            async (/* err, files */) => {
                 //now that we have all of the rules objects, lets clean them up and make
                 //sure they are in a format we can use.  This will overwrite any badly formed JSON files
                 //with good ones so that it passes validation in the future
-                let validator: RuleValidator =
-                    new RuleValidator(this.connection, this.rulesDirectory, this.rulesDirectory);
+                let validator: RuleValidator = new RuleValidator(this.connection, this.rulesDirectory, this.rulesDirectory);
                 this.analysisRules =
-                    validator.validateRules(this.tempRules, this.dswSettings.getSettings().validateRulesFiles);
+                    await validator.validateRules(this.tempRules, this.dswSettings.getSettings().validateRulesFiles);
 
                 //don't need to keep this around anymore
                 delete this.tempRules;
+                this.connection.console.log(`DevSkimWorker loadRules() done. Rules found: ${this.analysisRules.length || 0}.`);
             });
     }
 

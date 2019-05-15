@@ -4,9 +4,24 @@
   "author": "Microsoft Corporation",
   "license": "ISC",
   "version": "1.0.0",
+  "publisher": "MS-DevSkim",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Microsoft/devskim.git"
+  },
   "engines": {
     "vscode": "^1.33.x"
   },
+  "bugs": {
+    "url": "https://github.com/Microsoft/DevSkim-VSCode-Plugin/issues"
+  },
+  "homepage": "https://github.com/Microsoft/DevSkim-VSCode-Plugin#readme",
+  "categories": [
+    "Linters"
+  ],
+  "keywords": [
+    "Security"
+  ],
   "activationEvents": [
     "onLanguage:bat",
     "onLanguage:php",
@@ -41,7 +56,7 @@
     "onLanguage:plaintext",
     "onLanguage:python"
   ],
-  "main": "./client/out/extension",
+  "main": "./client/out/extension.js",
   "contributes": {
     "commands": [
       {
@@ -128,10 +143,6 @@
       }
     }
   },
-  "bugs": {
-    "url": "https://github.com/Microsoft/DevSkim-VSCode-Plugin/issues"
-  },
-  "homepage": "https://github.com/Microsoft/DevSkim-VSCode-Plugin#readme",
   "jest": {
     "testEnvironment": "node",
     "timers": "fake",
@@ -171,18 +182,6 @@
     ],
     "preset": "ts-jest"
   },
-  "dependencies": {},
-  "devDependencies": {
-    "@types/jest": "^24.0.11",
-    "@types/node": "^11.13.7",
-    "@typescript-eslint/eslint-plugin": "^1.7.0",
-    "@typescript-eslint/parser": "^1.7.0",
-    "eslint": "^5.16.0",
-    "jest": "^24.7.1",
-    "ts-jest": "^24.0.2",
-    "ts-node": "^8.1.0",
-    "typescript": "^3.4.3"
-  },
   "scripts": {
     "clean": "yarn run clean:local && yarn run clean:server && yarn run clean:client",
     "clean:local": "rm -rf *.log out node_modules package-lock.json yarn.lock",
@@ -200,5 +199,19 @@
     "check": "yarn run lint && yarn run compile && yarn run test",
     "check:bail": "yarn run lint:bail && yarn run compile && yarn run test",
     "reinstall-server": "npm uninstall -g devskim-language-server && yarn compile && npm i -g ./server"
+  },
+  "dependencies": {
+    "recursive-readdir": "^2.2.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^24.0.11",
+    "@types/node": "^11.13.7",
+    "@typescript-eslint/eslint-plugin": "^1.7.0",
+    "@typescript-eslint/parser": "^1.7.0",
+    "eslint": "^5.16.0",
+    "jest": "^24.7.1",
+    "ts-jest": "^24.0.2",
+    "ts-node": "^8.1.0",
+    "typescript": "^3.4.3"
   }
 }

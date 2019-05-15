@@ -1,14 +1,12 @@
-import * as LSP from 'vscode-languageserver';
 import {TextDocumentIdentifier} from 'vscode-languageserver-types';
 import {DevSkimWorker} from "./devskimWorker";
 import {AutoFix, DevSkimProblem, DevSkimSettings, Fixes, IDevSkimSettings} from "./devskimObjects";
 import {DevSkimSuppression} from "./suppressions";
 import {
-    CodeActionParams,
-    DidChangeConfigurationParams,
-    InitializeParams,
-    NotificationHandler,
-    RequestType,
+    CodeActionParams, Connection, Diagnostic,
+    DidChangeConfigurationParams, InitializedParams, Hover,
+    InitializeParams, NotificationHandler, RequestType,
+    ServerCapabilities, TextDocument, TextDocuments, TextDocumentPositionParams,
 } from "vscode-languageserver";
 import {DevSkimWorkerSettings} from "./devskimWorkerSettings";
 import {ReloadRulesRequest} from "./server.old";
@@ -19,88 +17,84 @@ import {noop} from "@babel/types";
 
 export default class DevSkimServer {
 
-    private workspaceRoot: string;
-    private documents: LSP.TextDocuments = new LSP.TextDocuments();
-    private diagnostics: LSP.Diagnostic[] = [];
-    private documentSettings: Map<string, Thenable<DevSkimSettings>> = new Map();
-    private globalSettings: IDevSkimSettings;
-    private codeActions: Command[] = [];
-    private hasConfigurationCapability = false;
-    private hasWorkspaceFolderCapability = false;
-    private hasDiagnosticRelatedInformationCapability = false;
+    public static instance: DevSkimServer;
 
-
-    private constructor(private connection: LSP.Connection, private analyzer: DevSkimWorker) {
-        this.globalSettings  = analyzer.dswSettings.getSettings();
+    private constructor(private documents: TextDocuments, private connection: Connection, private worker: DevSkimWorker) {
+        this.globalSettings = worker.dswSettings.getSettings();
     }
 
-    public static initialize(connection: LSP.Connection, params: LSP.InitializedParams): Promise<DevSkimServer> {
-        connection.console.log(`DevSkimServer.initialize() : ${JSON.stringify(params)}`);
-        return new Promise<DevSkimWorker>((resolve, reject) => {
-            const dsWorkerSettings = new DevSkimWorkerSettings();
-            const dsSettings = dsWorkerSettings.getSettings();
-            const dsSuppression = new DevSkimSuppression(dsSettings);
-            const worker = new DevSkimWorker(connection, dsSuppression, dsSettings);
-            if (worker) {
-                resolve(worker);
-            } else {
-                reject("Could not create DevSkimWorker");
-            }
-        }).then( (dsWorker ) => {
-                return new DevSkimServer(connection, dsWorker);
-            });
+    public static async initialize(documents: TextDocuments, connection: Connection, params: InitializedParams): Promise<DevSkimServer> {
+        // connection.console.log(`DevSkimServer.initialize() : ${JSON.stringify(params)}`);
+        // settings, suppression
+        const dsWorkerSettings = new DevSkimWorkerSettings();
+        const dsSettings = dsWorkerSettings.getSettings();
+        const dsSuppression = new DevSkimSuppression(dsSettings);
+
+        const worker = new DevSkimWorker(connection, dsSuppression, dsSettings);
+        DevSkimServer.instance = new DevSkimServer(documents, connection, worker);
+        return DevSkimServer.instance;
     }
 
-    public register(connection: LSP.Connection): void {
+    public async loadRules(): Promise<void> {
+        return this.worker.init();
+    }
+
+    public register(connection: Connection): void {
         this.documents.listen(this.connection);
         this.documents.onDidChangeContent(change => {
-            const uri = change.document.uri;
-            const problems = this.analyzer.analyzeText(change.document.getText(),
+
+            const problems = this.worker.analyzeText(change.document.getText(),
                 change.document.languageId, change.document.uri);
+
             for (let problem of problems) {
-                let diagnostic: LSP.Diagnostic = problem.makeDiagnostic(this.analyzer.dswSettings);
+                let diagnostic: Diagnostic = problem.makeDiagnostic(this.worker.dswSettings);
                 this.diagnostics.push(diagnostic);
 
                 for (let fix of problem.fixes) {
-                    this.analyzer.recordCodeAction(change.document.uri, change.document.version,
+                    this.worker.recordCodeAction(change.document.uri, change.document.version,
                         diagnostic.range, diagnostic.code, fix, problem.ruleId);
                 }
             }
         });
+
+        // connection handlers
         connection.onInitialize(this.onInitialize.bind(this));
         connection.onCodeAction(this.onCodeAction.bind(this));
         connection.onDidChangeConfiguration(this.onDidChangeConfiguration.bind(this));
         connection.onDidChangeWatchedFiles(this.onDidChangeWatchedFiles.bind(this));
+        connection.onHover(this.onHover.bind(this));
         connection.onRequest(ReloadRulesRequest.type, this.onRequestReloadRulesRequest.bind(this));
         connection.onRequest(ValidateDocsRequest.type, this.onRequestValidateDocsRequest.bind(this));
 
+        // document handlers
         this.documents.onDidOpen(this.onDidOpen.bind(this));
         this.documents.onDidClose(this.onDidClose.bind(this));
         this.documents.onDidChangeContent(this.onDidChangeContent.bind(this));
-
     }
 
     // Document handlers
     private onDidOpen(change) {
-       this.validateTextDocument(change.document);
+        this.connection.console.log(`DevSkimServer: onDidOpen(${change.document.uri})`);
+        this.validateTextDocument(change.document);
     }
 
     private onDidClose(change) {
         if (this.globalSettings.removeFindingsOnClose) {
-            let diagnostics: LSP.Diagnostic[] = [];
+            let diagnostics: Diagnostic[] = [];
             this.connection.sendDiagnostics({uri: change.document.uri, diagnostics});
         }
     }
 
-    private onDidChangeContent(change) {
-        this.validateTextDocument(change.document);
+    private onDidChangeContent(change): Promise<void> {
+        this.connection.console.log(`DevSkimServer: onDidChangeContent(${change.document.uri})`);
+        return this.validateTextDocument(change.document);
     }
 
     // Connection Handlers
     private onInitialize(params: InitializeParams): void {
         let capabilities = params.capabilities;
-        this.hasConfigurationCapability = !!( capabilities.workspace && !!capabilities.workspace.configuration);
-        this.hasWorkspaceFolderCapability = !!( capabilities.workspace && !!capabilities.workspace.workspaceFolders);
+        this.hasConfigurationCapability = !!(capabilities.workspace && !!capabilities.workspace.configuration);
+        this.hasWorkspaceFolderCapability = !!(capabilities.workspace && !!capabilities.workspace.workspaceFolders);
 
         this.hasDiagnosticRelatedInformationCapability = !!(
             capabilities.textDocument &&
@@ -110,7 +104,7 @@ export default class DevSkimServer {
         this.workspaceRoot = params.rootPath;
     }
 
-    public capabilities(): LSP.ServerCapabilities {
+    public capabilities(): ServerCapabilities {
         return {
             // Tell the client that the server works in FULL text document sync mode
             textDocumentSync: this.documents.syncKind,
@@ -122,21 +116,22 @@ export default class DevSkimServer {
         for (let docs of params.textDocuments) {
             let textDocument = this.documents.get(docs.uri);
 
+            this.connection.console.log(`DevSkimServer: onRequestValidateDocsRequest(${textDocument.uri})`);
             this.validateTextDocument(textDocument);
         }
     }
 
     private onRequestReloadRulesRequest() {
-        this.analyzer.refreshAnalysisRules();
+        this.worker.refreshAnalysisRules();
     }
 
     private onCodeAction(params: CodeActionParams): void {
         this.codeActions = [];
         let uri = params.textDocument.uri;
-        let edits = this.analyzer.codeActions[uri];
+        let edits = this.worker.codeActions[uri];
 
         if (!edits) {
-            return ;
+            return;
         }
 
         let fixes = new Fixes(edits);
@@ -150,10 +145,10 @@ export default class DevSkimServer {
             return TextEdit.replace(editInfo.edit.range, editInfo.edit.text || '');
         }
 
-        for (let editInfo of fixes.getScoped(params.context.diagnostics)){
+        for (let editInfo of fixes.getScoped(params.context.diagnostics)) {
             documentVersion = editInfo.documentVersion;
             this.codeActions.push(Command.create(editInfo.label, 'devskim.applySingleFix', uri, documentVersion,
-                [ createTextEdit(editInfo)]));
+                [createTextEdit(editInfo)]));
         }
     }
 
@@ -168,11 +163,19 @@ export default class DevSkimServer {
         }
 
         // Revalidate any open text documents
-        this.documents.all().forEach(this.validateTextDocument);
+        this.documents.all().forEach( (td: TextDocument) => {
+            this.connection.console.log(`DevSkimServer: onDidChangeConfiguration(${td.uri})`);
+            this.validateTextDocument
+        });
     }
 
     private onDidChangeWatchedFiles(change: DidChangeWatchedFilesParams): void {
-       noop;
+        noop;
+    }
+
+    private onHover(pos: TextDocumentPositionParams): Promise<Hover> {
+        this.connection.console.log(`onHover: ${pos.position.line}:${pos.position.character}`);
+        return null;
     }
 
     private getDocumentSettings(resource: string): Thenable<DevSkimSettings> {
@@ -195,26 +198,26 @@ export default class DevSkimServer {
      *
      * @param {TextDocument} textDocument document to analyze
      */
-    private async validateTextDocument(textDocument: LSP.TextDocument): Promise<void> {
-
+    private async validateTextDocument(textDocument: TextDocument): Promise<void> {
         if (textDocument && textDocument.uri) {
-            let diagnostics: LSP.Diagnostic[] = [];
+            this.connection.console.log(`DevSkimServer: validateTextDocument(${textDocument.uri})`);
+            let diagnostics: Diagnostic[] = [];
             let settings = await this.getDocumentSettings(textDocument.uri);
             if (!settings) {
                 settings = this.globalSettings;
             }
             if (settings) {
-                delete this.analyzer.codeActions[textDocument.uri];
+                delete this.worker.codeActions[textDocument.uri];
 
                 const problems: DevSkimProblem[] =
-                    this.analyzer.analyzeText(textDocument.getText(), textDocument.languageId, textDocument.uri);
+                    await this.worker.analyzeText(textDocument.getText(), textDocument.languageId, textDocument.uri);
 
                 for (let problem of problems) {
-                    let diagnostic: LSP.Diagnostic = problem.makeDiagnostic(this.analyzer.dswSettings);
+                    let diagnostic: Diagnostic = problem.makeDiagnostic(this.worker.dswSettings);
                     diagnostics.push(diagnostic);
 
                     for (let fix of problem.fixes) {
-                        this.analyzer.recordCodeAction(textDocument.uri, textDocument.version,
+                        this.worker.recordCodeAction(textDocument.uri, textDocument.version,
                             diagnostic.range, diagnostic.code, fix, problem.ruleId);
                     }
                 }
@@ -223,6 +226,15 @@ export default class DevSkimServer {
             this.connection.sendDiagnostics({uri: textDocument.uri, diagnostics});
         }
     }
+
+    private workspaceRoot: string;
+    private diagnostics: Diagnostic[] = [];
+    private documentSettings: Map<string, Thenable<DevSkimSettings>> = new Map();
+    private globalSettings: IDevSkimSettings;
+    private codeActions: Command[] = [];
+    private hasConfigurationCapability = false;
+    private hasWorkspaceFolderCapability = false;
+    private hasDiagnosticRelatedInformationCapability = false;
 }
 
 interface ValidateDocsParams {
@@ -230,6 +242,6 @@ interface ValidateDocsParams {
 }
 
 export class ValidateDocsRequest {
-    public static type: RequestType<ValidateDocsParams,void,void,void> = new RequestType<ValidateDocsParams, void, void, void>(
+    public static type: RequestType<ValidateDocsParams, void, void, void> = new RequestType<ValidateDocsParams, void, void, void>(
         'textDocument/devskim/validatedocuments')
 }

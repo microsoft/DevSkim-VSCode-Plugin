@@ -24,5 +24,4 @@ describe('DevSkimWorker', () => {
         expect(dsw.rulesDirectory).toBe(ruleDir)
 
     });
-
 });

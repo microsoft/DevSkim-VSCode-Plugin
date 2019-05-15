@@ -31,8 +31,9 @@ export class RuleValidator implements IRuleValidator
      * @param readRules
      * @param outputValidation
      */
-    public validateRules(readRules : Object[], outputValidation : boolean) : Rule[]
+    public validateRules(readRules : Rule[], outputValidation : boolean): Promise<Rule[]>
     {
-        return [];
+        let r: Rule[] = [];
+        return undefined 
     }
 }

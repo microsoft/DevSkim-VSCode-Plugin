@@ -6,12 +6,17 @@
 
 import * as path from 'path';
 
-import { ExtensionContext, window, workspace, commands } from 'vscode';
+import {commands, ExtensionContext, window, workspace} from 'vscode';
 import {
-	LanguageClient, LanguageClientOptions, ServerOptions, TextEdit,
-	RequestType, TextDocumentIdentifier, TransportKind,
+	LanguageClient,
+	LanguageClientOptions,
+	RequestType,
+	ServerOptions,
+	TextDocumentIdentifier,
+	TextEdit,
+	TransportKind,
 } from 'vscode-languageclient';
-import {DevSkimSettings, DevSkimSettingsObject } from "./devskim.settings";
+import {DevSkimSettings, DevSkimSettingsObject} from "./devskim.settings";
 import {getServerInfo} from "./util";
 
 //the following interface and namespace define a format to invoke a function on the server via
@@ -31,15 +36,16 @@ export class ReloadRulesRequest {
 
 let client: LanguageClient;
 
-export async function activate(context: ExtensionContext) {
+export function activate(context: ExtensionContext) {
 
 	try {
 		// The server is implemented in node
-		const { command, version } = await getServerInfo()
-		let serverModule = context.asAbsolutePath(path.join('server', "out", 'index.js'));
+		// const { command, version } = getServerInfo()
+		const serverModule = context.asAbsolutePath(path.join("server", "out", 'index.js'));
 		console.log(`Server module: ${serverModule}`);
+
 		// The debug options for the server
-		let devSkimProperties = getDevSkimConfiguration();
+		const devSkimProperties = getDevSkimConfiguration();
 		const env: any = {
 			...process.env,
             devSkimProperties,
@@ -53,29 +59,29 @@ export async function activate(context: ExtensionContext) {
 		// Otherwise the run options are used
 		let serverOptions: ServerOptions = {
 			run: {
-				command,
-				args: ['start'],
 				module: serverModule,
-				transport: TransportKind.ipc,
 				options: {
 					env,
-				}},
-			debug: {
-				command,
-				args: ['start'],
-				module: serverModule,
+				},
 				transport: TransportKind.ipc,
+			},
+			debug: {
+				module: serverModule,
 				options: debugOptions,
+				transport: TransportKind.ipc,
 			},
 		};
 
 		// Options to control the language client
+		// Register the server for plain text documents.  I haven't found a "Always do this" option, hence the exhaustive
+		//listing here.  If someone else knows how to say "do this for *" that would be the preference
 		let clientOptions: LanguageClientOptions = {
-			// Register the server for plain text documents.  I haven't found a "Always do this" option, hence the exhaustive
-			//listing here.  If someone else knows how to say "do this for *" that would be the preference
-			documentSelector: ["php", "c", "cpp", "csharp", "ruby", "perl", "perl6", "javascriptreact", "javascript",
-				"go", "rust", "groovy", "typescript", "typescriptreact", "jade", "lua", "swift", "clojure", "sql",
-				"vb", "shellscript", "yaml", "fsharp", "objective-c", "r", "java", "powershell", "coffeescript", "plaintext", "python", "xml"],
+			documentSelector: [
+				{
+					scheme: 'file',
+					language: 'javascript',
+				},
+			],
 			synchronize: {
 				// Synchronize the setting section 'devskim' to the server
 				configurationSection: 'devskim',
@@ -107,8 +113,8 @@ export async function activate(context: ExtensionContext) {
 				textDocuments[x] = Object.create(null);
 				textDocuments[x].uri = workspace.textDocuments[x].uri.toString();
 			}
-			client.sendRequest(ValidateDocsRequest.type, { textDocuments });
-		}, 3000);
+			client.sendRequest(ValidateDocsRequest.type, {textDocuments});
+		}, 30000);
 
 	} catch (err) {
 		handleError(err);
