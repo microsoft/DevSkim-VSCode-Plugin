@@ -21,12 +21,6 @@
 	"engines": {
 		"vscode": "^1.33.x"
 	},
-	"categories": [
-		"Linters"
-	],
-	"keywords": [
-		"Security"
-	],
 	"preview": true,
 	"scripts": {
 		"update-vscode": "vscode-install",

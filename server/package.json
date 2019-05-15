@@ -2,12 +2,18 @@
   "name": "devskim-server",
   "description": "Devskim Language Server component",
   "version": "0.2.1",
-  "author": "Microsoft Corporation",
+  "author": "Security Engineering",
+  "publisher": "MS-DevSkim",
+  "private": true,
   "license": "MIT",
   "engines": {
     "node": "*"
   },
+  "scripts": {
+    "clean": "rm -rf *.log out node_modules package-lock.json yarn.lock"
+  },
   "dependencies": {
+    "glob-promise": "^3.4.0",
     "lodash": "^4.17.11",
     "mkdirp": "^0.5.1",
     "node-dir": ">=0.1.17",
@@ -22,9 +28,5 @@
     "jest": "^24.7.1",
     "ts-jest": "^24.0.2",
     "typescript": "^3.4.3"
-  },
-  "private": true,
-  "scripts": {
-    "clean": "rm -rf *.log out node_modules package-lock.json yarn.lock"
   }
 }

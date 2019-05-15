@@ -1,20 +1,28 @@
 import {IDevSkimSettings} from "./devskimObjects";
 import * as path from "path";
 
+
 export class DevSkimWorkerSettings {
 
-    public static getSettings(settings?: IDevSkimSettings) {
-        return settings ? settings : DevSkimWorkerSettings.defaultSettings();
+    private settings: IDevSkimSettings;
+
+    public getSettings(settings?: IDevSkimSettings): IDevSkimSettings {
+        if (settings) {
+           this.settings = settings;
+           return this.settings;
+        }
+        if (this.settings) {
+            return this.settings;
+        }
+        if (!this.settings) {
+            this.settings = DevSkimWorkerSettings.defaultSettings();
+        }
+        return this.settings;
     }
 
-    public static getRulesDirectory() {
-        let configRulesDir = DevSkimWorkerSettings.getDevSkimRulesDirectory();
+    public static getRulesDirectory(): string {
+        let configRulesDir = DevSkimWorkerSettings.getRulesDirectoryFromEnvironment();
         return configRulesDir || path.join(__dirname, "..", "rules");
-    }
-
-    private static getDevSkimRulesDirectory(): string | null {
-        const {DEV_SKIM_RULES_DIRECTORY} = process.env;
-        return typeof DEV_SKIM_RULES_DIRECTORY !== 'undefined' ? DEV_SKIM_RULES_DIRECTORY : null;
     }
 
     public static defaultSettings(): IDevSkimSettings {
@@ -34,7 +42,7 @@ export class DevSkimWorkerSettings {
                 "logs/*",
                 "*.log",
                 "*.git",
-                "rulesValidationLog.json"
+                "rulesValidationLog.json",
             ],
             ignoreRulesList: [],
             manualReviewerName: "",
@@ -42,5 +50,27 @@ export class DevSkimWorkerSettings {
             suppressionDurationInDays: 30,
             validateRulesFiles: true,
         };
+    }
+
+    public static getRulesDirectoryFromEnvironment(): string|null {
+        const {DEV_SKIM_RULES_DIRECTORY} = process.env;
+
+        let value = null;
+
+        // When DEV_SKIM_RULES_DIRECTORY is not defined and assigned
+        if ( (typeof DEV_SKIM_RULES_DIRECTORY === 'string') && DEV_SKIM_RULES_DIRECTORY !== 'undefined') {
+           value = DEV_SKIM_RULES_DIRECTORY;
+        }
+
+        // When DEV_SKIM_RULES_DIRECTORY is defined but not assigned
+        if (typeof DEV_SKIM_RULES_DIRECTORY === 'string' && DEV_SKIM_RULES_DIRECTORY === "undefined") {
+            value = null;
+        }
+
+        // When DEV_SKIM_RULES_DIRECTORY is undefined
+        if (typeof DEV_SKIM_RULES_DIRECTORY === 'undefined') {
+            value = null;
+        }
+        return value;
     }
 }

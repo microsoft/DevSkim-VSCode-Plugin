@@ -9,13 +9,12 @@
  * 
  *  ------------------------------------------------------------------------------------------ */
 
-import { Diagnostic, DiagnosticSeverity, Range
+import { Diagnostic, DiagnosticSeverity, Range,
 } from 'vscode-languageserver';
 
-import {DevSkimWorker} from "./devskimWorker";
+import {DevSkimWorkerSettings} from "./devskimWorkerSettings";
 
-// These are the example settings we defined in the client's package.json
-// file
+// These are the example settings defined in the client's package.json
 export interface IDevSkimSettings {
 	enableBestPracticeRules: boolean;
 	enableDefenseInDepthSeverityRules: boolean;
@@ -56,9 +55,9 @@ export class DevSkimSettings implements IDevSkimSettings {
 export interface Pattern {
     pattern: string;
     type: string;
-	modifiers?:string[];
+	modifiers?: string[];
     scopes?: string[];
-    _comment ? : string;
+    _comment?: string;
 }
 
 
@@ -75,7 +74,7 @@ export interface FixIt {
     name: string;
     pattern: Pattern;
     replacement: string;
-	_comment ? : string;
+	_comment? : string;
 }
 
 
@@ -93,23 +92,23 @@ export interface Rule {
     name: string;
     active: boolean;
     tags: string[];
-    applies_to?: string[];
+    appliesTo?: string[];
     severity: string;
     description: string;
     recommendation: string;
-    rule_info: string;
+    ruleInfo: string;
 	patterns: Pattern[];
 	conditions?: Condition[];
-    fix_its?: FixIt[];
+    fixIts?: FixIt[];
 	filepath? : string; //filepath to the rules file the rule came from
-	_comment ? : string;
+	_comment? : string;
 }
 
 export interface Condition {
 	pattern: Pattern;
 	search_in: string;
 	_comment?: string;
-	negate_finding?: boolean;
+	negateFinding?: boolean;
 
 }
 
@@ -167,9 +166,10 @@ export enum DevskimRuleSeverity
 	Important,
 	Moderate,
 	BestPractice,
-	WarningInfo, //this isn't actually an error level in rules, but used when flagging
-	             //DS identifiers in suppressions and other comments
-	ManualReview
+	WarningInfo,
+	ManualReview,
+	// this isn't actually an error level in rules, but used when flagging
+	// DS identifiers in suppression and other comments
 }
 
 /**
@@ -184,12 +184,12 @@ export class DevSkimProblem {
 	public severity: DevskimRuleSeverity;
 	public ruleId: string; //the id in the rules JSON files
 	public message: string;
-	public issueURL : string;
+	public issueURL: string;
 	public replacement: string;
 	public fixes: DevSkimAutoFixEdit[];
-	public suppressedFindingRange : Range;
+	public suppressedFindingRange: Range;
 
-	public overrides : string[]; //a collection of ruleIDs that this rule supercedes
+	public overrides: string[]; //a collection of ruleIDs that this rule supercedes
 
     /**
      * Creates an instance of DevSkimProblem.
@@ -202,20 +202,17 @@ export class DevSkimProblem {
      * @param {string} issueURL a URL to some place the dev can get more information on the problem (rules_info in the rules JSON)
      * @param {Range} range where the problem was found in the file (line start, column start, line end, column end) 
      */
-    constructor ( message: string, source: string, ruleId: string, severity: DevskimRuleSeverity, replacement: string, issueURL: string, range: Range) 
-    {
-		this.fixes    = [];
+	constructor(message: string, source: string, ruleId: string, severity: DevskimRuleSeverity, replacement: string, issueURL: string, range: Range) {
+		this.fixes = [];
 		this.overrides = [];
-
-        this.message     = (message     !== undefined && message.length     > 0) ? message     : "";
-        this.source      = (source      !== undefined && source.length      > 0) ? source      : "";
-        this.ruleId      = (ruleId      !== undefined && ruleId.length      > 0) ? ruleId      : "";
-		this.issueURL    = (issueURL    !== undefined && issueURL.length    > 0) ? issueURL    : "";
+		this.message = (message !== undefined && message.length > 0) ? message : "";
+		this.source = (source !== undefined && source.length > 0) ? source : "";
+		this.ruleId = (ruleId !== undefined && ruleId.length > 0) ? ruleId : "";
+		this.issueURL = (issueURL !== undefined && issueURL.length > 0) ? issueURL : "";
 		this.replacement = (replacement !== undefined && replacement.length > 0) ? replacement : "";
-   		this.range    = (range    !== undefined ) ? range    : Range.create(0,0,0,0);
-		this.severity = severity;  
-		this.suppressedFindingRange = null; 
-        
+		this.range = (range !== undefined) ? range : Range.create(0, 0, 0, 0);
+		this.severity = severity;
+		this.suppressedFindingRange = null;
 	}
 
 	/**
@@ -226,7 +223,7 @@ export class DevSkimProblem {
 	 * 
 	 * @memberOf DevSkimProblem
 	 */
-	public static getSeverityName(severity : DevskimRuleSeverity) : string
+	public static getSeverityName(severity: DevskimRuleSeverity): string
 	{
 		switch (severity)
 		{
@@ -244,7 +241,7 @@ export class DevSkimProblem {
      * 
      * @returns {DiagnosticSeverity}
      */
-    public getWarningLevel() : DiagnosticSeverity
+    public getWarningLevel(): DiagnosticSeverity
     {
 		//mark any optional rule, or rule that is simply imformational as a warning (i.e. green squiggle)
 		switch(this.severity)
@@ -266,18 +263,18 @@ export class DevSkimProblem {
      * 
      * @returns {Diagnostic}
      */
-    public makeDiagnostic(): Diagnostic 
+    public makeDiagnostic(dswSettings: DevSkimWorkerSettings): Diagnostic
 	{
-		const diagnostic : Diagnostic = Object.create(null);
-		//truncate the severity so that the message looks a bit more succinct in the output window
-		let fullMessage : string = "\n" + this.source + "\nSeverity: " + DevSkimProblem.getSeverityName(this.severity) + "\n\n" + this.message;
+		const diagnostic: Diagnostic = Object.create(null);
+		let fullMessage =
+			`\n${this.source}\nSeverity: ${DevSkimProblem.getSeverityName(this.severity)}\n\n${this.message}`;
 
 		fullMessage = (this.replacement.length > 0 ) ? 
 			fullMessage + "\n\nFix Guidance: " + this.replacement : 
 			fullMessage;
 
 		fullMessage = (this.issueURL.length > 0 ) ? 
-			fullMessage + "\n\nMore Info:\n" + DevSkimWorker.settings.guidanceBaseURL + this.issueURL :
+			fullMessage + "\n\nMore Info:\n" + dswSettings.getSettings().guidanceBaseURL + this.issueURL :
 			fullMessage;
 
 		diagnostic.message = fullMessage;
@@ -333,12 +330,13 @@ export class Fixes {
 		let result: AutoFix[] = [];
 		for(let diagnostic of diagnostics) {
 			let key = computeKey(diagnostic.range, diagnostic.code);
-			let x : number = 0;
-			let editInfo: AutoFix;	
-			while(editInfo = this.edits[key+x.toString(10)])
+			let x = 0;
+			let editInfo: AutoFix = this.edits[key+x.toString(10)];
+			while(editInfo)
 			{
 				result.push(editInfo);
 				x++;
+				editInfo = this.edits[key+x.toString(10)];
 			}
 		}
 		return result;

@@ -17,7 +17,7 @@ The README.md in the root directory of this project contains the bulk of details
 ## Project files
 Within this project the relevent files are:
 * **package.json** - a vs code package definition, but very similar to the node.js format.  This is where NPM dependencies are listed. also contains instructions to copy build output to ../client/server so the client can use it
-* **src/server.ts** - contains the main VS Code language server functionality, i.e. responding to connection events, response handlers, etc.  This file orchestrates most of the activity
+* **src/server.old.ts** - contains the main VS Code language server functionality, i.e. responding to connection events, response handlers, etc.  This file orchestrates most of the activity
 * **src/devskimWorker.ts** - contains the class that handles all of the analysis logic
 * **src/devskimObjects.ts** - contains interface, enum, and other definitions used by Devskim. 
 * **src/regexHelpers.ts** - the DevSkim rules are implemented using python style regular expressions which are *mostly* like javascript regexes.  This file contains the logic to rationalize the differences

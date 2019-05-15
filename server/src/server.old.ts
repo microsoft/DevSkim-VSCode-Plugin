@@ -12,17 +12,18 @@
 import {
     IPCMessageReader, IPCMessageWriter, createConnection, IConnection,
     TextDocuments, TextDocument, Diagnostic,
-    InitializeResult, RequestType, Command, TextEdit, TextDocumentIdentifier, DidChangeConfigurationNotification
+    InitializeResult, RequestType, Command, TextEdit, TextDocumentIdentifier, DidChangeConfigurationNotification,
 } from 'vscode-languageserver';
 
 import {DevSkimProblem, Fixes, AutoFix, DevSkimSettings} from "./devskimObjects";
 import {DevSkimWorker} from "./devskimWorker";
 
+import {DevSkimSuppression} from "./suppressions";
 import {DevSkimWorkerSettings} from "./devskimWorkerSettings";
 
-let hasConfigurationCapability: boolean = false;
-let hasWorkspaceFolderCapability: boolean = false;
-let hasDiagnosticRelatedInformationCapability: boolean = false;
+let hasConfigurationCapability = false;
+let hasWorkspaceFolderCapability = false;
+let hasDiagnosticRelatedInformationCapability = false;
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: IConnection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
@@ -36,8 +37,11 @@ let documents: TextDocuments = new TextDocuments();
 documents.listen(connection);
 
 //Set up a new instance of a DevSkimWorker analysis engine.  This is the object that does all the real
-//work of analyzing a file.  
-const analysisEngine: DevSkimWorker = new DevSkimWorker(connection);
+//work of analyzing a file.
+const dsWorkerSettings = new DevSkimWorkerSettings();
+const dsSettings = dsWorkerSettings.getSettings();
+const dsSuppression = new DevSkimSuppression(dsSettings);
+const analysisEngine: DevSkimWorker = new DevSkimWorker(connection, dsSuppression);
 
 // After the server has started the client sends an initialize request. The server receives
 // in the passed params the rootPath of the workspace plus the client capabilities. 
@@ -59,8 +63,8 @@ connection.onInitialize((params): InitializeResult => {
         capabilities: {
             // Tell the client that the server works in FULL text document sync mode
             textDocumentSync: documents.syncKind,
-            codeActionProvider: true
-        }
+            codeActionProvider: true,
+        },
     };
 });
 
@@ -89,7 +93,7 @@ documents.onDidOpen((change) => {
 //
 // Settings
 //
-let globalSettings: DevSkimSettings = DevSkimWorkerSettings.getSettings();
+let globalSettings: DevSkimSettings = dsWorkerSettings.getSettings();
 
 //if the user has specified in settings, all findings will be cleared when they close a document
 documents.onDidClose((change) => {
@@ -125,18 +129,18 @@ function getDocumentSettings(resource: string): Thenable<DevSkimSettings> {
     if (!result) {
         result = connection.workspace.getConfiguration({
             scopeUri: resource,
-            section: 'devskim'
+            section: 'devskim',
         });
         documentSettings.set(resource, result);
     }
     return result;
 }
 
-//this is the mechanism that populates VS Code with the various code actions associated
-//with DevSkim findings.  VS Code invokes this to get an array of commands.  This happens
-//independent of populating the text document with diagnostics, yet the code actions are
-//linked to the diagnostics (i.e. we want to invoke a fix on a finding, and the finding is represented
-//with a diagnostic).  This requires some contorsions in order to make the association
+// this is the mechanism that populates VS Code with the various code actions associated
+// with DevSkim findings.  VS Code invokes this to get an array of commands.  This happens
+// independent of populating the text document with diagnostics, yet the code actions are
+// linked to the diagnostics (i.e. we want to invoke a fix on a finding, and the finding is represented
+// with a diagnostic).  This requires some contorsions in order to make the association
 connection.onCodeAction((params) => {
     let result: Command[] = [];
     let uri = params.textDocument.uri;
@@ -161,9 +165,8 @@ connection.onCodeAction((params) => {
     for (let editInfo of fixes.getScoped(params.context.diagnostics)){
         documentVersion = editInfo.documentVersion;
         ruleId = editInfo.ruleId;
-        result.push(Command.create(editInfo.label, 'devskim.applySingleFix', uri, documentVersion, [
-            createTextEdit(editInfo)
-        ]));
+        result.push(Command.create(editInfo.label, 'devskim.applySingleFix', uri, documentVersion,
+            [ createTextEdit(editInfo)]));
     }
     return result;
 });
@@ -188,7 +191,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
                 analysisEngine.analyzeText(textDocument.getText(), textDocument.languageId, textDocument.uri);
 
             for (let problem of problems) {
-                let diagnostic: Diagnostic = problem.makeDiagnostic();
+                let diagnostic: Diagnostic = problem.makeDiagnostic(dsWorkerSettings);
                 diagnostics.push(diagnostic);
 
                 for (let fix of problem.fixes) {
@@ -204,7 +207,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 
 //currently DevSkim doesn't watch any files, but this is stubbed out as concievably it should watch the
 //rules directory for changes
-connection.onDidChangeWatchedFiles((/* change */) => {
+connection.onDidChangeWatchedFiles((change ) => {
     // Monitored files have change in VSCode
     // connection.console.log('Server - received a file change event');
 });
@@ -217,23 +220,20 @@ interface ValidateDocsParams {
     textDocuments: TextDocumentIdentifier[];
 }
 
-namespace ValidateDocsRequest {
-    export const type = new RequestType<ValidateDocsParams, void, void, void>(
+export class ValidateDocsRequest {
+    public static type: RequestType<ValidateDocsParams,void,void,void> = new RequestType<ValidateDocsParams, void, void, void>(
         'textDocument/devskim/validatedocuments')
 }
 
 connection.onRequest(ValidateDocsRequest.type, (params) => {
     for (let docs of params.textDocuments) {
         let textDocument = documents.get(docs.uri);
-
         validateTextDocument(textDocument);
     }
 });
 
-interface ReloadRulesParams {}
-
-namespace ReloadRulesRequest {
-    export const type = new RequestType<ReloadRulesParams, void, void, void>('devskim/validaterules')
+export class ReloadRulesRequest {
+    public static type = new RequestType<{}, void, void, void>('devskim/validaterules')
 }
 
 connection.onRequest(ReloadRulesRequest.type, () => {

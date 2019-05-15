@@ -7,10 +7,12 @@
 			"name": "Launch Client",
 			"runtimeExecutable": "${execPath}",
 			"args": ["--extensionDevelopmentPath=${workspaceRoot}"],
+			"stopOnEntry": false,
+			"sourceMaps": true,
 			"outFiles": ["${workspaceRoot}/client/out/**/*.js"],
 			"preLaunchTask": {
 				"type": "npm",
-				"script": "watch"
+				"script": "compile"
 			}
 		},
 		{
@@ -19,6 +21,7 @@
 			"name": "Attach to Server",
 			"port": 6004,
 			"restart": true,
+			"sourceMaps": true,
 			"outFiles": ["${workspaceRoot}/server/out/**/*.js"]
 		},
 		{
