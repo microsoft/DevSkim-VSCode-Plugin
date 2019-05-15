@@ -38,18 +38,4 @@ describe('DevSkimWorkerSettings', () => {
         });
     });
 
-    describe('getRulesDirectory()', () => {
-        it('will call getRulesDirectoryFromEnvironment and will return a path if defined', () => {
-            process.env.DEV_SKIM_RULES_DIRECTORY = "C:/Users/v-dakit/DevSkimRules";
-            const result = DevSkimWorkerSettings.getRulesDirectory();
-            expect(result).toContain("DevSkimRules");
-        });
-
-        it('will call getRulesDirectoryFromEnvironment and will return the cwd/../rules if not defined', () => {
-            delete process.env.DEV_SKIM_RULES_DIRECTORY;
-            const altPath = path.join(__dirname, "..", "rules");
-            const result = DevSkimWorkerSettings.getRulesDirectory();
-            expect(path.basename(result)).toEqual("rules");
-        });
-    });
 });
