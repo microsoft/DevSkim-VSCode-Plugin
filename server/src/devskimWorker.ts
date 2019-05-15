@@ -97,8 +97,7 @@ export class DevSkimWorker {
      * @param {string} ruleID an identifier for the rule that was triggered
      * @returns {void}
      */
-    public recordCodeAction(documentURI: string, documentVersion: number, range: Range, diagnosticCode: string | number, fix: DevSkimAutoFixEdit, ruleID: string): void
-    {
+    public recordCodeAction(documentURI: string, documentVersion: number, range: Range, diagnosticCode: string | number, fix: DevSkimAutoFixEdit, ruleID: string): void {
         if (!fix || !ruleID) {
             return;
         }
@@ -133,16 +132,8 @@ export class DevSkimWorker {
      * should exist with reloading rules), but might be if doing a full analysis of a lot of files.  So in anticipation of that, I broke this
      * into its own function so such a check could be added.
      */
-    public refreshAnalysisRules(): void {
-        this.loadRules();
-    }
-
-    private async loadRules(): Promise<void> {
-       const loader = new RulesLoader(this.connection, true, this.rulesDirectory);
-       const rules = await loader.loadRules();
-
-        let validator = new RuleValidator(this.connection, this.rulesDirectory, this.rulesDirectory);
-        this.analysisRules = await validator.validateRules(rules, this.dswSettings.getSettings().validateRulesFiles);
+    public async refreshAnalysisRules(): Promise<void> {
+        return this.loadRules();
     }
 
     /**
@@ -150,56 +141,10 @@ export class DevSkimWorker {
      *
      * @private
      */
-    private loadRulesOld(): void {
-        this.tempRules = [];
-        this.analysisRules = [];
-
-        this.connection.console.log(`DevSkimWorker: loadRules() starting ...`);
-        this.connection.console.log(`DevSkimWorker: loadRules() from ${this.rulesDirectory}`);
-
-        //read the rules files recursively from the file system - get all of the .json files under the rules directory.  
-        //first read in the default & custom directories, as they contain the required rules (i.e. exclude the "optional" directory)
-        //and then do the inverse to populate the optional rules
-        this.dir.readFiles(this.rulesDirectory, {match: /.json$/},
-            (err, content, file, next) => {
-                if (err) {
-                    this.connection.console.log(`DevSkimWorker: - loadRules() - err: ${err}`);
-                    throw err;
-                }
-                if (!file) {
-                    next();
-                }
-                //Load the rules from files add the file path
-                try {
-                    const loadedRules: Rule[] = JSON.parse(content);
-                    if (loadedRules) {
-                        for (let rule of loadedRules) {
-                            if (!rule.name) {
-                                continue;
-                            }
-                            rule.filepath = file;
-                        }
-                        this.tempRules = this.tempRules.concat(loadedRules);
-                        this.connection.console.log(`DevSkimWorker: loadRules() so far: ${this.tempRules.length || 0}.`);
-                    }
-                }
-                catch(e) {
-                    this.connection.console.log(`DevSkimWorker: - loadRules Exception: ${e.message}`);
-                }
-                next();
-            },
-            async (/* err, files */) => {
-                //now that we have all of the rules objects, lets clean them up and make
-                //sure they are in a format we can use.  This will overwrite any badly formed JSON files
-                //with good ones so that it passes validation in the future
-                let validator: RuleValidator = new RuleValidator(this.connection, this.rulesDirectory, this.rulesDirectory);
-                this.analysisRules =
-                    await validator.validateRules(this.tempRules, this.dswSettings.getSettings().validateRulesFiles);
-
-                //don't need to keep this around anymore
-                delete this.tempRules;
-                this.connection.console.log(`DevSkimWorker: loadRules() done. Rules found: ${this.analysisRules.length || 0}.`);
-            });
+    private async loadRules(): Promise<void> {
+        const loader = new RulesLoader(this.connection, true, this.rulesDirectory);
+        const rules = await loader.loadRules();
+        this.analysisRules = await loader.validateRules(rules)
     }
 
     /**
