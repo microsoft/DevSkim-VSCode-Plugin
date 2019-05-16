@@ -1,6 +1,6 @@
-import {DevSkimSettings} from "../src/devskimObjects";
+const path = require('path');
 import {DevSkimWorker} from "../src/devskimWorker";
-import {IConnection} from "vscode-languageserver";
+import {Connection} from "vscode-languageserver";
 import {DevSkimSuppression} from "../src/suppressions";
 
 describe('DevSkimWorker', () => {
@@ -9,18 +9,18 @@ describe('DevSkimWorker', () => {
     const mockConstructor = jest.fn(() => {});
     const mockDevSkimSuppressions = jest.fn(() => {});
 
-    beforeAll(() => {
-
-    });
+    const mockConnection: any = {
+        console: {
+            log: (s) => (console.log(s)),
+        },
+    } as Connection;
 
     it('is created', async () => {
-        // let ruleDir = String.raw`C:\Users\v-dakit\.vscode\extensions\ms-devskim.vscode-devskim-0.2.2\rules`;
-        const ruleDir = String.raw`C:/Users/v-dakit/DevSkimRules`;
+        const ruleDir = path.join(__dirname, "server/data/rules");
         process.env.DEV_SKIM_RULES_DIRECTORY = ruleDir;
-        let connection: IConnection;
         let dsSuppressions: DevSkimSuppression;
 
-        let dsw = new DevSkimWorker(connection, dsSuppressions);
+        let dsw = new DevSkimWorker(mockConnection, dsSuppressions);
         expect(dsw).toBeInstanceOf(DevSkimWorker);
         expect(dsw.rulesDirectory).toBe(ruleDir)
 

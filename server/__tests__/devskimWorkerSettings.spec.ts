@@ -1,11 +1,18 @@
 import {DevSkimWorkerSettings} from "../src/devskimWorkerSettings";
-import * as path from "path";
+import {Connection} from "vscode-languageserver";
+const path =  require("path");
 
 describe('DevSkimWorkerSettings', () => {
 
+    const mockConnection: any = {
+        console: {
+            log: (s) => (console.log(s)),
+        },
+    } as Connection;
+
     describe('getRulesDirectoryFromEnvironment()', () => {
         it('process.env.DEV_SKIM_RULES_DIRECTORY is set will not be null', () => {
-                process.env.DEV_SKIM_RULES_DIRECTORY = "C:/Users/v-dakit/DevSkimRules";
+                process.env.DEV_SKIM_RULES_DIRECTORY = path.join(__dirname, "server/data/rules");
                 const result = DevSkimWorkerSettings.getRulesDirectoryFromEnvironment();
                 expect(result).toBe(process.env.DEV_SKIM_RULES_DIRECTORY);
         });
@@ -26,14 +33,14 @@ describe('DevSkimWorkerSettings', () => {
     describe('getRulesDirectory()', () => {
       it('will call getRulesDirectoryFromEnvironment and will return a path if defined', () => {
           process.env.DEV_SKIM_RULES_DIRECTORY = "C:/Users/v-dakit/DevSkimRules";
-          const result = DevSkimWorkerSettings.getRulesDirectory();
+          const result = DevSkimWorkerSettings.getRulesDirectory(mockConnection);
           expect(result).toContain("DevSkimRules");
       });
 
       it('will call getRulesDirectoryFromEnvironment and will return the cwd/../rules if not defined', () => {
             delete process.env.DEV_SKIM_RULES_DIRECTORY;
             const altPath = path.join(__dirname, "..", "rules");
-            const result = DevSkimWorkerSettings.getRulesDirectory();
+            const result = DevSkimWorkerSettings.getRulesDirectory(mockConnection);
             expect(path.basename(result)).toEqual("rules");
         });
     });
