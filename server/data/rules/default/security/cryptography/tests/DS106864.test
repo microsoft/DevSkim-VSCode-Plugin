@@ -1,0 +1,7 @@
+line: 1
+===============================================
+using (var myDES = new DESCryptoServiceProvider())
+{
+    ...
+
+}
