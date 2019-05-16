@@ -1,19 +1,17 @@
-import {TextDocumentIdentifier} from 'vscode-languageserver-types';
-import {DevSkimWorker} from "./devskimWorker";
-import {AutoFix, DevSkimProblem, DevSkimSettings, Fixes, IDevSkimSettings} from "./devskimObjects";
-import {DevSkimSuppression} from "./suppressions";
-import {
-    CodeActionParams, Connection, Diagnostic,
-    DidChangeConfigurationParams, InitializedParams, Hover,
-    InitializeParams, NotificationHandler, RequestType,
-    ServerCapabilities, TextDocument, TextDocuments, TextDocumentPositionParams,
-} from "vscode-languageserver";
-import {DevSkimWorkerSettings} from "./devskimWorkerSettings";
-import {ReloadRulesRequest} from "./server.old";
-import {DidChangeWatchedFilesParams} from "vscode-languageserver";
-import {Command, TextEdit} from 'vscode-languageserver-protocol';
-
 import {noop} from "@babel/types";
+import {
+    CodeActionParams, Connection, Diagnostic, DidChangeConfigurationParams, InitializedParams, Hover,
+    InitializeParams, RequestType, ServerCapabilities, TextDocument, TextDocuments, TextDocumentPositionParams,
+    DidChangeWatchedFilesParams,
+} from "vscode-languageserver";
+import {Command, TextEdit} from 'vscode-languageserver-protocol';
+import {TextDocumentIdentifier} from 'vscode-languageserver-types';
+
+import {AutoFix, DevSkimProblem, DevSkimSettings, Fixes, IDevSkimSettings} from "./devskimObjects";
+import {DevSkimWorker} from "./devskimWorker";
+import {DevSkimWorkerSettings} from "./devskimWorkerSettings";
+import {DevSkimSuppression} from "./suppressions";
+
 
 export default class DevSkimServer {
 
@@ -72,10 +70,19 @@ export default class DevSkimServer {
         this.documents.onDidChangeContent(this.onDidChangeContent.bind(this));
     }
 
+    public capabilities(): ServerCapabilities {
+        // @todo: review this to find the best implementation
+        return {
+            // Tell the client that the server works in FULL text document sync mode
+            textDocumentSync: this.documents.syncKind,
+            codeActionProvider: true,
+        };
+    }
+
     // Document handlers
     private onDidOpen(change) {
         this.connection.console.log(`DevSkimServer: onDidOpen(${change.document.uri})`);
-        this.validateTextDocument(change.document);
+        // this.validateTextDocument(change.document);
     }
 
     private onDidClose(change) {
@@ -102,14 +109,6 @@ export default class DevSkimServer {
             capabilities.textDocument.publishDiagnostics.relatedInformation
         );
         this.workspaceRoot = params.rootPath;
-    }
-
-    public capabilities(): ServerCapabilities {
-        return {
-            // Tell the client that the server works in FULL text document sync mode
-            textDocumentSync: this.documents.syncKind,
-            codeActionProvider: true,
-        };
     }
 
     private onRequestValidateDocsRequest(params: ValidateDocsParams): void {
@@ -165,7 +164,7 @@ export default class DevSkimServer {
         // Revalidate any open text documents
         this.documents.all().forEach( (td: TextDocument) => {
             this.connection.console.log(`DevSkimServer: onDidChangeConfiguration(${td.uri})`);
-            this.validateTextDocument
+            return this.validateTextDocument(td);
         });
     }
 
@@ -227,14 +226,18 @@ export default class DevSkimServer {
         }
     }
 
-    private workspaceRoot: string;
+    private codeActions: Command[] = [];
     private diagnostics: Diagnostic[] = [];
     private documentSettings: Map<string, Thenable<DevSkimSettings>> = new Map();
     private globalSettings: IDevSkimSettings;
-    private codeActions: Command[] = [];
     private hasConfigurationCapability = false;
     private hasWorkspaceFolderCapability = false;
     private hasDiagnosticRelatedInformationCapability = false;
+    private workspaceRoot: string;
+}
+
+export class ReloadRulesRequest {
+    public static type = new RequestType<{}, void, void, void>('devskim/validaterules')
 }
 
 interface ValidateDocsParams {
@@ -245,3 +248,5 @@ export class ValidateDocsRequest {
     public static type: RequestType<ValidateDocsParams, void, void, void> = new RequestType<ValidateDocsParams, void, void, void>(
         'textDocument/devskim/validatedocuments')
 }
+
+

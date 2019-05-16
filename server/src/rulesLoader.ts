@@ -24,8 +24,8 @@ export class RulesLoader {
 
         const tempRules: Rule[] = [];
         const rootDir = rulesDirectory ? rulesDirectory : this.rulesDirectory;
-        this.connection.console.log(`DevSkimWorker loadRules() starting ...`);
-        this.connection.console.log(`DevSkimWorker loadRules() from ${rootDir}`);
+        this.connection.console.log(`RulesLoader: loadRules() starting ...`);
+        this.connection.console.log(`RulesLoader: loadRules() from ${rootDir}`);
 
         const filesFound = await readdir(rootDir, ["!*.json"])
             .then(files => (files))
@@ -50,10 +50,11 @@ export class RulesLoader {
         return tempRules;
     }
 
-    public async validateRules(rules: Rule[]) {
+    public async validateRules(rules: Rule[]): Promise<Rule[]> {
         let validator: RuleValidator = new RuleValidator(this.connection, this.rulesDirectory, this.rulesDirectory);
         this.analysisRules =
             await validator.validateRules(rules, this.validate);
-        this.connection.console.log(`DevSkimWorker validateRules() done. Rules found: ${this.analysisRules.length || 0}.`);
+        this.connection.console.log(`RulesLoader: validateRules() done. Rules found: ${this.analysisRules.length || 0}.`);
+        return this.analysisRules;
     }
 }

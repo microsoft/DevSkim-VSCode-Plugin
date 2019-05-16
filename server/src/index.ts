@@ -14,8 +14,8 @@ export function listen() {
         connection.console.log(`Initialized server v. ${pkg.version}`);
         return DevSkimServer.initialize(documents, connection, params)
             .then(async server => {
-                await server.register(connection);
                 await server.loadRules();
+                await server.register(connection);
                 return server;
             })
             .then((server) => ({
