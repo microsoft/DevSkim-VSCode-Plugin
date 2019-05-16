@@ -49,8 +49,7 @@ export class DevSkimWorker {
     public codeActions: Map<Map<AutoFix>> = Object.create(null);
 
     constructor(private connection: IConnection, private dsSuppressions: DevSkimSuppression, settings?: IDevSkimSettings) {
-        this.rulesDirectory = DevSkimWorkerSettings.getRulesDirectory();
-        this.rulesDirectory = String.raw`C:/Users/v-dakit/DevSkimRules`; // @todo: fix this
+        this.rulesDirectory = DevSkimWorkerSettings.getRulesDirectory(connection);
         this.dswSettings.getSettings(settings);
     }
 

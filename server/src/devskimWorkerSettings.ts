@@ -1,5 +1,6 @@
 import {IDevSkimSettings} from "./devskimObjects";
 import * as path from "path";
+import { IConnection } from 'vscode-languageserver';
 
 
 export class DevSkimWorkerSettings {
@@ -20,9 +21,11 @@ export class DevSkimWorkerSettings {
         return this.settings;
     }
 
-    public static getRulesDirectory(): string {
-        let configRulesDir = DevSkimWorkerSettings.getRulesDirectoryFromEnvironment();
-        return configRulesDir || path.join(__dirname, "..", "rules");
+    public static getRulesDirectory(connection: IConnection): string {
+        const configRulesDir = DevSkimWorkerSettings.getRulesDirectoryFromEnvironment();
+        const rulesDir = configRulesDir || path.join(__dirname, "../data/rules");
+        connection.console.log(`DevSkimWorkerSettings: getRulesDirectory - ${rulesDir}`);
+        return rulesDir;
     }
 
     public static defaultSettings(): IDevSkimSettings {
