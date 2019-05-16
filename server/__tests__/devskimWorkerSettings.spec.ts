@@ -4,11 +4,7 @@ const path =  require("path");
 
 describe('DevSkimWorkerSettings', () => {
 
-    const mockConnection: any = {
-        console: {
-            log: (s) => (console.log(s)),
-        },
-    } as Connection;
+    const connection: any = { console: { log: (s) => (console.log(s)) } } as Connection;
 
     describe('getRulesDirectoryFromEnvironment()', () => {
         it('process.env.DEV_SKIM_RULES_DIRECTORY is set will not be null', () => {
@@ -33,14 +29,14 @@ describe('DevSkimWorkerSettings', () => {
     describe('getRulesDirectory()', () => {
       it('will call getRulesDirectoryFromEnvironment and will return a path if defined', () => {
           process.env.DEV_SKIM_RULES_DIRECTORY = "C:/Users/v-dakit/DevSkimRules";
-          const result = DevSkimWorkerSettings.getRulesDirectory(mockConnection);
+          const result = DevSkimWorkerSettings.getRulesDirectory(connection);
           expect(result).toContain("DevSkimRules");
       });
 
       it('will call getRulesDirectoryFromEnvironment and will return the cwd/../rules if not defined', () => {
             delete process.env.DEV_SKIM_RULES_DIRECTORY;
             const altPath = path.join(__dirname, "..", "rules");
-            const result = DevSkimWorkerSettings.getRulesDirectory(mockConnection);
+            const result = DevSkimWorkerSettings.getRulesDirectory(connection);
             expect(path.basename(result)).toEqual("rules");
         });
     });
