@@ -35,7 +35,7 @@ export class DevSkimRules {
 
 
     constructor(private connection: IConnection, private settings: IDevSkimSettings, private ruleValidator: IRuleValidator) {
-        this.rulesDirectory = DevSkimWorkerSettings.getRulesDirectory();
+        this.rulesDirectory = DevSkimWorkerSettings.getRulesDirectory(connection);
         this.loadRules();
     }
 

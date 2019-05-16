@@ -7,11 +7,12 @@ npm-debug.log
 node_modules
 **/node_modules
 **/rulesValidatiionLog.json
+**/.vscode*
+**/.vscode/**
 
 #exclude these from being ignored
 !**/.gitignore
 
 #exclude everything in .vscode except launch and tasks
-.vscode/**
 !.vscode/launch.json
 !.vscode/tasks.json
