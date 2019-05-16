@@ -82,7 +82,7 @@ export default class DevSkimServer {
     // Document handlers
     private onDidOpen(change) {
         this.connection.console.log(`DevSkimServer: onDidOpen(${change.document.uri})`);
-        this.validateTextDocument(change.document);
+        // this.validateTextDocument(change.document);
     }
 
     private onDidClose(change) {
