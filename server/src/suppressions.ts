@@ -105,7 +105,7 @@ export class DevSkimSuppression
 
         let XRegExp = require('xregexp');
         let range: Range;
-        let newlinePattern: RegExp = /(\r\n|\n|\r)/gm;
+        let newlinePattern = /(\r\n|\n|\r)/gm;
 
         let match = XRegExp.exec(documentContents, newlinePattern, startCharacter);
         if(match) {
@@ -201,7 +201,7 @@ export class DevSkimSuppression
                                      ruleSeverity?: DevskimRuleSeverity): DevSkimSuppressionFinding
     {
         let XRegExp = require('xregexp');
-        let newlinePattern: RegExp = /(\r\n|\n|\r)/gm;
+        let newlinePattern = /(\r\n|\n|\r)/gm;
         let isReviewRule = (ruleSeverity !== undefined && ruleSeverity != null && ruleSeverity == DevskimRuleSeverity.ManualReview);
         let regex: RegExp = (isReviewRule) ? DevSkimSuppression.reviewRegEx : DevSkimSuppression.suppressionRegEx;
         let line;

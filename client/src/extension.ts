@@ -18,6 +18,7 @@ import {
 } from 'vscode-languageclient';
 import {DevSkimSettings, DevSkimSettingsObject} from "./devskim.settings";
 import {getServerInfo} from "./util";
+import {getDocumentSelectors} from "./document-selectors";
 
 //the following interface and namespace define a format to invoke a function on the server via
 //LanguageClient.sendRequest
@@ -76,12 +77,7 @@ export function activate(context: ExtensionContext) {
 		// Register the server for plain text documents.  I haven't found a "Always do this" option, hence the exhaustive
 		//listing here.  If someone else knows how to say "do this for *" that would be the preference
 		let clientOptions: LanguageClientOptions = {
-			documentSelector: [
-				{
-					scheme: 'file',
-					language: 'javascript',
-				},
-			],
+			documentSelector: getDocumentSelectors(),
 			synchronize: {
 				// Synchronize the setting section 'devskim' to the server
 				configurationSection: 'devskim',
