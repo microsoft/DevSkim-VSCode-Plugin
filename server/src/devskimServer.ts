@@ -22,8 +22,6 @@ export default class DevSkimServer {
     }
 
     public static async initialize(documents: TextDocuments, connection: Connection, params: InitializedParams): Promise<DevSkimServer> {
-        // connection.console.log(`DevSkimServer.initialize() : ${JSON.stringify(params)}`);
-        // settings, suppression
         const dsWorkerSettings = new DevSkimWorkerSettings();
         const dsSettings = dsWorkerSettings.getSettings();
         const dsSuppression = new DevSkimSuppression(dsSettings);
@@ -138,7 +136,7 @@ export default class DevSkimServer {
             return;
         }
 
-        let documentVersion: number = -1;
+        let documentVersion = -1;
 
         function createTextEdit(editInfo: AutoFix): TextEdit {
             return TextEdit.replace(editInfo.edit.range, editInfo.edit.text || '');
