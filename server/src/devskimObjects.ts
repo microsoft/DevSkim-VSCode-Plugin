@@ -267,14 +267,14 @@ export class DevSkimProblem {
 	{
 		const diagnostic: Diagnostic = Object.create(null);
 		let fullMessage =
-			`\n${this.source}\nSeverity: ${DevSkimProblem.getSeverityName(this.severity)}\n\n${this.message}`;
+			`${this.source}\nSeverity: ${DevSkimProblem.getSeverityName(this.severity)}\n\n${this.message}`;
 
 		fullMessage = (this.replacement.length > 0 ) ? 
 			fullMessage + "\n\nFix Guidance: " + this.replacement : 
 			fullMessage;
 
 		fullMessage = (this.issueURL.length > 0 ) ? 
-			fullMessage + "\n\nMore Info:\n" + dswSettings.getSettings().guidanceBaseURL + this.issueURL :
+			fullMessage + "\n\nMore Info:\n" + dswSettings.getSettings().guidanceBaseURL + this.issueURL + "\n" :
 			fullMessage;
 
 		diagnostic.message = fullMessage;
