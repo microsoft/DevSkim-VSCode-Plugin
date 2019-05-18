@@ -99,7 +99,7 @@ export function activate(context: ExtensionContext) {
 			commands.registerCommand('devskim.reloadRules', commandReloadRules)
 		);
 
-		//when the extension is first loading a lot of stuff is happening asyncronously in VS code
+		//when the extension is first loading a lot of stuff is happening asynchronously in VS code
 		//as a result, often the first analysis doesn't happen until after the user types.  This will
 		//start the analysis a couple seconds after VS Code loads, so if the user doesn't do anything 
 		//an analysis still happens
@@ -152,10 +152,10 @@ export function activate(context: ExtensionContext) {
 		let textEditor = window.activeTextEditor;
 		//make sure the code action triggered is against the current document (abundance of caution - the user shouldn't
 		//be able to trigger an action for a different document).  Also make sure versions match.  This also shouldn't happen
-		//as any changes to the document should refresh the code action, but since things are asyncronous this might be possible
+		//as any changes to the document should refresh the code action, but since things are asynchronous this might be possible
 		if (textEditor && textEditor.document.uri.toString() === uri) {
 			if (textEditor.document.version !== documentVersion) {
-				window.showInformationMessage(`Devskim fixes are outdated and can't be applied to the document.`);
+				window.showInformationMessage(`DevSkim fixes are outdated and can't be applied to the document.`);
 			}
 			//apply the edits
 			textEditor.edit(mutator => {
@@ -164,7 +164,7 @@ export function activate(context: ExtensionContext) {
 				}
 			}).then((success) => {
 				if (!success) {
-					window.showErrorMessage('Failed to apply Devskim fixes to the document. Please consider opening an issue with steps to reproduce.');
+					window.showErrorMessage('Failed to apply DevSkim fixes to the document. Please consider opening an issue with steps to reproduce.');
 				}
 			});
 		}

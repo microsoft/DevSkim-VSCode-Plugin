@@ -41,7 +41,7 @@ export class DevSkimWorker {
     //We use nested Maps to store the fixes.  The key to the first map is the document URI.  This maps a 
     //specific file to a map of the fixes for that file.  The key for this second map is created in
     //the devskimObjects.ts file, in the function computeKey.  the second key is in essence a combination of
-    //a diagnostic and a string represetnation of a number for a particular fix, as there may be multiple fixes associated with a single diagnostic
+    //a diagnostic and a string representation of a number for a particular fix, as there may be multiple fixes associated with a single diagnostic
     //i.e. we suggest both strlcpy and strcpy_s to fix strcpy
     //
     //it's format is essentially <document URI <diagnostic + fix#>>.  We could instead have done <document <diagnostic <fix#>>>, but three deep
@@ -84,7 +84,7 @@ export class DevSkimWorker {
     }
 
     /**
-     * Save a codeaction for a particular auto-fix to the codeActions map, so that it can be looked up when onCodeAction is called
+     * Save a codeAction for a particular auto-fix to the codeActions map, so that it can be looked up when onCodeAction is called
      * and actually communicated to the VSCode engine.  Since creating a diagnostic and assigning a code action happen at different points
      * its important to be able to look up what code actions should be populated at a given time
      *
@@ -127,7 +127,7 @@ export class DevSkimWorker {
     /**
      * Reload the rules from the file system.  Since this right now is just a proxy for loadRules this *could* have been achieved by
      * exposing loadRules as public.  I chose not to, as eventually it might make sense here to check if an analysis is actively running
-     * and hold off until it is complete.  I don't forsee that being an issue when analyzing an indivudal file (it's fast enoguh a race condition
+     * and hold off until it is complete.  I don't forsee that being an issue when analyzing an individual file (it's fast enough a race condition
      * should exist with reloading rules), but might be if doing a full analysis of a lot of files.  So in anticipation of that, I broke this
      * into its own function so such a check could be added.
      */
@@ -168,8 +168,8 @@ export class DevSkimWorker {
     }
 
     /**
-     * maps the string for severity recieved from the rules into the enum (there is inconsistencies with the case used
-     * in the rules, so this is case incencitive).  We convert to the enum as we do comparisons in a number of places
+     * maps the string for severity received from the rules into the enum (there is inconsistencies with the case used
+     * in the rules, so this is case incentive).  We convert to the enum as we do comparisons in a number of places
      * and by using an enum we can get a transpiler error if we remove/change a label
      *
      * @public
@@ -197,7 +197,7 @@ export class DevSkimWorker {
 
     /**
      * the pattern type governs how we form the regex.  regex-word is wrapped in \b, string is as well, but is also escaped.
-     * substring is not wrapped in \b, but is escapped, and regex/the default behavior is a vanilla regular expression
+     * substring is not wrapped in \b, but is escaped, and regex/the default behavior is a vanilla regular expression
      * @param {string} regexType regex|regex-word|string|substring
      * @param {string} pattern
      * @param {string[]} modifiers modifiers to use when creating regex. can be null.  a value of "d" will be ignored if forXregExp is false
@@ -205,17 +205,17 @@ export class DevSkimWorker {
      */
     public static MakeRegex(regexType: string, pattern: string, modifiers: string[], forXregExp: boolean): RegExp {
         //create any regex modifiers
-        let regexModifer = "";
+        let regexModifier = "";
         if (modifiers != undefined && modifiers) {
             for (let mod of modifiers) {
                 //xregexp implemented dotmatchall as s instead of d
                 if (mod == "d") {
                     //also, Javascript doesn't support dotmatchall natively, so only use this if it will be used with XRegExp
                     if (forXregExp) {
-                        regexModifer = regexModifer + "s";
+                        regexModifier = regexModifier + "s";
                     }
                 } else {
-                    regexModifer = regexModifer + mod;
+                    regexModifier = regexModifier + mod;
                 }
             }
         }
@@ -224,13 +224,13 @@ export class DevSkimWorker {
         let XRegExp = require('xregexp');
         switch (regexType.toLowerCase()) {
             case 'regex-word':
-                return XRegExp('\\b' + pattern + '\\b', regexModifer);
+                return XRegExp('\\b' + pattern + '\\b', regexModifier);
             case 'string':
-                return XRegExp('\\b' + XRegExp.escape(pattern) + '\\b', regexModifer);
+                return XRegExp('\\b' + XRegExp.escape(pattern) + '\\b', regexModifier);
             case 'substring':
-                return XRegExp(XRegExp.escape(pattern), regexModifer);
+                return XRegExp(XRegExp.escape(pattern), regexModifier);
             default:
-                return XRegExp(pattern, regexModifer);
+                return XRegExp(pattern, regexModifier);
         }
     }
 

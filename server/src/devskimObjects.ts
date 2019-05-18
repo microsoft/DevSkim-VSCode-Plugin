@@ -243,7 +243,7 @@ export class DevSkimProblem {
      */
     public getWarningLevel(): DiagnosticSeverity
     {
-		//mark any optional rule, or rule that is simply imformational as a warning (i.e. green squiggle)
+		//mark any optional rule, or rule that is simply informational as a warning (i.e. green squiggle)
 		switch(this.severity)
 		{
 			case DevskimRuleSeverity.WarningInfo:
