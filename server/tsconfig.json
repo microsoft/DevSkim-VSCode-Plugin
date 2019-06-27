@@ -4,7 +4,7 @@
 		"module": "commonjs",
 		"moduleResolution": "node",
 		"outDir": "out",
-		"rootDir": "src",
+		"rootDirs": ["./src"],
 		"lib": ["es6"],
 		"sourceMap": true
 	},
