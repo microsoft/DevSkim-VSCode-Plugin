@@ -95,7 +95,7 @@ export function activate(context: ExtensionContext) {
 			commands.registerCommand('devskim.reloadRules', commandReloadRules)
 		);
 
-		//when the extension is first loading a lot of stuff is happening asyncronously in VS code
+		//when the extension is first loading a lot of stuff is happening asynchronously in VS code
 		//as a result, often the first analysis doesn't happen until after the user types.  This will
 		//start the analysis a couple seconds after VS Code loads, so if the user doesn't do anything 
 		//an analysis still happens
@@ -143,32 +143,32 @@ function handleError(err: any) {
 /**
  * Triggered when the user clicks a specific DevSkim code action (set in the server component in connection.OnCodeAction)
  * this function makes the actual code transformation corresponding to the action
- *
+ * 
  * @param {string} uri - the path to the document the edits should apply to
  * @param {number} documentVersion - the version of the file to apply the edits.  if the version doesn't match
  * 									 the current version the edit may no longer be applicable (this shouldn't happen)
  * @param {TextEdit[]} edits - the actual changes to make (range, text to replace, etc.)
  */
 function applyTextEdits(uri: string, documentVersion: number, edits: TextEdit[]) {
-	let textEditor = window.activeTextEditor;
-	//make sure the code action triggered is against the current document (abundance of caution - the user shouldn't
-	//be able to trigger an action for a different document).  Also make sure versions match.  This also shouldn't happen
-	//as any changes to the document should refresh the code action, but since things are asyncronous this might be possible
-	if (textEditor && textEditor.document.uri.toString() === uri) {
-		if (textEditor.document.version !== documentVersion) {
-			window.showInformationMessage(`Devskim fixes are outdated and can't be applied to the document.`);
+		let textEditor = window.activeTextEditor;
+		//make sure the code action triggered is against the current document (abundance of caution - the user shouldn't
+		//be able to trigger an action for a different document).  Also make sure versions match.  This also shouldn't happen
+		//as any changes to the document should refresh the code action, but since things are asynchronous this might be possible
+		if (textEditor && textEditor.document.uri.toString() === uri) {
+			if (textEditor.document.version !== documentVersion) {
+				window.showInformationMessage(`DevSkim fixes are outdated and can't be applied to the document.`);
+			}
+			//apply the edits
+			textEditor.edit(mutator => {
+				for (let edit of edits) {
+					mutator.replace(client.protocol2CodeConverter.asRange(edit.range), edit.newText);
+				}
+			}).then((success) => {
+				if (!success) {
+					window.showErrorMessage('Failed to apply DevSkim fixes to the document. Please consider opening an issue with steps to reproduce.');
+				}
+			});
 		}
-		//apply the edits
-		textEditor.edit(mutator => {
-			for (let edit of edits) {
-				mutator.replace(client.protocol2CodeConverter.asRange(edit.range), edit.newText);
-			}
-		}).then((success) => {
-			if (!success) {
-				window.showErrorMessage('Failed to apply Devskim fixes to the document. Please consider opening an issue with steps to reproduce.');
-			}
-		});
-	}
 }
 
 function commandReloadRules() {
