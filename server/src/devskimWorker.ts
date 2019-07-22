@@ -252,7 +252,7 @@ export class DevSkimWorker {
             //if the rule doesn't apply to whatever language we are analyzing (C++, Java, etc.) or we aren't processing
             //that particular severity skip the rest
             if (this.dswSettings.getSettings().ignoreRulesList.indexOf(rule.id) == -1 &&  /*check to see if this is a rule the user asked to ignore */
-                DevSkimWorker.AppliesToLangOrFile(langID, rule.appliesTo, documentURI) &&
+                DevSkimWorker.appliesToLangOrFile(langID, rule.applies_to, documentURI) &&
                 this.RuleSeverityEnabled(ruleSeverity)) {
                 for (let patternIndex = 0; patternIndex < rule.patterns.length; patternIndex++) {
                     let modifiers: string[] = (rule.patterns[patternIndex].modifiers != undefined && rule.patterns[patternIndex].modifiers.length > 0) ?
@@ -525,19 +525,19 @@ export class DevSkimWorker {
     public static MakeFixes(rule: Rule, replacementSource: string, range: Range): DevSkimAutoFixEdit[] {
         const fixes: DevSkimAutoFixEdit[] = [];
         //if there are any fixes, add them to the fix collection so they can be used in code fix commands
-        if (rule.fixIts !== undefined && rule.fixIts.length > 0) {
+        if (rule.fix_its !== undefined && rule.fix_its.length > 0) {
 
             //recordCodeAction below acts like a stack, putting the most recently added rule first.
             //Since the very first fix in the rule is usually the prefered one (when there are multiples)
             //we want it to be first in the fixes collection, so we go through in reverse order 
-            for (let fixIndex = rule.fixIts.length - 1; fixIndex >= 0; fixIndex--) {
+            for (let fixIndex = rule.fix_its.length - 1; fixIndex >= 0; fixIndex--) {
                 let fix: DevSkimAutoFixEdit = Object.create(null);
-                let replacePattern = DevSkimWorker.MakeRegex(rule.fixIts[fixIndex].pattern.type,
-                    rule.fixIts[fixIndex].pattern.pattern, rule.fixIts[fixIndex].pattern.modifiers, false);
+                let replacePattern = DevSkimWorker.MakeRegex(rule.fix_its[fixIndex].pattern.type,
+                    rule.fix_its[fixIndex].pattern.pattern, rule.fix_its[fixIndex].pattern.modifiers, false);
 
                 try {
-                    fix.text = replacementSource.replace(replacePattern, rule.fixIts[fixIndex].replacement);
-                    fix.fixName = "DevSkim: " + rule.fixIts[fixIndex].name;
+                    fix.text = replacementSource.replace(replacePattern, rule.fix_its[fixIndex].replacement);
+                    fix.fixName = "DevSkim: " + rule.fix_its[fixIndex].name;
 
                     fix.range = range;
                     fixes.push(fix);
@@ -606,22 +606,22 @@ export class DevSkimWorker {
     }
 
     /**
-     * compares the languageID against all of the languages listed in the appliesTo array to check
+     * compares the languageID against all of the languages listed in the applies_to array to check
      * for a match.  If it matches, then the rule/pattern applies to the language being analyzed.
      *
-     * Also checks to see if appliesTo has the specific file name for the current file
+     * Also checks to see if applies_to has the specific file name for the current file
      *
-     * Absent any value in appliesTo we assume it applies to everything so return true
+     * Absent any value in applies_to we assume it applies to everything so return true
      *
      * @param {string} languageID the vscode languageID for the current document
-     * @param {string[]} appliesTo the array of languages a rule/pattern applies to
+     * @param {string[]} applies_to the array of languages a rule/pattern applies to
      * @param {string} documentURI the current document URI
      * @returns {boolean} true if it applies, false if it doesn't
      */
-    public static AppliesToLangOrFile(languageID: string, appliesTo: string[], documentURI: string): boolean {
+    public static appliesToLangOrFile(languageID: string, applies_to: string[], documentURI: string): boolean {
         //if the parameters are empty, assume it applies.  Also, apply all the rules to plaintext documents	
-        if (appliesTo != undefined && appliesTo && appliesTo.length > 0) {
-            for (let applies of appliesTo) {
+        if (applies_to != undefined && applies_to && applies_to.length > 0) {
+            for (let applies of applies_to) {
                 //if the list of languages this rule applies to matches the current lang ID
                 if (languageID !== undefined && languageID != null && languageID.toLowerCase() == applies.toLowerCase()) {
                     return true;

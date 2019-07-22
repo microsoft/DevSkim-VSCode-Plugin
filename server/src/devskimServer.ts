@@ -122,7 +122,7 @@ export default class DevSkimServer {
         this.worker.refreshAnalysisRules();
     }
 
-    private onCodeAction(params: CodeActionParams): void {
+    private onCodeAction(params: CodeActionParams): Command[] {
         this.codeActions = [];
         let uri = params.textDocument.uri;
         let edits = this.worker.codeActions[uri];
@@ -147,6 +147,7 @@ export default class DevSkimServer {
             this.codeActions.push(Command.create(editInfo.label, 'devskim.applySingleFix', uri, documentVersion,
                 [createTextEdit(editInfo)]));
         }
+        return this.codeActions;
     }
 
     private onDidChangeConfiguration(change: DidChangeConfigurationParams): void {

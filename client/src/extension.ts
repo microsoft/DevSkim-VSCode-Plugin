@@ -6,7 +6,7 @@
 
 import * as path from 'path';
 
-import {commands, ExtensionContext, window, workspace} from 'vscode';
+import * as vscode from 'vscode';
 import {
 	LanguageClient,
 	LanguageClientOptions,
@@ -34,7 +34,7 @@ export class ReloadRulesRequest {
 	public static type: RequestType<{},void,void,void> = new RequestType<{}, void, void, void>('devskim/validaterules')
 }
 
-export function activate(context: ExtensionContext) {
+export function activate(context: vscode.ExtensionContext) {
 
 	try {
 		const serverModule = context.asAbsolutePath(path.join("server", "out", 'index.js'));
@@ -77,22 +77,22 @@ export function activate(context: ExtensionContext) {
 				// Synchronize the setting section 'devskim' to the server
 				configurationSection: 'devskim',
 				// Notify the server about file changes to '.clientrc files contain in the workspace
-				fileEvents: workspace.createFileSystemWatcher('**/.clientrc'),
+				fileEvents: vscode.workspace.createFileSystemWatcher('**/.clientrc'),
 			},
 		};
 
 		client = new LanguageClient('Devskim', 'Devskim', serverOptions, clientOptions);
 
 		// Create the language client and start the client.
-		console.log(`extnension: starting client ... `);
+		console.log(`extension: starting client ... `);
 		let disposable = client.start();
 
 		// Push the disposable to the context's subscriptions so that the 
 		// client can be deactivated on extension deactivation
 		context.subscriptions.push(disposable,
-			commands.registerCommand('devskim.applySingleFix', applyTextEdits),
-			commands.registerCommand('devskim.scanWorkspace', commandScanEverything),
-			commands.registerCommand('devskim.reloadRules', commandReloadRules)
+			vscode.commands.registerCommand('devskim.applySingleFix', applyTextEdits),
+			vscode.commands.registerCommand('devskim.scanWorkspace', commandScanEverything),
+			vscode.commands.registerCommand('devskim.reloadRules', commandReloadRules)
 		);
 
 		//when the extension is first loading a lot of stuff is happening asynchronously in VS code
@@ -103,9 +103,9 @@ export function activate(context: ExtensionContext) {
 		// @todo  This has a code smell and should be looked at - Dave
 		setTimeout(function () {
 			const textDocuments: TextDocumentIdentifier[] = [];
-			for (let x = 0; x < workspace.textDocuments.length; x++) {
+			for (let x = 0; x < vscode.workspace.textDocuments.length; x++) {
 				textDocuments[x] = Object.create(null);
-				textDocuments[x].uri = workspace.textDocuments[x].uri.toString();
+				textDocuments[x].uri = vscode.workspace.textDocuments[x].uri.toString();
 			}
 			client.sendRequest(ValidateDocsRequest.type, {textDocuments});
 		}, 30000);
@@ -118,26 +118,26 @@ export function activate(context: ExtensionContext) {
 
 function getDevSkimConfiguration(section='devskim' ): DevSkimSettings {
 	let settings: DevSkimSettings = new DevSkimSettingsObject();
-	settings.enableBestPracticeRules = workspace.getConfiguration(section).get('enableBestPracticeRules', false);
-	settings.enableDefenseInDepthSeverityRules = workspace.getConfiguration(section).get('enableDefenseInDepthSeverityRules', false);
-	settings.enableInformationalSeverityRules = workspace.getConfiguration(section).get('enableInformationalSeverityRules', false);
-	settings.enableLowSeverityRules = workspace.getConfiguration(section).get('enableLowSeverityRules', false);
-	settings.enableManualReviewRules = workspace.getConfiguration(section).get('enableManualReviewRules', false);
-	settings.guidanceBaseURL = workspace.getConfiguration(section).get('guidanceBaseURL', "https://github.com/Microsoft/DevSkim/blob/master/guidance/");
-	settings.ignoreFilesList = workspace.getConfiguration(section).get('ignoreFilesList',
+	settings.enableBestPracticeRules = vscode.workspace.getConfiguration(section).get('enableBestPracticeRules', false);
+	settings.enableDefenseInDepthSeverityRules = vscode.workspace.getConfiguration(section).get('enableDefenseInDepthSeverityRules', false);
+	settings.enableInformationalSeverityRules = vscode.workspace.getConfiguration(section).get('enableInformationalSeverityRules', false);
+	settings.enableLowSeverityRules = vscode.workspace.getConfiguration(section).get('enableLowSeverityRules', false);
+	settings.enableManualReviewRules = vscode.workspace.getConfiguration(section).get('enableManualReviewRules', false);
+	settings.guidanceBaseURL = vscode.workspace.getConfiguration(section).get('guidanceBaseURL', "https://github.com/Microsoft/DevSkim/blob/master/guidance/");
+	settings.ignoreFilesList = vscode.workspace.getConfiguration(section).get('ignoreFilesList',
 		[ "out/*", "bin/*", "node_modules/*", ".vscode/*", "yarn.lock", "logs/*", "*.log", "*.git" ]);
-	settings.ignoreRulesList = workspace.getConfiguration(section).get('ignoreRulesList', []);
-	settings.manualReviewerName = workspace.getConfiguration(section).get('manualReviewerName', '');
-	settings.removeFindingsOnClose = workspace.getConfiguration(section).get('removeFindingsOnClose', false);
-	settings.suppressionDurationInDays = workspace.getConfiguration(section).get('suppressionDurationInDays', 30);
-	settings.validateRulesFiles = workspace.getConfiguration(section).get('validateRulesFiles', true);
+	settings.ignoreRulesList = vscode.workspace.getConfiguration(section).get('ignoreRulesList', []);
+	settings.manualReviewerName = vscode.workspace.getConfiguration(section).get('manualReviewerName', '');
+	settings.removeFindingsOnClose = vscode.workspace.getConfiguration(section).get('removeFindingsOnClose', false);
+	settings.suppressionDurationInDays = vscode.workspace.getConfiguration(section).get('suppressionDurationInDays', 30);
+	settings.validateRulesFiles = vscode.workspace.getConfiguration(section).get('validateRulesFiles', true);
 	return settings;
 
 }
 
 function handleError(err: any) {
 	const message = `Could not start DevSkim Server: [${err.message}]".`;
-	window.showErrorMessage(message, { modal: false })
+	vscode.window.showErrorMessage(message, { modal: false })
 }
 
 /**
@@ -150,13 +150,13 @@ function handleError(err: any) {
  * @param {TextEdit[]} edits - the actual changes to make (range, text to replace, etc.)
  */
 function applyTextEdits(uri: string, documentVersion: number, edits: TextEdit[]) {
-		let textEditor = window.activeTextEditor;
+		let textEditor = vscode.window.activeTextEditor;
 		//make sure the code action triggered is against the current document (abundance of caution - the user shouldn't
 		//be able to trigger an action for a different document).  Also make sure versions match.  This also shouldn't happen
 		//as any changes to the document should refresh the code action, but since things are asynchronous this might be possible
 		if (textEditor && textEditor.document.uri.toString() === uri) {
 			if (textEditor.document.version !== documentVersion) {
-				window.showInformationMessage(`DevSkim fixes are outdated and can't be applied to the document.`);
+				vscode.window.showInformationMessage(`DevSkim fixes are outdated and can't be applied to the document.`);
 			}
 			//apply the edits
 			textEditor.edit(mutator => {
@@ -165,7 +165,7 @@ function applyTextEdits(uri: string, documentVersion: number, edits: TextEdit[])
 				}
 			}).then((success) => {
 				if (!success) {
-					window.showErrorMessage('Failed to apply DevSkim fixes to the document. Please consider opening an issue with steps to reproduce.');
+					vscode.window.showErrorMessage('Failed to apply DevSkim fixes to the document. Please consider opening an issue with steps to reproduce.');
 				}
 			});
 		}
@@ -176,16 +176,16 @@ function commandReloadRules() {
 }
 
 function commandScanEverything() {
-	if (workspace.workspaceFolders) {
+	if (vscode.workspace.workspaceFolders) {
 		let dir = require('node-dir');
-		let [rootFolder] = workspace.workspaceFolders;
+		let [rootFolder] = vscode.workspace.workspaceFolders;
 		if (rootFolder && rootFolder.uri && rootFolder.uri.fsPath) {
 			dir.files(rootFolder.uri.fsPath, function (err: any, files: [any]) {
 				if (err) throw err;
 
 				for (let curFile of files) {
 					if (curFile.indexOf(".git") == -1) {
-						workspace.openTextDocument(curFile).then(doc => {
+						vscode.workspace.openTextDocument(curFile).then(doc => {
 							const textDocuments: TextDocumentIdentifier[] = [];
 							const td: TextDocumentIdentifier = Object.create(null);
 							td.uri = doc.fileName;
