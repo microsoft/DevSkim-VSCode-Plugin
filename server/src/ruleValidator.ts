@@ -262,6 +262,11 @@ export class RuleValidator implements IRuleValidator
         return condition;
     }
 
+    /**
+     * 
+     * @param loadedLambda the lambda from the current condition within the current rule
+     * @param loadedRule the current rule we are validating 
+     */
     private validateLambda(loadedLambda, loadedRule) : Lambda
     {
         let lambda : Lambda = Object.create(null);
@@ -275,6 +280,12 @@ export class RuleValidator implements IRuleValidator
         return lambda;
     }
 
+    /**
+     * Ensure that the search_in value is either finding_only, absent, or finding_region(# ,#)
+     * 
+     * @param loadedSearch the search_in value within a loadedrule
+     * @param loadedRule the current rule we are validating 
+     */
     private validateSearch(loadedSearch, loadedRule) : string
     {
         let search_in : string = "";
@@ -287,7 +298,7 @@ export class RuleValidator implements IRuleValidator
         {
             search_in = loadedSearch;
         }
-        else
+        else //its either finding_region(#,#) or garbage
         {
             let regionRegex: RegExp = /finding-region\s*\((-*\d+),\s*(-*\d+)\s*\)/;
             let XRegExp = require('xregexp');
@@ -295,6 +306,7 @@ export class RuleValidator implements IRuleValidator
             let regionMatch = XRegExp.exec(loadedSearch, regionRegex);
             if (regionMatch && regionMatch.length > 2) 
             {
+                //make sure both of the parameters are actually numbers
                 let startPos : number = this.verifyType(regionMatch[1], "number", loadedRule, OutputAlert.Warning, 
                                         "Condition has an invalid first parameter in search-in; defaulting to 0") ?
                                         regionMatch[1] : 0 ;
