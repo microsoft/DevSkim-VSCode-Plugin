@@ -12,29 +12,32 @@
  * ------------------------------------------------------------------------------------------ */
 import * as fs from "fs";
 
-const {promisify} = require('util');
-const {glob} = require('glob-promise');
+const { promisify } = require('util');
+const { glob } = require('glob-promise');
 const readFile = promisify(fs.readFile);
 
-import {IConnection} from 'vscode-languageserver';
-import {
+import { IConnection } from 'vscode-languageserver';
+import
+{
     DevskimRuleSeverity, Rule, IDevSkimSettings,
 }
     from "./devskimObjects";
-import {IRuleValidator} from "./ruleValidator";
-import {DevSkimWorkerSettings} from "./devskimWorkerSettings";
-import {DevSkimWorker} from "./devskimWorker";
+import { IRuleValidator } from "./ruleValidator";
+import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
+import { DevSkimWorker } from "./devskimWorker";
 import * as Path from "path";
 
 /**
  * The bulk of the DevSkim analysis logic.  Loads rules in, exposes functions to run rules across a file
  */
-export class DevSkimRules {
+export class DevSkimRules
+{
     public readonly rulesDirectory: string;
     private analysisRules: Rule[];
 
 
-    constructor(private connection: IConnection, private settings: IDevSkimSettings, private ruleValidator: IRuleValidator) {
+    constructor(private connection: IConnection, private settings: IDevSkimSettings, private ruleValidator: IRuleValidator)
+    {
         this.rulesDirectory = DevSkimWorkerSettings.getRulesDirectory(connection);
         this.loadRules();
     }
@@ -47,7 +50,8 @@ export class DevSkimRules {
      * should exist with reloading rules), but might be if doing a full analysis of a lot of files.  So in anticipation of that, I broke this
      * into its own function so such a check could be added.
      */
-    public refreshAnalysisRules(): void {
+    public refreshAnalysisRules(): void
+    {
         this.loadRules();
     }
 
@@ -57,7 +61,8 @@ export class DevSkimRules {
      *
      * @private
      */
-    private async loadRules(): Promise<void> {
+    private async loadRules(): Promise<void>
+    {
         return null;
     }
 
@@ -71,7 +76,8 @@ export class DevSkimRules {
      *
      * @memberOf DevSkimWorker
      */
-    public RuleSeverityEnabled(ruleSeverity: DevskimRuleSeverity): boolean {
+    public RuleSeverityEnabled(ruleSeverity: DevskimRuleSeverity): boolean
+    {
         return ruleSeverity == DevskimRuleSeverity.Critical ||
             ruleSeverity == DevskimRuleSeverity.Important ||
             ruleSeverity == DevskimRuleSeverity.Moderate ||
@@ -91,8 +97,10 @@ export class DevSkimRules {
      *
      * @memberOf DevSkimWorker
      */
-    public static MapRuleSeverity(severity: string): DevskimRuleSeverity {
-        switch (severity.toLowerCase()) {
+    public static MapRuleSeverity(severity: string): DevskimRuleSeverity
+    {
+        switch (severity.toLowerCase())
+        {
             case "critical":
                 return DevskimRuleSeverity.Critical;
             case "important":

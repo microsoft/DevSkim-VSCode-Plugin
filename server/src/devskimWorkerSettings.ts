@@ -1,34 +1,41 @@
-import {IDevSkimSettings} from "./devskimObjects";
+import { IDevSkimSettings } from "./devskimObjects";
 import * as path from "path";
 import { IConnection } from 'vscode-languageserver';
 
 
-export class DevSkimWorkerSettings {
+export class DevSkimWorkerSettings
+{
 
     private settings: IDevSkimSettings;
 
-    public getSettings(settings?: IDevSkimSettings): IDevSkimSettings {
-        if (settings) {
-           this.settings = settings;
-           return this.settings;
-        }
-        if (this.settings) {
+    public getSettings(settings?: IDevSkimSettings): IDevSkimSettings
+    {
+        if (settings)
+        {
+            this.settings = settings;
             return this.settings;
         }
-        if (!this.settings) {
+        if (this.settings)
+        {
+            return this.settings;
+        }
+        if (!this.settings)
+        {
             this.settings = DevSkimWorkerSettings.defaultSettings();
         }
         return this.settings;
     }
 
-    public static getRulesDirectory(connection: IConnection): string {
+    public static getRulesDirectory(connection: IConnection): string
+    {
         const configRulesDir = DevSkimWorkerSettings.getRulesDirectoryFromEnvironment();
         const rulesDir = configRulesDir || path.join(__dirname, "../data/rules");
         connection.console.log(`DevSkimWorkerSettings: getRulesDirectory - ${rulesDir}`);
         return rulesDir;
     }
 
-    public static defaultSettings(): IDevSkimSettings {
+    public static defaultSettings(): IDevSkimSettings
+    {
         return {
             enableBestPracticeRules: true,
             enableDefenseInDepthSeverityRules: false,
@@ -55,23 +62,27 @@ export class DevSkimWorkerSettings {
         };
     }
 
-    public static getRulesDirectoryFromEnvironment(): string|null {
-        const {DEV_SKIM_RULES_DIRECTORY} = process.env;
+    public static getRulesDirectoryFromEnvironment(): string | null
+    {
+        const { DEV_SKIM_RULES_DIRECTORY } = process.env;
 
         let value = null;
 
         // When DEV_SKIM_RULES_DIRECTORY is not defined and assigned
-        if ( (typeof DEV_SKIM_RULES_DIRECTORY === 'string') && DEV_SKIM_RULES_DIRECTORY !== 'undefined') {
-           value = DEV_SKIM_RULES_DIRECTORY;
+        if ((typeof DEV_SKIM_RULES_DIRECTORY === 'string') && DEV_SKIM_RULES_DIRECTORY !== 'undefined')
+        {
+            value = DEV_SKIM_RULES_DIRECTORY;
         }
 
         // When DEV_SKIM_RULES_DIRECTORY is defined but not assigned
-        if (typeof DEV_SKIM_RULES_DIRECTORY === 'string' && DEV_SKIM_RULES_DIRECTORY === "undefined") {
+        if (typeof DEV_SKIM_RULES_DIRECTORY === 'string' && DEV_SKIM_RULES_DIRECTORY === "undefined")
+        {
             value = null;
         }
 
         // When DEV_SKIM_RULES_DIRECTORY is undefined
-        if (typeof DEV_SKIM_RULES_DIRECTORY === 'undefined') {
+        if (typeof DEV_SKIM_RULES_DIRECTORY === 'undefined')
+        {
             value = null;
         }
         return value;

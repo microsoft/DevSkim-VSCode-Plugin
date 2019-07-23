@@ -22,17 +22,17 @@ export class SourceComments
      * 
      * @memberOf DevSkimSuppression
      */
-    public static GetLineComment(langID : string) : string
+    public static GetLineComment(langID: string): string
     {
-        switch(langID)
+        switch (langID)
         {
             case "vb": return "'";
 
             case "lua":
             case "sql":
-            case "tsql":  return "--";
+            case "tsql": return "--";
 
-            case "clojure": return ";;";           
+            case "clojure": return ";;";
 
             case "yaml":
             case "shellscript":
@@ -64,7 +64,7 @@ export class SourceComments
 
             default: return "";
         }
-    } 
+    }
 
     /**
      * Retrieves the opening characters for a block comment for the given language
@@ -75,9 +75,9 @@ export class SourceComments
      * 
      * @memberOf SourceComments
      */
-    public static GetBlockCommentStart(langID : string) : string
+    public static GetBlockCommentStart(langID: string): string
     {
-        switch(langID)
+        switch (langID)
         {
             case "c":
             case "cpp":
@@ -94,14 +94,14 @@ export class SourceComments
             case "go":
             case "rust": return "/*";
 
-            case "fsharp" : return "(*";
+            case "fsharp": return "(*";
 
-            case "html" :
+            case "html":
             case "xml": return "<!--";
 
             default: return "";
         }
-    } 
+    }
 
     /**
      * Retrieves the closing characters for a block comment for the given language
@@ -112,9 +112,9 @@ export class SourceComments
      * 
      * @memberOf SourceComments
      */
-    public static GetBlockCommentEnd(langID : string) : string
+    public static GetBlockCommentEnd(langID: string): string
     {
-        switch(langID)
+        switch (langID)
         {
             case "c":
             case "cpp":
@@ -131,15 +131,15 @@ export class SourceComments
             case "go":
             case "rust": return "*/";
 
-            case "fsharp" : return "*)";
+            case "fsharp": return "*)";
 
-            case "html" :
+            case "html":
             case "xml": return "-->";
 
             default: return "";
         }
     }
-    
+
     /**
      * Checks to see if the finding is within code that is commented out.  Verifies both against
      * line comments and block comments
@@ -152,17 +152,17 @@ export class SourceComments
      * 
      * @memberOf SourceComments
      */
-    public static IsFindingInComment(langID: string, documentContents : string, newlineIndex : number) : boolean
+    public static IsFindingInComment(langID: string, documentContents: string, newlineIndex: number): boolean
     {
-        if(documentContents.length < 1 )
+        if (documentContents.length < 1)
         {
             return false;
         }
 
         //first test for line comment.  If one is on the current line then the finding is in a comment
-        let startComment : string = SourceComments.GetLineComment(langID);
-        let commentText : string = (newlineIndex > -1) ? documentContents.substr(newlineIndex) : documentContents;
-        if(startComment.length > 0 && commentText.indexOf(startComment) > -1)
+        let startComment: string = SourceComments.GetLineComment(langID);
+        let commentText: string = (newlineIndex > -1) ? documentContents.substr(newlineIndex) : documentContents;
+        if (startComment.length > 0 && commentText.indexOf(startComment) > -1)
         {
             return true;
         }
@@ -173,7 +173,7 @@ export class SourceComments
         //to cover block comment starts/ends in those blocks this logic will need to be expanded out.  That's
         //not a case we are worried about covering in preview, but may want to cover once we exit preview
         startComment = SourceComments.GetBlockCommentStart(langID);
-        let endComment : string = SourceComments.GetBlockCommentEnd(langID);
+        let endComment: string = SourceComments.GetBlockCommentEnd(langID);
         return startComment.length > 0 && endComment.length > 0 &&
             documentContents.lastIndexOf(startComment) > documentContents.lastIndexOf(endComment);
     }

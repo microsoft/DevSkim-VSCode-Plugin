@@ -10,23 +10,25 @@
  * problems found in a file, are in devskimObjects.ts
  * 
  * ------------------------------------------------------------------------------------------ */
-import {IConnection, Range} from 'vscode-languageserver';
-import {
+import { IConnection, Range } from 'vscode-languageserver';
+import 
+{
     computeKey, Condition, DevSkimProblem, DevskimRuleSeverity, Map, AutoFix,
     Rule, DevSkimAutoFixEdit, IDevSkimSettings,
 }
     from "./devskimObjects";
-import {DevSkimSuppression, DevSkimSuppressionFinding} from "./suppressions";
-import {PathOperations} from "./pathOperations";
-import {SourceComments} from "./comments";
-import {RuleValidator} from "./ruleValidator";
-import {DevSkimWorkerSettings} from "./devskimWorkerSettings";
-import {RulesLoader} from "./rulesLoader";
+import { DevSkimSuppression, DevSkimSuppressionFinding } from "./suppressions";
+import { PathOperations } from "./pathOperations";
+import { SourceComments } from "./comments";
+import { RuleValidator } from "./ruleValidator";
+import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
+import { RulesLoader } from "./rulesLoader";
 
 /**
  * The bulk of the DevSkim analysis logic.  Loads rules in, exposes functions to run rules across a file
  */
-export class DevSkimWorker {
+export class DevSkimWorker 
+{
     public dswSettings: DevSkimWorkerSettings = new DevSkimWorkerSettings();
     public readonly rulesDirectory: string;
     private analysisRules: Rule[];
@@ -48,12 +50,14 @@ export class DevSkimWorker {
     //map seemed a little excessive to me.  Then again, I just wrote 3 paragraphs for how this works, so maybe I'm being too clever
     public codeActions: Map<Map<AutoFix>> = Object.create(null);
 
-    constructor(private connection: IConnection, private dsSuppressions: DevSkimSuppression, settings?: IDevSkimSettings) {
+    constructor(private connection: IConnection, private dsSuppressions: DevSkimSuppression, settings?: IDevSkimSettings) 
+    {
         this.rulesDirectory = DevSkimWorkerSettings.getRulesDirectory(connection);
         this.dswSettings.getSettings(settings);
     }
 
-    public async init(): Promise<void> {
+    public async init(): Promise<void> 
+    {
         await this.loadRules();
     }
 
@@ -65,14 +69,16 @@ export class DevSkimWorker {
      * @param {string} documentURI the URI identifying the file
      * @returns {DevSkimProblem[]} an array of all of the issues found in the text
      */
-    public analyzeText(documentContents: string, langID: string, documentURI: string): DevSkimProblem[] {
+    public analyzeText(documentContents: string, langID: string, documentURI: string): DevSkimProblem[] 
+    {
         let problems: DevSkimProblem[] = [];
 
         //Before we do any processing, see if the file (or its directory) are in the ignore list.  If so
         //skip doing any analysis on the file
         if (this.analysisRules && this.analysisRules.length
             && this.dswSettings && this.dswSettings.getSettings().ignoreFilesList
-            && !PathOperations.ignoreFile(documentURI, this.dswSettings.getSettings().ignoreFilesList)) {
+            && !PathOperations.ignoreFile(documentURI, this.dswSettings.getSettings().ignoreFilesList)) 
+        {
 
             //find out what issues are in the current document
             problems = this.runAnalysis(documentContents, langID, documentURI);
@@ -96,32 +102,37 @@ export class DevSkimWorker {
      * @param {string} ruleID an identifier for the rule that was triggered
      * @returns {void}
      */
-    public recordCodeAction(documentURI: string, documentVersion: number, range: Range, diagnosticCode: string | number, fix: DevSkimAutoFixEdit, ruleID: string): void {
-        if (!fix || !ruleID) {
+    public recordCodeAction(documentURI: string, documentVersion: number, range: Range, diagnosticCode: string | number, fix: DevSkimAutoFixEdit, ruleID: string): void 
+    {
+        if (!fix || !ruleID) 
+        {
             return;
         }
         let fixName: string = (fix.fixName !== undefined && fix.fixName.length > 0) ? fix.fixName : `Fix this ${ruleID} problem`;
         let edits: Map<AutoFix> = this.codeActions[documentURI];
-        if (!edits) {
+        if (!edits) 
+        {
             edits = Object.create(null);
             this.codeActions[documentURI] = edits;
         }
 
         let x = 0;
         //figure out how many existing fixes are associated with a given diagnostic by checking if it exists, and incrementing until it doesn't
-        while (edits[computeKey(range, diagnosticCode) + x.toString(10)]) {
+        while (edits[computeKey(range, diagnosticCode) + x.toString(10)]) 
+        {
             x++;
         }
 
         //create a new mapping, using as the key the diagnostic the fix is associated with and a number representing whether this is the 1st fix
         //to associate with that diagnostic, 2nd, 3rd, and so on.  This lets us map multiple fixes to one diagnostic while providing an easy way
         //to iterate.  we could have instead made this a three nested map <file<diagnostic<fix#>>> but this achieves the same thing 
-        edits[computeKey(range, diagnosticCode) + x.toString(10)] = {
-            label: fixName,
-            documentVersion: documentVersion,
-            ruleId: ruleID,
-            edit: fix,
-        };
+        edits[computeKey(range, diagnosticCode) + x.toString(10)] =
+            {
+                label: fixName,
+                documentVersion: documentVersion,
+                ruleId: ruleID,
+                edit: fix,
+            };
     }
 
     /**
@@ -131,7 +142,8 @@ export class DevSkimWorker {
      * should exist with reloading rules), but might be if doing a full analysis of a lot of files.  So in anticipation of that, I broke this
      * into its own function so such a check could be added.
      */
-    public async refreshAnalysisRules(): Promise<void> {
+    public async refreshAnalysisRules(): Promise<void> 
+    {
         return this.loadRules();
     }
 
@@ -140,7 +152,8 @@ export class DevSkimWorker {
      *
      * @private
      */
-    private async loadRules(): Promise<void> {
+    private async loadRules(): Promise<void> 
+    {
         const loader = new RulesLoader(this.connection, true, this.rulesDirectory);
         const rules = await loader.loadRules();
         this.analysisRules = await loader.validateRules(rules)
@@ -156,7 +169,8 @@ export class DevSkimWorker {
      *
      * @memberOf DevSkimWorker
      */
-    public RuleSeverityEnabled(ruleSeverity: DevskimRuleSeverity): boolean {
+    public RuleSeverityEnabled(ruleSeverity: DevskimRuleSeverity): boolean 
+    {
         return ruleSeverity == DevskimRuleSeverity.Critical ||
             ruleSeverity == DevskimRuleSeverity.Important ||
             ruleSeverity == DevskimRuleSeverity.Moderate ||
@@ -178,8 +192,10 @@ export class DevSkimWorker {
      *
      * @memberOf DevSkimWorker
      */
-    public static MapRuleSeverity(severity: string): DevskimRuleSeverity {
-        switch (severity.toLowerCase()) {
+    public static MapRuleSeverity(severity: string): DevskimRuleSeverity 
+    {
+        switch (severity.toLowerCase())
+        {
             case "critical":
                 return DevskimRuleSeverity.Critical;
             case "important":
@@ -203,18 +219,25 @@ export class DevSkimWorker {
      * @param {string[]} modifiers modifiers to use when creating regex. can be null.  a value of "d" will be ignored if forXregExp is false
      * @param {boolean} forXregExp whether this is for the XRegExp regex engine (true) or the vanilla javascript regex engine (false)
      */
-    public static MakeRegex(regexType: string, pattern: string, modifiers: string[], forXregExp: boolean): RegExp {
+    public static MakeRegex(regexType: string, pattern: string, modifiers: string[], forXregExp: boolean): RegExp 
+    {
         //create any regex modifiers
         let regexModifier = "";
-        if (modifiers != undefined && modifiers) {
-            for (let mod of modifiers) {
+        if (modifiers != undefined && modifiers) 
+        {
+            for (let mod of modifiers) 
+            {
                 //xregexp implemented dotmatchall as s instead of d
-                if (mod == "d") {
+                if (mod == "d") 
+                {
                     //also, Javascript doesn't support dotmatchall natively, so only use this if it will be used with XRegExp
-                    if (forXregExp) {
+                    if (forXregExp) 
+                    {
                         regexModifier = regexModifier + "s";
                     }
-                } else {
+                }
+                else 
+                {
                     regexModifier = regexModifier + mod;
                 }
             }
@@ -222,7 +245,8 @@ export class DevSkimWorker {
 
         //now create a regex based on the 
         let XRegExp = require('xregexp');
-        switch (regexType.toLowerCase()) {
+        switch (regexType.toLowerCase()) 
+        {
             case 'regex-word':
                 return XRegExp('\\b' + pattern + '\\b', regexModifier);
             case 'string':
@@ -242,19 +266,23 @@ export class DevSkimWorker {
      * @param {string} documentURI URI identifying the document
      * @returns {DevSkimProblem[]} all of the issues identified in the analysis
      */
-    private runAnalysis(documentContents: string, langID: string, documentURI: string): DevSkimProblem[] {
+    private runAnalysis(documentContents: string, langID: string, documentURI: string): DevSkimProblem[] 
+    {
         let problems: DevSkimProblem[] = [];
         let XRegExp = require('xregexp');
 
         //iterate over all of the rules, and then all of the patterns within a rule looking for a match.
-        for (let rule of this.analysisRules) {
+        for (let rule of this.analysisRules)
+        {
             const ruleSeverity: DevskimRuleSeverity = DevSkimWorker.MapRuleSeverity(rule.severity);
             //if the rule doesn't apply to whatever language we are analyzing (C++, Java, etc.) or we aren't processing
             //that particular severity skip the rest
             if (this.dswSettings.getSettings().ignoreRulesList.indexOf(rule.id) == -1 &&  /*check to see if this is a rule the user asked to ignore */
                 DevSkimWorker.appliesToLangOrFile(langID, rule.applies_to, documentURI) &&
-                this.RuleSeverityEnabled(ruleSeverity)) {
-                for (let patternIndex = 0; patternIndex < rule.patterns.length; patternIndex++) {
+                this.RuleSeverityEnabled(ruleSeverity)) 
+            {
+                for (let patternIndex = 0; patternIndex < rule.patterns.length; patternIndex++) 
+                {
                     let modifiers: string[] = (rule.patterns[patternIndex].modifiers != undefined && rule.patterns[patternIndex].modifiers.length > 0) ?
                         rule.patterns[patternIndex].modifiers.concat(["g"]) : ["g"];
 
@@ -263,9 +291,11 @@ export class DevSkimWorker {
                     //go through all of the text looking for a match with the given pattern
                     let matchPosition = 0;
                     let match = XRegExp.exec(documentContents, matchPattern, matchPosition);
-                    while (match) {
+                    while (match) 
+                    {
                         //if the rule doesn't contain any conditions, set it to an empty array to make logic later easier
-                        if (!rule.conditions) {
+                        if (!rule.conditions) 
+                        {
                             rule.conditions = [];
                         }
 
@@ -295,7 +325,8 @@ export class DevSkimWorker {
                         //look for the suppression comment for that finding
                         if (!suppressionFinding.showFinding &&
                             DevSkimWorker.MatchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex, rule.patterns[patternIndex].scopes) &&
-                            DevSkimWorker.MatchesConditions(rule.conditions, documentContents, range, langID)) {
+                            DevSkimWorker.MatchesConditions(rule.conditions, documentContents, range, langID)) 
+                        {
 
                             //add in any fixes
                             let problem: DevSkimProblem = DevSkimWorker.MakeProblem(rule, DevSkimWorker.MapRuleSeverity(rule.severity), range);
@@ -306,7 +337,8 @@ export class DevSkimWorker {
                         }
                         //throw a pop up if there is a review/suppression comment with the rule id, so that people can figure out what was
                         //suppressed/reviewed
-                        else if (suppressionFinding.ruleColumn > 0) {
+                        else if (suppressionFinding.ruleColumn > 0) 
+                        {
                             //highlight suppression finding for context
                             //this will look
                             let suppressionRange: Range = Range.create(lineStart, columnStart + suppressionFinding.ruleColumn, lineStart, columnStart + suppressionFinding.ruleColumn + rule.id.length);
@@ -337,13 +369,15 @@ export class DevSkimWorker {
      * @returns {boolean}
      * @memberof DevSkimWorker
      */
-    public static MatchIsInScope(langID: string, docContentsToFinding: string, newlineIndex: number, scopes: string[]): boolean {
+    public static MatchIsInScope(langID: string, docContentsToFinding: string, newlineIndex: number, scopes: string[]): boolean 
+    {
         if (scopes.indexOf("all") > -1)
             return true;
 
         let findingInComment: boolean = SourceComments.IsFindingInComment(langID, docContentsToFinding, newlineIndex);
 
-        for (let scope of scopes) {
+        for (let scope of scopes) 
+        {
             if ((scope == "code" && !findingInComment) || (scope == "comment" && findingInComment))
                 return true;
         }
@@ -367,19 +401,27 @@ export class DevSkimWorker {
      * @param {Range} problemRange
      * @param {Range} [suppressedFindingRange]
      */
-    public static MakeProblem(rule: Rule, warningLevel: DevskimRuleSeverity, problemRange: Range, suppressedFindingRange?: Range): DevSkimProblem {
+    public static MakeProblem(rule: Rule, warningLevel: DevskimRuleSeverity, problemRange: Range, suppressedFindingRange?: Range): DevSkimProblem
+    {
         let problem: DevSkimProblem = new DevSkimProblem(rule.description, rule.name,
             rule.id, warningLevel, rule.recommendation, rule.ruleInfo, problemRange);
 
-        if (suppressedFindingRange) {
+        if (suppressedFindingRange) 
+        {
             problem.suppressedFindingRange = suppressedFindingRange;
         }
 
-        if (rule.overrides && rule.overrides.length > 0) {
+        if (rule.overrides && rule.overrides.length > 0) 
+        {
             problem.overrides = rule.overrides;
         }
 
         return problem;
+    }
+
+    public static MatchesConditions(conditions: Condition[], documentContents: string, findingRange: Range, langID: string): boolean 
+    {
+        return DevSkimWorker.MatchesConditionPattern(conditions, documentContents, findingRange, langID)
     }
 
     /**
@@ -389,13 +431,17 @@ export class DevSkimWorker {
      * @param {Range} findingRange the location of the finding we are looking for more conditions around
      * @param {string} langID the language we are working in
      */
-    public static MatchesConditions(conditions: Condition[], documentContents: string, findingRange: Range, langID: string): boolean {
-        if (conditions != undefined && conditions && conditions.length != 0) {
+    public static MatchesConditionPattern(conditions: Condition[], documentContents: string, findingRange: Range, langID: string): boolean
+    {
+        if (conditions != undefined && conditions && conditions.length != 0)
+        {
             let regionRegex: RegExp = /finding-region\((-*\d+),(-*\d+)\)/;
             let XRegExp = require('xregexp');
 
-            for (let condition of conditions) {
-                if (condition.negateFinding == undefined) {
+            for (let condition of conditions) 
+            {
+                if (condition.negateFinding == undefined)
+                {
                     condition.negateFinding = false;
                 }
 
@@ -410,15 +456,21 @@ export class DevSkimWorker {
                 //calculate where to look for the condition.  finding-only is just within the actual finding the original pattern flagged.
                 //finding-region(#,#) specifies an area around the finding.  A 0 for # means the line of the finding, negative values mean 
                 //that many lines prior to the finding, and positive values mean that many line later in the code
-                if (condition.search_in == undefined || condition.search_in) {
+                if (condition.search_in == undefined || condition.search_in) 
+                {
                     startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line);
                     endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line + 1);
-                } else if (condition.search_in == "finding-only") {
+                }
+                else if (condition.search_in == "finding-only") 
+                {
                     startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line) + findingRange.start.character;
                     endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line) + findingRange.end.character;
-                } else {
+                }
+                else 
+                {
                     let regionMatch = XRegExp.exec(condition.search_in, regionRegex);
-                    if (regionMatch && regionMatch.length > 2) {
+                    if (regionMatch && regionMatch.length > 2) 
+                    {
                         startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line + regionMatch[1]);
                         endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line + regionMatch[2] + 1);
                     }
@@ -426,12 +478,17 @@ export class DevSkimWorker {
                 let foundPattern = false;
                 //go through all of the text looking for a match with the given pattern
                 let match = XRegExp.exec(documentContents, conditionRegex, startPos);
-                while (match) {
+                while (match) 
+                {
                     //if we are passed the point we should be looking
-                    if (match.index > endPos) {
-                        if (condition.negateFinding == false) {
+                    if (match.index > endPos) 
+                    {
+                        if (condition.negateFinding == false) 
+                        {
                             return false;
-                        } else {
+                        }
+                        else 
+                        {
                             break;
                         }
                     }
@@ -442,10 +499,14 @@ export class DevSkimWorker {
                     let newlineIndex: number = (lineStart == 0) ? -1 : documentContents.substr(0, match.index).lastIndexOf("\n");
 
                     //look for the suppression comment for that finding
-                    if (DevSkimWorker.MatchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex, condition.pattern.scopes)) {
-                        if (condition.negateFinding == true) {
+                    if (DevSkimWorker.MatchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex, condition.pattern.scopes)) 
+                    {
+                        if (condition.negateFinding == true) 
+                        {
                             return false;
-                        } else {
+                        }
+                        else 
+                        {
                             foundPattern = true;
                             break;
                         }
@@ -453,7 +514,8 @@ export class DevSkimWorker {
                     startPos = match.index + match[0].length;
                     match = XRegExp.exec(documentContents, conditionRegex, startPos);
                 }
-                if (condition.negateFinding == false && foundPattern == false) {
+                if (condition.negateFinding == false && foundPattern == false) 
+                {
                     return false;
                 }
             }
@@ -473,8 +535,8 @@ export class DevSkimWorker {
      *
      * @memberOf DevSkimWorker
      */
-    public static GetLineNumber(documentContents: string, currentPosition: number): number {
-
+    public static GetLineNumber(documentContents: string, currentPosition: number): number 
+    {
         let newlinePattern: RegExp = /(\r\n|\n|\r)/gm;
         let subDocument: string = documentContents.substr(0, currentPosition);
         let linebreaks: RegExpMatchArray = subDocument.match(newlinePattern);
@@ -486,7 +548,8 @@ export class DevSkimWorker {
      * @param {string} documentContents the document we are parsing for the line
      * @param {number} lineNumber the VS Code line number (internally, not UI - internally lines are 0 indexed, in the UI they start at 1)
      */
-    public static GetDocumentPosition(documentContents: string, lineNumber: number): number {
+    public static GetDocumentPosition(documentContents: string, lineNumber: number): number 
+    {
         if (lineNumber < 1)
             return 0;
         //the line number is 0 indexed, but we are counting newlines, which isn't, so add 1
@@ -499,11 +562,14 @@ export class DevSkimWorker {
 
         //go through all of the text looking for a match with the given pattern
         let match = XRegExp.exec(documentContents, newlinePattern, matchPosition);
-        while (match) {
+        while (match) 
+        {
             line++;
             matchPosition = match.index + match[0].length;
+
             if (line == lineNumber)
                 return matchPosition;
+
             match = XRegExp.exec(documentContents, newlinePattern, matchPosition);
         }
 
@@ -522,26 +588,31 @@ export class DevSkimWorker {
      *
      * @memberOf DevSkimWorker
      */
-    public static MakeFixes(rule: Rule, replacementSource: string, range: Range): DevSkimAutoFixEdit[] {
+    public static MakeFixes(rule: Rule, replacementSource: string, range: Range): DevSkimAutoFixEdit[] 
+    {
         const fixes: DevSkimAutoFixEdit[] = [];
         //if there are any fixes, add them to the fix collection so they can be used in code fix commands
-        if (rule.fix_its !== undefined && rule.fix_its.length > 0) {
-
+        if (rule.fix_its !== undefined && rule.fix_its.length > 0) 
+        {
             //recordCodeAction below acts like a stack, putting the most recently added rule first.
             //Since the very first fix in the rule is usually the prefered one (when there are multiples)
             //we want it to be first in the fixes collection, so we go through in reverse order 
-            for (let fixIndex = rule.fix_its.length - 1; fixIndex >= 0; fixIndex--) {
+            for (let fixIndex = rule.fix_its.length - 1; fixIndex >= 0; fixIndex--) 
+            {
                 let fix: DevSkimAutoFixEdit = Object.create(null);
                 let replacePattern = DevSkimWorker.MakeRegex(rule.fix_its[fixIndex].pattern.type,
                     rule.fix_its[fixIndex].pattern.pattern, rule.fix_its[fixIndex].pattern.modifiers, false);
 
-                try {
+                try
+                {
                     fix.text = replacementSource.replace(replacePattern, rule.fix_its[fixIndex].replacement);
                     fix.fixName = "DevSkim: " + rule.fix_its[fixIndex].name;
 
                     fix.range = range;
                     fixes.push(fix);
-                } catch (e) {
+                }
+                catch (e) 
+                {
                     //console.log(e);
                 }
             }
@@ -558,16 +629,20 @@ export class DevSkimWorker {
      * @param {DevSkimProblem[]} problems array of findings
      * @returns {DevSkimProblem[]} findings with any overriden findings removed
      */
-    private processOverrides(problems: DevSkimProblem[]): DevSkimProblem[] {
+    private processOverrides(problems: DevSkimProblem[]): DevSkimProblem[] 
+    {
         let overrideRemoved = false;
 
-        for (let problem of problems) {
+        for (let problem of problems) 
+        {
             //if this problem overrides other ones, THEN do the processing
-            if (problem.overrides.length > 0) {
+            if (problem.overrides.length > 0) 
+            {
                 //one rule can override multiple other rules, so create a regex of all
                 //of the overrides so we can search all at once - i.e. override1|override2|override3
                 let regexString: string = problem.overrides[0];
-                for (let x = 1; x < problem.overrides.length; x++) {
+                for (let x = 1; x < problem.overrides.length; x++) 
+                {
                     regexString = regexString + "|" + problem.overrides[x];
                 }
 
@@ -575,13 +650,15 @@ export class DevSkimWorker {
                 //there is some assumption that both will be on the same line, and it *might* be possible that they
                 //aren't BUT we can't blanket say remove all instances of the overridden finding, because it might flag
                 //issues the rule that supersedes it does not
-                for (let x = 0; x < problems.length; x++) {
+                for (let x = 0; x < problems.length; x++)
+                {
                     let matches = problems[x].ruleId.match(regexString);
                     let range: Range = (problem.suppressedFindingRange != null) ? problem.suppressedFindingRange : problem.range;
 
                     if ((matches !== undefined && matches != null && matches.length > 0)
                         && problems[x].range.start.line == range.start.line &&
-                        problems[x].range.start.character == range.start.character) {
+                        problems[x].range.start.character == range.start.character) 
+                    {
                         problems.splice(x, 1);
                         overrideRemoved = true;
                     }
@@ -598,9 +675,12 @@ export class DevSkimWorker {
         //until we don't modify anymore.  To make things from getting too ugly, we do clear a 
         //problem's overrides after we processed them, so we don't run it again in 
         //recursive calls
-        if (overrideRemoved) {
+        if (overrideRemoved) 
+        {
             return this.processOverrides(problems)
-        } else {
+        }
+        else 
+        {
             return problems;
         }
     }
@@ -618,21 +698,28 @@ export class DevSkimWorker {
      * @param {string} documentURI the current document URI
      * @returns {boolean} true if it applies, false if it doesn't
      */
-    public static appliesToLangOrFile(languageID: string, applies_to: string[], documentURI: string): boolean {
+    public static appliesToLangOrFile(languageID: string, applies_to: string[], documentURI: string): boolean
+    {
         //if the parameters are empty, assume it applies.  Also, apply all the rules to plaintext documents	
-        if (applies_to != undefined && applies_to && applies_to.length > 0) {
-            for (let applies of applies_to) {
+        if (applies_to != undefined && applies_to && applies_to.length > 0) 
+        {
+            for (let applies of applies_to) 
+            {
                 //if the list of languages this rule applies to matches the current lang ID
-                if (languageID !== undefined && languageID != null && languageID.toLowerCase() == applies.toLowerCase()) {
+                if (languageID !== undefined && languageID != null && languageID.toLowerCase() == applies.toLowerCase()) 
+                {
                     return true;
-                } else if (applies.indexOf(".") != -1 /*applies to is probably a specific file name instead of a langID*/
+                }
+                else if (applies.indexOf(".") != -1 /*applies to is probably a specific file name instead of a langID*/
                     && documentURI.toLowerCase().indexOf(applies.toLowerCase()) != -1) /*and its in the current doc URI*/
                 {
                     return true;
                 }
             }
             return false;
-        } else {
+        }
+        else 
+        {
             return true;
         }
     }

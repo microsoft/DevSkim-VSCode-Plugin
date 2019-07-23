@@ -6,14 +6,15 @@
  *
  */
 
-import {Rule,FixIt,Pattern} from "./devskimObjects";
+import { Rule, FixIt, Pattern } from "./devskimObjects";
 import * as path from 'path';
-import {IConnection} from "vscode-languageserver";
+import { IConnection } from "vscode-languageserver";
 import ErrnoException = NodeJS.ErrnoException;
-import {noop} from "@babel/types";
+import { noop } from "@babel/types";
 const mkdirp = require('mkdirp');
 
-export interface IRuleValidator {
+export interface IRuleValidator
+{
     validateRules(readRules: Rule[], outputValidation: boolean): Promise<Rule[]>;
 }
 
@@ -24,7 +25,8 @@ export class RuleValidator implements IRuleValidator
 {
     private rulesDir: string;
     private readonly errorDir: string;
-    private readonly fixedRules: {
+    private readonly fixedRules: 
+    {
         [fileName: string]: Rule[];
     };
     private outputMessages: OutputMessages[];
@@ -41,8 +43,8 @@ export class RuleValidator implements IRuleValidator
     constructor(private connection: IConnection, rd: string, ed: string)
     {
         this.rulesDir = rd;
-        this.errorDir = ed;        
-        this.fixedRules  = {};  
+        this.errorDir = ed;
+        this.fixedRules = {};
         this.writeoutNewRules = false;
     }
 
@@ -53,45 +55,49 @@ export class RuleValidator implements IRuleValidator
      */
     public async validateRules(readRules: Rule[], outputValidation: boolean): Promise<Rule[]>
     {
-        let rules: Rule [] = [];
+        let rules: Rule[] = [];
         this.outputMessages = [];
         this.writeoutNewRules = false;
 
         if (!readRules) readRules = [];
 
-        for(let loadedRule of readRules)
+        for (let loadedRule of readRules)
         {
             try 
             {
-                let newRule = (outputValidation) ? this.makeRule(loadedRule): this.makeRuleNoValidation(loadedRule);
+                let newRule = (outputValidation) ? this.makeRule(loadedRule) : this.makeRuleNoValidation(loadedRule);
                 rules.push(newRule);
             }
-            catch (err) {
+            catch (err)
+            {
                 noop;
             }
         }
 
         //if told to outputValidation, write out fixed rules (if any) and the output log
-        if(outputValidation)
+        if (outputValidation)
         {
-            if (this.outputMessages.length > 0) {
+            if (this.outputMessages.length > 0)
+            {
                 this.logFilePath = path.join(this.errorDir, "rulesValidationLog.json1");
                 await this.fs.writeFile(this.logFilePath, JSON.stringify(this.outputMessages, null, 4),
-                    (err: ErrnoException) => {
-                        if (err) {
+                    (err: ErrnoException) =>
+                    {
+                        if (err)
+                        {
                             this.connection.console
                                 .log(`RuleValidator - outputValidation  err: ${err.message}`);
                         }
                     });
             }
-            if(this.writeoutNewRules)
+            if (this.writeoutNewRules)
             {
-                let newrulePath =  path.join(this.errorDir, "..", "newrules");
+                let newrulePath = path.join(this.errorDir, "..", "newrules");
                 this.connection.console.log(`RuleValidator - outputValidation: ${newrulePath}`);
 
                 for (let key in this.fixedRules)
                 {
-                    let filePath: string = key.substr(key.indexOf("rules")+5);
+                    let filePath: string = key.substr(key.indexOf("rules") + 5);
                     filePath = path.join(newrulePath, filePath);
                     try
                     {
@@ -99,7 +105,8 @@ export class RuleValidator implements IRuleValidator
                         this.connection.console.log(`RuleValidator - newRulePath - file: ${filePath}`);
                         await this.fs.writeFileSync(filePath, JSON.stringify(this.fixedRules[key], null, 4));
                     }
-                    catch(err) {
+                    catch (err)
+                    {
                         this.connection.console.log(`RuleValidator - validateRules err: >>${err.message}<<`);
                     }
                 }
@@ -121,34 +128,34 @@ export class RuleValidator implements IRuleValidator
         newRule.description = loadedRule.description;
         newRule.recommendation = loadedRule.recommendation;
 
-        if(RuleValidator.isSet(loadedRule.overrides, "array") && loadedRule.overrides.length > 0)
-            newRule.overrides = loadedRule.overrides; 
+        if (RuleValidator.isSet(loadedRule.overrides, "array") && loadedRule.overrides.length > 0)
+            newRule.overrides = loadedRule.overrides;
 
-        if(RuleValidator.isSet(loadedRule.applies_to, "array") && loadedRule.applies_to.length > 0)
+        if (RuleValidator.isSet(loadedRule.applies_to, "array") && loadedRule.applies_to.length > 0)
             newRule.applies_to = loadedRule.applies_to;
 
-        if(RuleValidator.isSet(loadedRule.tags, "array") && loadedRule.tags.length > 0)
-            newRule.tags = loadedRule.tags;        
-        
+        if (RuleValidator.isSet(loadedRule.tags, "array") && loadedRule.tags.length > 0)
+            newRule.tags = loadedRule.tags;
+
         newRule.severity = loadedRule.severity.toLowerCase();
-        newRule._comment = (RuleValidator.isSet(loadedRule._comment, "string")) ? loadedRule._comment: "";
+        newRule._comment = (RuleValidator.isSet(loadedRule._comment, "string")) ? loadedRule._comment : "";
 
         newRule.ruleInfo = loadedRule.rule_info;
-        
+
         newRule.patterns = loadedRule.patterns;
-        for(let x = 0; x < newRule.patterns.length; x++)
+        for (let x = 0; x < newRule.patterns.length; x++)
         {
             //despite *mostly* not doing validation in this function, we do validate scope, as it may be missing and need a default value
             newRule.patterns[x].scopes = this.validatePatternScopeArray(newRule.patterns[x].scopes, loadedRule);
         }
 
-        if(RuleValidator.isSet(loadedRule.fix_its, "array") && loadedRule.fix_its.length > 0)
+        if (RuleValidator.isSet(loadedRule.fix_its, "array") && loadedRule.fix_its.length > 0)
             newRule.fix_its = loadedRule.fix_its;
 
-        if(RuleValidator.isSet(loadedRule.conditions, "array") && loadedRule.conditions.length > 0)
-            newRule.conditions = loadedRule.conditions;   
+        if (RuleValidator.isSet(loadedRule.conditions, "array") && loadedRule.conditions.length > 0)
+            newRule.conditions = loadedRule.conditions;
 
-        return newRule;        
+        return newRule;
     }
 
     /**
@@ -165,33 +172,33 @@ export class RuleValidator implements IRuleValidator
         newRule.description = this.validateDescription(loadedRule);
         newRule.recommendation = this.validateRecommendation(loadedRule);
 
-        let overrides: string[] = this.validateStringArray(loadedRule.overrides,"overrides",loadedRule,this.validateSpecificOverride);
-        if(overrides.length > 0)
+        let overrides: string[] = this.validateStringArray(loadedRule.overrides, "overrides", loadedRule, this.validateSpecificOverride);
+        if (overrides.length > 0)
             newRule.overrides = overrides;
 
-        let applies: string[] = this.validateStringArray(loadedRule.applies_to,"applies_to",loadedRule,RuleValidator.validateSpecificapplies_to);
-        if(applies.length > 0)
+        let applies: string[] = this.validateStringArray(loadedRule.applies_to, "applies_to", loadedRule, RuleValidator.validateSpecificapplies_to);
+        if (applies.length > 0)
             newRule.applies_to = applies;
 
-        let tags: string[] = this.validateStringArray(loadedRule.tags,"tags",loadedRule,RuleValidator.validateSpecificTags);
-        if(tags.length > 0)
+        let tags: string[] = this.validateStringArray(loadedRule.tags, "tags", loadedRule, RuleValidator.validateSpecificTags);
+        if (tags.length > 0)
             newRule.tags = tags;
 
         newRule.severity = this.validateSeverity(loadedRule);
-        newRule._comment = (RuleValidator.isSet(loadedRule._comment, "string")) ? loadedRule._comment: "";
+        newRule._comment = (RuleValidator.isSet(loadedRule._comment, "string")) ? loadedRule._comment : "";
 
         newRule.ruleInfo = this.validateRuleInfo(loadedRule);
 
         newRule.patterns = this.validatePatternsArray(loadedRule);
 
         let fix_its: FixIt[] = this.validateFixitArray(loadedRule);
-        if(fix_its.length > 0)
+        if (fix_its.length > 0)
             newRule.fix_its = fix_its;
 
         newRule.conditions = loadedRule.conditions;
 
 
-        if(!RuleValidator.isSet(this.fixedRules[loadedRule.filepath],"array"))
+        if (!RuleValidator.isSet(this.fixedRules[loadedRule.filepath], "array"))
         {
             this.fixedRules[loadedRule.filepath] = [];
         }
@@ -207,31 +214,31 @@ export class RuleValidator implements IRuleValidator
     private validateFixitArray(loadedRule): FixIt[]
     {
         let fix_its: FixIt[] = [];
-        if(this.checkValue(loadedRule.fix_its,loadedRule,"array","",OutputAlert.Info))
+        if (this.checkValue(loadedRule.fix_its, loadedRule, "array", "", OutputAlert.Info))
         {
-            for(let fixit of loadedRule.fix_its)
+            for (let fixit of loadedRule.fix_its)
             {
-                fix_its.push(this.validateFixitObject(fixit,loadedRule));
-            }             
+                fix_its.push(this.validateFixitObject(fixit, loadedRule));
+            }
         }
-        else if(this.checkValue(loadedRule.fix_it,loadedRule,"array","",OutputAlert.Info))
+        else if (this.checkValue(loadedRule.fix_it, loadedRule, "array", "", OutputAlert.Info))
         {
-            if(loadedRule.fix_it.length > 0)
+            if (loadedRule.fix_it.length > 0)
             {
                 this.writeoutNewRules = true;
 
-                for(let fixit of loadedRule.fix_it)
+                for (let fixit of loadedRule.fix_it)
                 {
-                    fix_its.push(this.validateFixitObject(fixit,loadedRule));
-                }             
+                    fix_its.push(this.validateFixitObject(fixit, loadedRule));
+                }
 
                 let outcome: OutputMessages = Object.create(null);
                 outcome.alert = OutputAlert.Warning;
                 outcome.message = "'fix_it' was renamed 'fix_its' in a schema update.  the rule should be update";
                 outcome.ruleid = loadedRule.id;
                 outcome.file = loadedRule.filepath;
-                this.outputMessages.push(outcome);   
-            } 
+                this.outputMessages.push(outcome);
+            }
             else
             {
                 let outcome: OutputMessages = Object.create(null);
@@ -239,9 +246,9 @@ export class RuleValidator implements IRuleValidator
                 outcome.message = "'fix_it'was present but empty.  As the schema has changed it should be removed";
                 outcome.ruleid = loadedRule.id;
                 outcome.file = loadedRule.filepath;
-                this.outputMessages.push(outcome);   
-            }                
-            
+                this.outputMessages.push(outcome);
+            }
+
         }
         return fix_its;
     }
@@ -254,18 +261,18 @@ export class RuleValidator implements IRuleValidator
     private validateFixitObject(loadedFixit, loadedRule): FixIt
     {
         let fixit: FixIt = Object.create(null);
-        fixit.name = this.validateFixitName(loadedFixit.name,loadedRule);
+        fixit.name = this.validateFixitName(loadedFixit.name, loadedRule);
         fixit.type = this.validateFixitType(loadedFixit.type, loadedRule);
         let outcome: OutputMessages;
 
-        fixit._comment = (RuleValidator.isSet(loadedFixit._comment, "string")) ? loadedFixit._comment: "";
+        fixit._comment = (RuleValidator.isSet(loadedFixit._comment, "string")) ? loadedFixit._comment : "";
 
         //the name of replacement is new, previously having been called replace.  check if the new or old values are present
-        if(RuleValidator.isSet(loadedFixit.replacement, "string"))
+        if (RuleValidator.isSet(loadedFixit.replacement, "string"))
         {
             fixit.replacement = loadedFixit.replacement;
         }
-        else if(this.checkValue(loadedFixit.replace,loadedRule,"string","fix_its.replacement value is missing from object",OutputAlert.Error))
+        else if (this.checkValue(loadedFixit.replace, loadedRule, "string", "fix_its.replacement value is missing from object", OutputAlert.Error))
         {
             fixit.replacement = loadedFixit.replace;
 
@@ -274,17 +281,17 @@ export class RuleValidator implements IRuleValidator
             outcome.message = "fix_its.replace has been changed to fix_its.replacement in a schema update.  the rule should be update";
             outcome.ruleid = loadedRule.id;
             outcome.file = loadedRule.filepath;
-            this.outputMessages.push(outcome);    
-            this.writeoutNewRules = true;           
+            this.outputMessages.push(outcome);
+            this.writeoutNewRules = true;
         }
 
         //the schema was updated to use a full pattern object instead of the old 'search' value.  Check if a pattern is present
         //and if not, then check if search is present and make a pattern out of it
-        if(RuleValidator.isSet(loadedFixit.pattern, "Pattern"))
+        if (RuleValidator.isSet(loadedFixit.pattern, "Pattern"))
         {
             fixit.pattern = this.validatePatternObject(loadedFixit.pattern, loadedRule);
         }
-        else if(this.checkValue(loadedFixit.search,loadedRule,"string","fix_its.pattern value is missing from object",OutputAlert.Error))
+        else if (this.checkValue(loadedFixit.search, loadedRule, "string", "fix_its.pattern value is missing from object", OutputAlert.Error))
         {
             let pattern: Pattern = Object.create(null);
             pattern.pattern = loadedFixit.search;
@@ -297,8 +304,8 @@ export class RuleValidator implements IRuleValidator
             outcome.message = "fix_its.search has been changed to fix_its.pattern in a schema update.  the rule should be update";
             outcome.ruleid = loadedRule.id;
             outcome.file = loadedRule.filepath;
-            this.outputMessages.push(outcome);    
-            this.writeoutNewRules = true;                
+            this.outputMessages.push(outcome);
+            this.writeoutNewRules = true;
         }
         return fixit;
     }
@@ -310,31 +317,31 @@ export class RuleValidator implements IRuleValidator
      */
     private validateFixitType(fixitType: string, loadedRule): string
     {
-        this.checkValue(fixitType,loadedRule,"string","fix_its.type value is missing from object",OutputAlert.Error);
+        this.checkValue(fixitType, loadedRule, "string", "fix_its.type value is missing from object", OutputAlert.Error);
         fixitType = fixitType.toLowerCase();
         let outcome: OutputMessages = Object.create(null);
-        switch(fixitType)
+        switch (fixitType)
         {
             case "regex-replace":
             case "string-replace":
                 return fixitType;
 
             case "regex-substitute":
-                
+
                 outcome.alert = OutputAlert.Warning;
                 outcome.message = "fix_its.type 'regex-substitute' has been changed to 'regex-replace'";
                 outcome.ruleid = loadedRule.id;
                 outcome.file = loadedRule.filepath;
-                this.outputMessages.push(outcome);  
+                this.outputMessages.push(outcome);
                 this.writeoutNewRules = true;
-                return "regex-replace"; 
+                return "regex-replace";
 
-            default: 
+            default:
                 outcome.alert = OutputAlert.Error;
                 outcome.message = "fix_its.type is not either regex-replace or string-replace";
                 outcome.ruleid = loadedRule.id;
                 outcome.file = loadedRule.filepath;
-                this.outputMessages.push(outcome);              
+                this.outputMessages.push(outcome);
                 throw "fix_its.type is not either regex-replace or string-replace";
         }
     }
@@ -346,8 +353,8 @@ export class RuleValidator implements IRuleValidator
      */
     private validateFixitName(fixitName: string, loadedRule): string
     {
-        this.checkValue(fixitName,loadedRule,"string","fix_its.name value is missing from object",OutputAlert.Error);
-        if(fixitName.length > 128)
+        this.checkValue(fixitName, loadedRule, "string", "fix_its.name value is missing from object", OutputAlert.Error);
+        if (fixitName.length > 128)
         {
             let outcome: OutputMessages = Object.create(null);
             outcome.alert = OutputAlert.Warning;
@@ -355,10 +362,10 @@ export class RuleValidator implements IRuleValidator
             outcome.ruleid = loadedRule.id;
             outcome.file = loadedRule.filepath;
 
-            this.outputMessages.push(outcome);               
-        }     
+            this.outputMessages.push(outcome);
+        }
 
-        return fixitName;       
+        return fixitName;
     }
 
     /**
@@ -368,21 +375,21 @@ export class RuleValidator implements IRuleValidator
     private validatePatternsArray(loadedRule): Pattern[]
     {
         let patterns: Pattern[] = [];
-        this.checkValue(loadedRule.patterns,loadedRule,"array","patterns value is missing from object",OutputAlert.Error);
-        if(loadedRule.patterns.length < 1)
+        this.checkValue(loadedRule.patterns, loadedRule, "array", "patterns value is missing from object", OutputAlert.Error);
+        if (loadedRule.patterns.length < 1)
         {
-                let outcome: OutputMessages = Object.create(null);
-                outcome.alert = OutputAlert.Error;
-                outcome.message = "patterns value array is empty";
-                outcome.ruleid = loadedRule.id;
-                outcome.file = loadedRule.filepath;
-                this.outputMessages.push(outcome);              
-                throw "patterns value array is empty";      
+            let outcome: OutputMessages = Object.create(null);
+            outcome.alert = OutputAlert.Error;
+            outcome.message = "patterns value array is empty";
+            outcome.ruleid = loadedRule.id;
+            outcome.file = loadedRule.filepath;
+            this.outputMessages.push(outcome);
+            throw "patterns value array is empty";
         }
-        for(let pattern of loadedRule.patterns)
+        for (let pattern of loadedRule.patterns)
         {
-            patterns.push(this.validatePatternObject(pattern,loadedRule));
-        }         
+            patterns.push(this.validatePatternObject(pattern, loadedRule));
+        }
         return patterns;
     }
 
@@ -396,21 +403,21 @@ export class RuleValidator implements IRuleValidator
     {
         let pattern: Pattern = Object.create(null);
 
-        if(this.checkValue(loadedPattern.pattern,loadedRule,"string","pattern.patten regex value is missing from object",OutputAlert.Error))
+        if (this.checkValue(loadedPattern.pattern, loadedRule, "string", "pattern.patten regex value is missing from object", OutputAlert.Error))
         {
             pattern.pattern = loadedPattern.pattern;
         }
         pattern.type = this.validatePatternType(loadedPattern.type, loadedPattern);
-        
+
         //check if using the scopes array, the old single string value, or if it is absent
-        if(RuleValidator.isSet(loadedPattern.scopes,"array") && this.verifyType(loadedPattern.scopes,"array",loadedRule,OutputAlert.Info,""))
+        if (RuleValidator.isSet(loadedPattern.scopes, "array") && this.verifyType(loadedPattern.scopes, "array", loadedRule, OutputAlert.Info, ""))
         {
             pattern.scopes = this.validatePatternScopeArray(loadedPattern.scopes, loadedRule);
         }
-        else if(RuleValidator.isSet(loadedPattern.scope,"string") && this.verifyType(loadedPattern.scope,"string",loadedRule,OutputAlert.Info,""))
+        else if (RuleValidator.isSet(loadedPattern.scope, "string") && this.verifyType(loadedPattern.scope, "string", loadedRule, OutputAlert.Info, ""))
         {
             //convert to an array if a single value
-            let scopes: string [] = [loadedPattern.scope];
+            let scopes: string[] = [loadedPattern.scope];
             pattern.scopes = this.validatePatternScopeArray(scopes, loadedRule);
 
             let outcome: OutputMessages = Object.create(null);
@@ -419,18 +426,18 @@ export class RuleValidator implements IRuleValidator
             outcome.ruleid = loadedRule.id;
             outcome.file = loadedRule.filepath;
             this.writeoutNewRules = true;
-            this.outputMessages.push(outcome);              
+            this.outputMessages.push(outcome);
         }
         else
         {
             pattern.scopes = ["code"];
         }
 
-        pattern._comment = (RuleValidator.isSet(loadedPattern._comment, "string")) ? loadedPattern._comment: "";
+        pattern._comment = (RuleValidator.isSet(loadedPattern._comment, "string")) ? loadedPattern._comment : "";
 
-        let modifiers: string[] = this.validateStringArray(loadedPattern.modifiers,"pattern.modifiers",loadedRule,this.validateSpecificPatternModifiers);
-        if(modifiers.length > 0)
-           pattern.modifiers = modifiers; 
+        let modifiers: string[] = this.validateStringArray(loadedPattern.modifiers, "pattern.modifiers", loadedRule, this.validateSpecificPatternModifiers);
+        if (modifiers.length > 0)
+            pattern.modifiers = modifiers;
         return pattern;
     }
 
@@ -441,8 +448,8 @@ export class RuleValidator implements IRuleValidator
      */
     private validatePatternScopeArray(scope: string[], loadedRule): string[]
     {
-        let scopes: string[] = this.validateStringArray(scope,"scopes",loadedRule,this.validateSpecificScope);
-        if(scopes.length == 0)
+        let scopes: string[] = this.validateStringArray(scope, "scopes", loadedRule, this.validateSpecificScope);
+        if (scopes.length == 0)
             scope.push("code");
         return scopes;
     }
@@ -451,22 +458,22 @@ export class RuleValidator implements IRuleValidator
     {
         const outcome: OutputMessages = Object.create(null);
         scope = scope.toLowerCase();
-        switch(scope)
+        switch (scope)
         {
             case "code":
             case "any":
             case "comment":
             case "html":
                 return scope;
-            
+
             default:
                 outcome.alert = OutputAlert.Warning;
                 outcome.message = "pattern.scope has an unrecognized value.  assuming 'code'";
                 outcome.ruleid = loadedRule.id;
                 outcome.file = loadedRule.filepath;
 
-                this.outputMessages.push(outcome);  
-                return "code";            
+                this.outputMessages.push(outcome);
+                return "code";
         }
     }
 
@@ -476,25 +483,25 @@ export class RuleValidator implements IRuleValidator
      */
     private validateRuleInfo(loadedRule): string
     {
-        this.checkValue(loadedRule.rule_info,loadedRule,"string","ruleInfo value is missing from object",OutputAlert.Error);
+        this.checkValue(loadedRule.rule_info, loadedRule, "string", "ruleInfo value is missing from object", OutputAlert.Error);
         let info: string = loadedRule.rule_info;
         let slashIndex: number = info.lastIndexOf("/");
         //check to see if this is a url
-        while(slashIndex != -1)
+        while (slashIndex != -1)
         {
             //better make sure there isn't a trailing slash at the end
-            if(slashIndex == info.length - 1)
+            if (slashIndex == info.length - 1)
             {
-                info = info.substr(0,info.length - 1);
-                slashIndex  = info.lastIndexOf("/"); 
+                info = info.substr(0, info.length - 1);
+                slashIndex = info.lastIndexOf("/");
 
                 let outcome: OutputMessages = Object.create(null);
                 outcome.alert = OutputAlert.Warning;
                 outcome.message = "ruleInfo has a trailing slash";
                 outcome.ruleid = loadedRule.id;
                 outcome.file = loadedRule.filepath;
-                this.outputMessages.push(outcome);              
-                this.writeoutNewRules = true; 
+                this.outputMessages.push(outcome);
+                this.writeoutNewRules = true;
 
                 continue;
             }
@@ -506,9 +513,9 @@ export class RuleValidator implements IRuleValidator
             outcome.message = "ruleInfo is no longer a full url.  Should just be a filename";
             outcome.ruleid = loadedRule.id;
             outcome.file = loadedRule.filepath;
-            this.outputMessages.push(outcome);              
-            this.writeoutNewRules = true; 
-            break;              
+            this.outputMessages.push(outcome);
+            this.writeoutNewRules = true;
+            break;
         }
         return info;
     }
@@ -520,13 +527,13 @@ export class RuleValidator implements IRuleValidator
      */
     private validatePatternType(patternType: string, loadedRule): string
     {
-        this.checkValue(patternType,loadedRule,"string","pattern.type value is missing from object",OutputAlert.Error);
+        this.checkValue(patternType, loadedRule, "string", "pattern.type value is missing from object", OutputAlert.Error);
         let outcome: OutputMessages = Object.create(null);
 
-        patternType  = patternType.toLowerCase();
+        patternType = patternType.toLowerCase();
 
         //check if severity is one of the expected values, or a common error that can easily be changed into an expected value
-        switch(patternType)
+        switch (patternType)
         {
             case "regex":
             case "regex-word":
@@ -536,26 +543,26 @@ export class RuleValidator implements IRuleValidator
 
             //the schema used to use _ for multiword values, but now uses -.  check to see if any of those old values are
             //accidentally present
-            case "regex_word":                
+            case "regex_word":
                 outcome.alert = OutputAlert.Warning;
                 outcome.message = "pattern.type regex_word' should be 'regex-word'";
                 outcome.ruleid = loadedRule.id;
                 outcome.file = loadedRule.filepath;
-                this.outputMessages.push(outcome);  
-                
+                this.outputMessages.push(outcome);
+
                 this.writeoutNewRules = true;
                 return "regex-word";
         }
-        
+
         //if we made it this far, severity isn't any value we recognize, and it needs to be.  Write an error message and throw an exception
         outcome.alert = OutputAlert.Error;
         outcome.message = "Unknown pattern.type in rule.  Please see documentation at https://github.com/microsoft/devskim/wiki";
         outcome.ruleid = loadedRule.id;
         outcome.file = loadedRule.filepath;
 
-        this.outputMessages.push(outcome);  
+        this.outputMessages.push(outcome);
         throw "Unknown pattern.type in rule.  Please see documentation at https://github.com/microsoft/devskim/wiki";
-    }    
+    }
 
     /**
      * Ensure that the severity is one of the known allowed values
@@ -563,13 +570,13 @@ export class RuleValidator implements IRuleValidator
      */
     private validateSeverity(loadedRule): string
     {
-        this.checkValue(loadedRule.severity,loadedRule,"string","severity value is missing from object",OutputAlert.Error);
+        this.checkValue(loadedRule.severity, loadedRule, "string", "severity value is missing from object", OutputAlert.Error);
         let outcome: OutputMessages = Object.create(null);
 
         let severity: string = loadedRule.severity.toLowerCase();
 
         //check if severity is one of the expected values, or a common error that can easily be changed into an expected value
-        switch(severity)
+        switch (severity)
         {
             case "critical":
             case "important":
@@ -580,26 +587,26 @@ export class RuleValidator implements IRuleValidator
 
             //the schema used to use _ for multiword values, but now uses -.  check to see if any of those old values are
             //accidentally present
-            case "manual_review":                
+            case "manual_review":
                 outcome.alert = OutputAlert.Warning;
                 outcome.message = "severities ''manual_review' should be 'manual-review'";
                 outcome.ruleid = loadedRule.id;
                 outcome.file = loadedRule.filepath;
-                this.outputMessages.push(outcome);  
-                
+                this.outputMessages.push(outcome);
+
                 this.writeoutNewRules = true;
                 return "manual-review";
 
-            case "best_practice":                
+            case "best_practice":
                 outcome.alert = OutputAlert.Warning;
                 outcome.message = "severities ''best_practice' should be 'best-practice' have been replaced with 'best-practice'";
                 outcome.ruleid = loadedRule.id;
                 outcome.file = loadedRule.filepath;
-                this.outputMessages.push(outcome);  
-                
+                this.outputMessages.push(outcome);
+
                 this.writeoutNewRules = true;
-                return "best-practice";                
-            
+                return "best-practice";
+
             //we rolled low & defense-in-depth into a single "best-practice" level, but there may still be some old rules
             //with the old values
             case "low":
@@ -610,19 +617,19 @@ export class RuleValidator implements IRuleValidator
                 outcome.ruleid = loadedRule.id;
                 outcome.file = loadedRule.filepath;
 
-                this.outputMessages.push(outcome);  
-                
+                this.outputMessages.push(outcome);
+
                 this.writeoutNewRules = true;
                 return "best-practice";
         }
-        
+
         //if we made it this far, severity isn't any value we recognize, and it needs to be.  Write an error message and throw an exception
         outcome.alert = OutputAlert.Error;
         outcome.message = "Unknown severity in rule.  Please see documentation at https://github.com/microsoft/devskim/wiki";
         outcome.ruleid = loadedRule.id;
         outcome.file = loadedRule.filepath;
 
-        this.outputMessages.push(outcome);  
+        this.outputMessages.push(outcome);
         throw "Unknown severity in rule.  Please see documentation at https://github.com/microsoft/devskim/wiki";
     }
 
@@ -632,8 +639,8 @@ export class RuleValidator implements IRuleValidator
      */
     private validateName(loadedRule): string
     {
-        this.checkValue(loadedRule.name,loadedRule,"string","name value is missing from object",OutputAlert.Error);
-        if(loadedRule.name.length > 128)
+        this.checkValue(loadedRule.name, loadedRule, "string", "name value is missing from object", OutputAlert.Error);
+        if (loadedRule.name.length > 128)
         {
             let outcome: OutputMessages = Object.create(null);
             outcome.alert = OutputAlert.Warning;
@@ -641,7 +648,7 @@ export class RuleValidator implements IRuleValidator
             outcome.ruleid = loadedRule.id;
             outcome.file = loadedRule.filepath;
             this.outputMessages.push(outcome);
-        }     
+        }
         return loadedRule.name;
     }
 
@@ -651,10 +658,10 @@ export class RuleValidator implements IRuleValidator
      */
     private validateRecommendation(loadedRule): string
     {
-        let valid: boolean = this.checkValue(loadedRule.recommendation,loadedRule,"string","recommendation value is missing from object",OutputAlert.Warning);
-        if(valid)
+        let valid: boolean = this.checkValue(loadedRule.recommendation, loadedRule, "string", "recommendation value is missing from object", OutputAlert.Warning);
+        if (valid)
         {
-            if(loadedRule.recommendation.length > 512)
+            if (loadedRule.recommendation.length > 512)
             {
                 let outcome: OutputMessages = Object.create(null);
                 outcome.alert = OutputAlert.Warning;
@@ -662,17 +669,17 @@ export class RuleValidator implements IRuleValidator
                 outcome.ruleid = loadedRule.id;
                 outcome.file = loadedRule.filepath;
                 this.outputMessages.push(outcome);
-            }  
-            return loadedRule.recommendation;           
+            }
+            return loadedRule.recommendation;
         }
 
         //ok, it wasn't the new schema key, maybe it was the old one?
-        valid = this.checkValue(loadedRule.replacement,loadedRule,"string","recommendation value is missing from object",OutputAlert.Warning);
-        
-        if(valid)
+        valid = this.checkValue(loadedRule.replacement, loadedRule, "string", "recommendation value is missing from object", OutputAlert.Warning);
+
+        if (valid)
         {
             this.writeoutNewRules = true;
-            if( loadedRule.replacement.length > 512)
+            if (loadedRule.replacement.length > 512)
             {
                 let outcome: OutputMessages = Object.create(null);
                 outcome.alert = OutputAlert.Warning;
@@ -680,11 +687,11 @@ export class RuleValidator implements IRuleValidator
                 outcome.ruleid = loadedRule.id;
                 outcome.file = loadedRule.filepath;
 
-                this.outputMessages.push(outcome);               
-            }  
-        }   
-        return (valid) ? loadedRule.replacement: "";
-    }    
+                this.outputMessages.push(outcome);
+            }
+        }
+        return (valid) ? loadedRule.replacement : "";
+    }
 
     /**
      * check if description is present (it's required, an exception will be thrown if missing), and if
@@ -692,8 +699,8 @@ export class RuleValidator implements IRuleValidator
      */
     private validateDescription(loadedRule): string
     {
-        this.checkValue(loadedRule.description,loadedRule,"string","description value is missing from object",OutputAlert.Error);
-        if(loadedRule.description.length > 512)
+        this.checkValue(loadedRule.description, loadedRule, "string", "description value is missing from object", OutputAlert.Error);
+        if (loadedRule.description.length > 512)
         {
             let outcome: OutputMessages = Object.create(null);
             outcome.alert = OutputAlert.Warning;
@@ -701,21 +708,21 @@ export class RuleValidator implements IRuleValidator
             outcome.ruleid = loadedRule.id;
             outcome.file = loadedRule.filepath;
 
-            this.outputMessages.push(outcome);               
-        }     
+            this.outputMessages.push(outcome);
+        }
 
         return loadedRule.description;
-    }    
+    }
 
     /**
      * check that id is present (its required, an exception will be thrown if missing), and in the form DS######
      */
     private validateID(loadedRule): string
     {
-        this.checkValue(loadedRule.id,loadedRule,"string","id is missing from rule",OutputAlert.Error);
+        this.checkValue(loadedRule.id, loadedRule, "string", "id is missing from rule", OutputAlert.Error);
         //if the ID isn't in the expected form, we can still function, but we should write out a warning     
         let idRegex: RegExp = /\b(DS\d\d\d\d\d\d)\b/;
-        if(!idRegex.test(loadedRule.id))
+        if (!idRegex.test(loadedRule.id))
         {
             let outcome: OutputMessages = Object.create(null);
             outcome.alert = OutputAlert.Warning;
@@ -723,12 +730,12 @@ export class RuleValidator implements IRuleValidator
             outcome.ruleid = loadedRule.id;
             outcome.file = loadedRule.filepath;
 
-            this.outputMessages.push(outcome);            
+            this.outputMessages.push(outcome);
         }
         return loadedRule.id;
-    } 
+    }
 
-    
+
     /**
      * Validates the various optional arrays of strings (applies_to, tags, overrides), since the logic was mostly the same
      * for all of them.  The different logic comes up with validating the individual values, and a callback function is used for that
@@ -739,39 +746,39 @@ export class RuleValidator implements IRuleValidator
      * @param stringValidator function to validate the individual strings in the array, since this is the point of variance between tags, applies_to, etc.
      * the function should accept a string and loadedRule as params, and return a string (in case it needs to do any cleanup)
      */
-    private validateStringArray(arrayToValidate: string[], arrayName: string,loadedRule, stringValidator): string[]
+    private validateStringArray(arrayToValidate: string[], arrayName: string, loadedRule, stringValidator): string[]
     {
-        let stringArray: string [] = [];
+        let stringArray: string[] = [];
         //check if the value is present.  It isn't required, so it is fine if absent
         //if absent, just return an empty array
-        if(RuleValidator.isSet(arrayToValidate,"array"))
+        if (RuleValidator.isSet(arrayToValidate, "array"))
         {
-            if(this.verifyType(arrayToValidate, "array", loadedRule,OutputAlert.Warning,arrayName +" is not an array"))
+            if (this.verifyType(arrayToValidate, "array", loadedRule, OutputAlert.Warning, arrayName + " is not an array"))
             {
                 //since these arrays are all optional, it is silly to include an empty version of them
-                if(arrayToValidate.length < 1)
+                if (arrayToValidate.length < 1)
                 {
                     let outcome: OutputMessages = Object.create(null);
                     outcome.alert = OutputAlert.Info;
-                    outcome.message = arrayName+ " is an empty array and can be left out";
+                    outcome.message = arrayName + " is an empty array and can be left out";
                     outcome.ruleid = loadedRule.id;
                     outcome.file = loadedRule.filepath;
 
-                    this.outputMessages.push(outcome);                      
+                    this.outputMessages.push(outcome);
                 }
                 else
                 {
-                    for(let strings of arrayToValidate)
+                    for (let strings of arrayToValidate)
                     {
-                        if (this.checkValue(strings,loadedRule,"string","a value of type other than string present in "+arrayName,OutputAlert.Warning))
+                        if (this.checkValue(strings, loadedRule, "string", "a value of type other than string present in " + arrayName, OutputAlert.Warning))
                         {
                             //validate the individual string
-                            strings = stringValidator(strings,loadedRule);
+                            strings = stringValidator(strings, loadedRule);
                             stringArray.push(strings);
                         }
-                    } 
+                    }
                 }
-                
+
             }
         }
         return stringArray;
@@ -787,7 +794,7 @@ export class RuleValidator implements IRuleValidator
     {
         let outcome: OutputMessages = Object.create(null);
         modifier = modifier.toLowerCase();
-        switch(modifier)
+        switch (modifier)
         {
             case "i":
             case "d":
@@ -800,7 +807,7 @@ export class RuleValidator implements IRuleValidator
                 outcome.ruleid = loadedRule.id;
                 outcome.file = loadedRule.filepath;
                 this.outputMessages.push(outcome);
-                return "";                      
+                return "";
         }
     }
 
@@ -814,7 +821,7 @@ export class RuleValidator implements IRuleValidator
     private validateSpecificOverride(overridden: string, loadedRule): string
     {
         let idRegex: RegExp = /\b(DS\d\d\d\d\d\d)\b/;
-        if(!idRegex.test(overridden))
+        if (!idRegex.test(overridden))
         {
             let outcome: OutputMessages = Object.create(null);
             outcome.alert = OutputAlert.Warning;
@@ -822,7 +829,7 @@ export class RuleValidator implements IRuleValidator
             outcome.ruleid = loadedRule.id;
             outcome.file = loadedRule.filepath;
 
-            this.outputMessages.push(outcome);            
+            this.outputMessages.push(outcome);
         }
         return overridden;
     }
@@ -838,7 +845,7 @@ export class RuleValidator implements IRuleValidator
         //TODO: logic to validate applies
         return tags;
     }
-    
+
     /**
      * Check that a required value is present, and if a string, longer than 0 chars. 
      * If it isn't, record an error message (which eventually gets written to file),
@@ -851,22 +858,22 @@ export class RuleValidator implements IRuleValidator
      */
     private checkValue(variable, loadedRule, varType: string, errorMessage: string, alertLevel: string)
     {
-        if(!RuleValidator.isSet(variable,varType) && errorMessage.length > 0)
+        if (!RuleValidator.isSet(variable, varType) && errorMessage.length > 0)
         {
             let outcome: OutputMessages = Object.create(null);
             outcome.alert = alertLevel;
             outcome.message = errorMessage;
             //use the ID so we know which rule is broken, or another error message if ID is missing
-            outcome.ruleid = RuleValidator.isSet(loadedRule.id, "string") ? loadedRule.id: "ID NOT FOUND";
+            outcome.ruleid = RuleValidator.isSet(loadedRule.id, "string") ? loadedRule.id : "ID NOT FOUND";
             //this is generated when the object is read in, so should reliably be present
             outcome.file = loadedRule.filepath;
 
             this.outputMessages.push(outcome);
 
-            if(alertLevel == OutputAlert.Error)
-                throw errorMessage;  
+            if (alertLevel == OutputAlert.Error)
+                throw errorMessage;
         }
-        return this.verifyType(variable, varType, loadedRule,alertLevel,errorMessage);
+        return this.verifyType(variable, varType, loadedRule, alertLevel, errorMessage);
     }
 
     /**
@@ -890,7 +897,7 @@ export class RuleValidator implements IRuleValidator
     private verifyType(variable, varType: string, loadedRule, alertLevel: string, warningMessage: string): boolean
     {
         let verifiedType = true;
-        switch(varType)
+        switch (varType)
         {
             case "string":
                 if (!(typeof variable === 'string' || variable instanceof String))
@@ -909,16 +916,16 @@ export class RuleValidator implements IRuleValidator
                 {
                     verifiedType = false;
                 }
-                break;  
+                break;
             case "array":
                 if (!(Array.isArray(variable) || variable instanceof Array))
                 {
                     verifiedType = false;
                 }
-                break;       
+                break;
         }
 
-        if(!verifiedType && warningMessage.length > 0)
+        if (!verifiedType && warningMessage.length > 0)
         {
             let outcome: OutputMessages = Object.create(null);
             outcome.alert = alertLevel;
@@ -926,11 +933,11 @@ export class RuleValidator implements IRuleValidator
             outcome.ruleid = loadedRule.id;
             outcome.file = loadedRule.filepath;
 
-            this.outputMessages.push(outcome); 
-            if(alertLevel == OutputAlert.Error)
+            this.outputMessages.push(outcome);
+            if (alertLevel == OutputAlert.Error)
             {
                 throw warningMessage
-            }               
+            }
         }
         return verifiedType;
     }
