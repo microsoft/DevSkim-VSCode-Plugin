@@ -9,31 +9,40 @@
  * 
  *  ------------------------------------------------------------------------------------------ */
 
-import { Diagnostic, DiagnosticSeverity,Command, Range 
+import { Diagnostic, DiagnosticSeverity, Range,
 } from 'vscode-languageserver';
 
-import {DevSkimWorker} from "./devskimWorker";
+import {DevSkimWorkerSettings} from "./devskimWorkerSettings";
 
-// The settings interface describe the server relevant settings part
-export interface Settings {
-	devskim: DevSkimSettings;
-}
-
-// These are the example settings we defined in the client's package.json
-// file
-export interface DevSkimSettings {
-	enableManualReviewRules: boolean;
-	enableInformationalSeverityRules: boolean;
-	enableDefenseInDepthSeverityRules: boolean;
+// These are the example settings defined in the client's package.json
+export interface IDevSkimSettings {
 	enableBestPracticeRules: boolean;
+	enableDefenseInDepthSeverityRules: boolean;
+	enableInformationalSeverityRules: boolean;
 	enableLowSeverityRules: boolean;
-	suppressionDurationInDays: number;
-	manualReviewerName: string;
+	enableManualReviewRules: boolean;
+	guidanceBaseURL: string;
 	ignoreFilesList: string[];
 	ignoreRulesList: string[];
-	validateRulesFiles: boolean;
-	guidanceBaseURL: string;	
+	manualReviewerName: string;
 	removeFindingsOnClose: boolean;
+	suppressionDurationInDays: number;
+	validateRulesFiles: boolean;
+}
+
+export class DevSkimSettings implements IDevSkimSettings {
+	enableBestPracticeRules: boolean = false;
+	enableDefenseInDepthSeverityRules: boolean = false;
+	enableInformationalSeverityRules: boolean = false;
+	enableLowSeverityRules: boolean = false;
+	enableManualReviewRules: boolean = false;
+	guidanceBaseURL: string = '';
+	ignoreFilesList: string[] = [];
+	ignoreRulesList: string[] = [];
+	manualReviewerName: string = '';
+	removeFindingsOnClose: boolean = false;
+	suppressionDurationInDays: number = 0;
+	validateRulesFiles: boolean = true;
 }
 
 /**
@@ -46,9 +55,9 @@ export interface DevSkimSettings {
 export interface Pattern {
     pattern: string;
     type: string;
-	modifiers?:string[];
+	modifiers?: string[];
     scopes?: string[];
-    _comment ? : string;
+    _comment?: string;
 }
 
 
@@ -65,7 +74,7 @@ export interface FixIt {
     name: string;
     pattern: Pattern;
     replacement: string;
-	_comment ? : string;
+	_comment? : string;
 }
 
 
@@ -87,19 +96,19 @@ export interface Rule {
     severity: string;
     description: string;
     recommendation: string;
-    rule_info: string;
+    ruleInfo: string;
 	patterns: Pattern[];
 	conditions?: Condition[];
     fix_its?: FixIt[];
 	filepath? : string; //filepath to the rules file the rule came from
-	_comment ? : string;
+	_comment? : string;
 }
 
 export interface Condition {
 	pattern: Pattern;
 	search_in: string;
 	_comment?: string;
-	negate_finding?: boolean;
+	negateFinding?: boolean;
 
 }
 
@@ -157,9 +166,10 @@ export enum DevskimRuleSeverity
 	Important,
 	Moderate,
 	BestPractice,
-	WarningInfo, //this isn't actually an error level in rules, but used when flagging
-	             //DS identifiers in suppressions and other comments
-	ManualReview
+	WarningInfo,
+	ManualReview,
+	// this isn't actually an error level in rules, but used when flagging
+	// DS identifiers in suppression and other comments
 }
 
 /**
@@ -174,12 +184,12 @@ export class DevSkimProblem {
 	public severity: DevskimRuleSeverity;
 	public ruleId: string; //the id in the rules JSON files
 	public message: string;
-	public issueURL : string;
+	public issueURL: string;
 	public replacement: string;
 	public fixes: DevSkimAutoFixEdit[];
-	public suppressedFindingRange : Range;
+	public suppressedFindingRange: Range;
 
-	public overrides : string[]; //a collection of ruleIDs that this rule supercedes
+	public overrides: string[]; //a collection of ruleIDs that this rule supercedes
 
     /**
      * Creates an instance of DevSkimProblem.
@@ -188,23 +198,21 @@ export class DevSkimProblem {
      * @param {string} source the name of the rule that was triggered (name in the rules JSON)
      * @param {string} ruleId a unique identifier for that particular rule (id in the rules JSON)
      * @param {string} severity MSRC based severity for the rule - Critical, Important, Moderate, Low, Informational (severity in rules JSON)
+     * @param replacement @todo update this
      * @param {string} issueURL a URL to some place the dev can get more information on the problem (rules_info in the rules JSON)
      * @param {Range} range where the problem was found in the file (line start, column start, line end, column end) 
      */
-    constructor ( message: string, source: string, ruleId: string, severity: DevskimRuleSeverity, replacement: string, issueURL: string, range: Range) 
-    {
-		this.fixes    = [];
+	constructor(message: string, source: string, ruleId: string, severity: DevskimRuleSeverity, replacement: string, issueURL: string, range: Range) {
+		this.fixes = [];
 		this.overrides = [];
-
-        this.message     = (message     !== undefined && message.length     > 0) ? message     : "";
-        this.source      = (source      !== undefined && source.length      > 0) ? source      : "";
-        this.ruleId      = (ruleId      !== undefined && ruleId.length      > 0) ? ruleId      : "";
-		this.issueURL    = (issueURL    !== undefined && issueURL.length    > 0) ? issueURL    : "";
+		this.message = (message !== undefined && message.length > 0) ? message : "";
+		this.source = (source !== undefined && source.length > 0) ? source : "";
+		this.ruleId = (ruleId !== undefined && ruleId.length > 0) ? ruleId : "";
+		this.issueURL = (issueURL !== undefined && issueURL.length > 0) ? issueURL : "";
 		this.replacement = (replacement !== undefined && replacement.length > 0) ? replacement : "";
-   		this.range    = (range    !== undefined ) ? range    : Range.create(0,0,0,0);
-		this.severity = severity;  
-		this.suppressedFindingRange = null; 
-        
+		this.range = (range !== undefined) ? range : Range.create(0, 0, 0, 0);
+		this.severity = severity;
+		this.suppressedFindingRange = null;
 	}
 
 	/**
@@ -215,7 +223,7 @@ export class DevSkimProblem {
 	 * 
 	 * @memberOf DevSkimProblem
 	 */
-	public getSeverityName(severity : DevskimRuleSeverity) : string
+	public static getSeverityName(severity: DevskimRuleSeverity): string
 	{
 		switch (severity)
 		{
@@ -233,9 +241,9 @@ export class DevSkimProblem {
      * 
      * @returns {DiagnosticSeverity}
      */
-    public getWarningLevel() : DiagnosticSeverity
+    public getWarningLevel(): DiagnosticSeverity
     {
-		//mark any optional rule, or rule that is simply imformational as a warning (i.e. green squiggle)
+		//mark any optional rule, or rule that is simply informational as a warning (i.e. green squiggle)
 		switch(this.severity)
 		{
 			case DevskimRuleSeverity.WarningInfo:
@@ -255,18 +263,18 @@ export class DevSkimProblem {
      * 
      * @returns {Diagnostic}
      */
-    public makeDiagnostic(): Diagnostic 
+    public makeDiagnostic(dswSettings: DevSkimWorkerSettings): Diagnostic
 	{
-		var diagnostic : Diagnostic = Object.create(null);
-		//truncate the severity so that the message looks a bit more succinct in the output window
-		let fullMessage : string = "\n" + this.source + "\nSeverity: " + this.getSeverityName(this.severity) + "\n\n" + this.message;
+		const diagnostic: Diagnostic = Object.create(null);
+		let fullMessage =
+			`${this.source}\nSeverity: ${DevSkimProblem.getSeverityName(this.severity)}\n\n${this.message}`;
 
 		fullMessage = (this.replacement.length > 0 ) ? 
 			fullMessage + "\n\nFix Guidance: " + this.replacement : 
 			fullMessage;
 
 		fullMessage = (this.issueURL.length > 0 ) ? 
-			fullMessage + "\n\nMore Info:\n" + DevSkimWorker.settings.devskim.guidanceBaseURL + this.issueURL : 
+			fullMessage + "\n\nMore Info:\n" + dswSettings.getSettings().guidanceBaseURL + this.issueURL + "\n" :
 			fullMessage;
 
 		diagnostic.message = fullMessage;
@@ -322,12 +330,13 @@ export class Fixes {
 		let result: AutoFix[] = [];
 		for(let diagnostic of diagnostics) {
 			let key = computeKey(diagnostic.range, diagnostic.code);
-			let x : number = 0;
-			let editInfo : AutoFix;
-			while( editInfo = this.edits[key+x.toString(10)])
+			let x = 0;
+			let editInfo: AutoFix = this.edits[key+x.toString(10)];
+			while(editInfo)
 			{
 				result.push(editInfo);
 				x++;
+				editInfo = this.edits[key+x.toString(10)];
 			}
 		}
 		return result;

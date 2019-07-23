@@ -2,24 +2,31 @@
   "name": "devskim-server",
   "description": "Devskim Language Server component",
   "version": "0.2.1",
-  "author": "Microsoft Corporation",
+  "author": "Security Engineering",
+  "publisher": "MS-DevSkim",
+  "private": true,
   "license": "MIT",
   "engines": {
     "node": "*"
   },
-  "private": true,
+  "scripts": {
+    "clean": "rm -rf *.log out node_modules package-lock.json yarn.lock"
+  },
   "dependencies": {
+    "glob-promise": "^3.4.0",
+    "lodash": "^4.17.11",
+    "mkdirp": "^0.5.1",
     "node-dir": ">=0.1.17",
-    "vscode-languageserver": "^3.3.0",
-    "xregexp": "^3.2.0",
-    "mkdirp": "^0.5.1"
+    "vscode-languageserver": "^5.2.1",
+    "vscode-languageserver-protocol": "^3.14.1",
+    "vscode-uri": "^1.0.6",
+    "xregexp": "^3.2.0"
   },
   "devDependencies": {
-    "@types/node": "^6.0.41",
-    "typescript": "^2.4.2"
-  },
-  "scripts": {
-    "compile": "installServerIntoExtension ../client ./package.json ./tsconfig.json && tsc -p .",
-    "watch": "installServerIntoExtension ../client ./package.json ./tsconfig.json && tsc --watch -p ."
+    "@types/jest": "^24.0.11",
+    "@types/node": "^6.14.4",
+    "jest": "^24.7.1",
+    "ts-jest": "^24.0.2",
+    "typescript": "^3.4.3"
   }
 }

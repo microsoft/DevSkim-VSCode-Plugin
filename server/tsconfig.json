@@ -1,12 +1,13 @@
 {
 	"compilerOptions": {
-		"target": "ES6",
+		"target": "es6",
 		"module": "commonjs",
 		"moduleResolution": "node",
-		"sourceMap": true,
-		"outDir": "../client/server"
+		"outDir": "out",
+		"rootDirs": ["./src"],
+		"lib": ["es6"],
+		"sourceMap": true
 	},
-	"exclude": [
-		"node_modules"
-	]
+	"include": ["src"],
+	"exclude": ["node_modules", "out/**/__mocks__/*"]
 }
