@@ -458,8 +458,7 @@ export class DevSkimWorker
      */
     public static MatchesConditionPattern(condition: Condition, documentContents: string, findingRange: Range, langID: string): boolean
     {
-
-        let regionRegex: RegExp = /finding-region\((-*\d+),(-*\d+)\)/;
+        let regionRegex: RegExp = /finding-region\s*\((-*\d+),\s*(-*\d+)\s*\)/;
         let XRegExp = require('xregexp');
 
 
@@ -479,7 +478,7 @@ export class DevSkimWorker
         //calculate where to look for the condition.  finding-only is just within the actual finding the original pattern flagged.
         //finding-region(#,#) specifies an area around the finding.  A 0 for # means the line of the finding, negative values mean 
         //that many lines prior to the finding, and positive values mean that many line later in the code
-        if (condition.search_in == undefined || condition.search_in) 
+        if (condition.search_in == undefined || condition.search_in.length == 0) 
         {
             startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line);
             endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line + 1);

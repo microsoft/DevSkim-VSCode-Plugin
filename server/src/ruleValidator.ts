@@ -6,7 +6,7 @@
  *
  */
 
-import { Rule, FixIt, Pattern, Condition } from "./devskimObjects";
+import { Rule, FixIt, Pattern, Condition, Lambda } from "./devskimObjects";
 import * as path from 'path';
 import { IConnection } from "vscode-languageserver";
 import ErrnoException = NodeJS.ErrnoException;
@@ -239,7 +239,7 @@ export class RuleValidator implements IRuleValidator
         }
         else if(RuleValidator.isSet(loadedCondition.lambda, "Lambda"))
         {
-            condition.lambda = loadedCondition.lambda;
+            condition.lambda = this.validateLambda(loadedCondition.lambda, loadedCondition);
         }
         else
         {
@@ -255,11 +255,74 @@ export class RuleValidator implements IRuleValidator
         condition.negateFinding =  (RuleValidator.isSet(loadedCondition.negateFinding, "boolean")) ?
                                         loadedCondition.negateFinding : false ;        
         
-        condition.search_in = loadedCondition.search_in;
+        condition.search_in = this.validateSearch(loadedCondition.search_in, loadedRule);
 
         condition._comment = (RuleValidator.isSet(loadedCondition._comment, "string")) ? loadedCondition._comment : "";
 
         return condition;
+    }
+
+    private validateLambda(loadedLambda, loadedRule) : Lambda
+    {
+        let lambda : Lambda = Object.create(null);
+
+        //To Do - actual validation.  Not sure what that will look like yet for lambda code
+        //should at least verify the function signature
+        lambda.lambda_code = loadedLambda.lambda_code;
+
+        lambda._comment = (RuleValidator.isSet(loadedLambda._comment, "string")) ? loadedLambda._comment : "";
+
+        return lambda;
+    }
+
+    private validateSearch(loadedSearch, loadedRule) : string
+    {
+        let search_in : string = "";
+
+        if(!RuleValidator.isSet(loadedSearch, "string"))
+        {
+            search_in = "finding-region(0,0)";
+        }
+        else if(loadedSearch == "finding-only")
+        {
+            search_in = loadedSearch;
+        }
+        else
+        {
+            let regionRegex: RegExp = /finding-region\s*\((-*\d+),\s*(-*\d+)\s*\)/;
+            let XRegExp = require('xregexp');
+
+            let regionMatch = XRegExp.exec(loadedSearch, regionRegex);
+            if (regionMatch && regionMatch.length > 2) 
+            {
+                let startPos : number = this.verifyType(regionMatch[1], "number", loadedRule, OutputAlert.Warning, 
+                                        "Condition has an invalid first parameter in search-in; defaulting to 0") ?
+                                        regionMatch[1] : 0 ;
+
+                let endPos : number = (this.verifyType(regionMatch[2], "number", loadedRule, OutputAlert.Warning, 
+                                        "Condition has an invalid second parameter in search-in; defaulting to 0)")) ?
+                                        regionMatch[2] : 0;
+                
+                search_in = "finding-region(" + startPos + "," + endPos + ")";
+                
+            }
+            else  
+            {     
+                //if there isn't a match and the above search_in conditions are also not true
+                //that means they put an invalid value in.  add a warning and default
+                let outcome: OutputMessages = Object.create(null);
+                outcome.alert = OutputAlert.Warning;
+                outcome.message = "Condition has an invalid search-in; defaulting to finding-region(0,0)";
+                outcome.ruleid = loadedRule.id;
+                outcome.file = loadedRule.filepath;
+                this.outputMessages.push(outcome);     
+                
+                search_in = "finding-region(0,0)";
+            }
+        }
+
+        return search_in;
+
     }
 
 
@@ -962,7 +1025,7 @@ export class RuleValidator implements IRuleValidator
                 }
                 break;
             case "number":
-                if (typeof variable !== 'number')
+                if (!(typeof variable === 'number' || Number.isInteger(Number.parseInt(variable.toString(),10))))
                 {
                     verifiedType = false;
                 }
