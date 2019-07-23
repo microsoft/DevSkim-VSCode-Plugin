@@ -419,107 +419,129 @@ export class DevSkimWorker
         return problem;
     }
 
+    /**
+     * Check if all of the conditions within a rule are met.  Called after the initial pattern finds an issue
+     * 
+     * @param conditions 
+     * @param documentContents 
+     * @param findingRange 
+     * @param langID 
+     */
     public static MatchesConditions(conditions: Condition[], documentContents: string, findingRange: Range, langID: string): boolean 
     {
-        return DevSkimWorker.MatchesConditionPattern(conditions, documentContents, findingRange, langID)
+        if (conditions != undefined && conditions && conditions.length != 0)
+        {
+            for (let condition of conditions) 
+            {   
+                if(condition.pattern != undefined && condition.pattern && condition.pattern.pattern != undefined &&
+                    condition.pattern.pattern && condition.pattern.pattern.length > 0)
+                {
+                    if(DevSkimWorker.MatchesConditionPattern(condition, documentContents, findingRange, langID))
+                    {
+                        return false;
+                    }
+                }         
+
+            }
+        }
+
+        return true;
     }
 
     /**
-     *
-     * @param {Condition[]} conditions the condition objects we are checking for
+     * Check to see if a RegEx powered condition is met or not
+     * 
+     * @param {Condition[]} condition the condition objects we are checking for
      * @param {string} documentContents the document we are finding the conditions in
      * @param {Range} findingRange the location of the finding we are looking for more conditions around
      * @param {string} langID the language we are working in
      */
-    public static MatchesConditionPattern(conditions: Condition[], documentContents: string, findingRange: Range, langID: string): boolean
+    public static MatchesConditionPattern(condition: Condition, documentContents: string, findingRange: Range, langID: string): boolean
     {
-        if (conditions != undefined && conditions && conditions.length != 0)
+
+        let regionRegex: RegExp = /finding-region\((-*\d+),(-*\d+)\)/;
+        let XRegExp = require('xregexp');
+
+
+        if (condition.negateFinding == undefined)
         {
-            let regionRegex: RegExp = /finding-region\((-*\d+),(-*\d+)\)/;
-            let XRegExp = require('xregexp');
+            condition.negateFinding = false;
+        }
 
-            for (let condition of conditions) 
+        let modifiers: string[] = (condition.pattern.modifiers != undefined && condition.pattern.modifiers.length > 0) ?
+            condition.pattern.modifiers.concat(["g"]) : ["g"];
+
+        let conditionRegex: RegExp = DevSkimWorker.MakeRegex(condition.pattern.type, condition.pattern.pattern, modifiers, true);
+
+        let startPos: number = findingRange.start.line;
+        let endPos: number = findingRange.end.line;
+
+        //calculate where to look for the condition.  finding-only is just within the actual finding the original pattern flagged.
+        //finding-region(#,#) specifies an area around the finding.  A 0 for # means the line of the finding, negative values mean 
+        //that many lines prior to the finding, and positive values mean that many line later in the code
+        if (condition.search_in == undefined || condition.search_in) 
+        {
+            startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line);
+            endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line + 1);
+        }
+        else if (condition.search_in == "finding-only") 
+        {
+            startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line) + findingRange.start.character;
+            endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line) + findingRange.end.character;
+        }
+        else 
+        {
+            let regionMatch = XRegExp.exec(condition.search_in, regionRegex);
+            if (regionMatch && regionMatch.length > 2) 
             {
-                if (condition.negateFinding == undefined)
-                {
-                    condition.negateFinding = false;
-                }
-
-                let modifiers: string[] = (condition.pattern.modifiers != undefined && condition.pattern.modifiers.length > 0) ?
-                    condition.pattern.modifiers.concat(["g"]) : ["g"];
-
-                let conditionRegex: RegExp = DevSkimWorker.MakeRegex(condition.pattern.type, condition.pattern.pattern, modifiers, true);
-
-                let startPos: number = findingRange.start.line;
-                let endPos: number = findingRange.end.line;
-
-                //calculate where to look for the condition.  finding-only is just within the actual finding the original pattern flagged.
-                //finding-region(#,#) specifies an area around the finding.  A 0 for # means the line of the finding, negative values mean 
-                //that many lines prior to the finding, and positive values mean that many line later in the code
-                if (condition.search_in == undefined || condition.search_in) 
-                {
-                    startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line);
-                    endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line + 1);
-                }
-                else if (condition.search_in == "finding-only") 
-                {
-                    startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line) + findingRange.start.character;
-                    endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line) + findingRange.end.character;
-                }
-                else 
-                {
-                    let regionMatch = XRegExp.exec(condition.search_in, regionRegex);
-                    if (regionMatch && regionMatch.length > 2) 
-                    {
-                        startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line + regionMatch[1]);
-                        endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line + regionMatch[2] + 1);
-                    }
-                }
-                let foundPattern = false;
-                //go through all of the text looking for a match with the given pattern
-                let match = XRegExp.exec(documentContents, conditionRegex, startPos);
-                while (match) 
-                {
-                    //if we are passed the point we should be looking
-                    if (match.index > endPos) 
-                    {
-                        if (condition.negateFinding == false) 
-                        {
-                            return false;
-                        }
-                        else 
-                        {
-                            break;
-                        }
-                    }
-
-
-                    //calculate what line we are on by grabbing the text before the match & counting the newlines in it
-                    let lineStart: number = DevSkimWorker.GetLineNumber(documentContents, match.index);
-                    let newlineIndex: number = (lineStart == 0) ? -1 : documentContents.substr(0, match.index).lastIndexOf("\n");
-
-                    //look for the suppression comment for that finding
-                    if (DevSkimWorker.MatchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex, condition.pattern.scopes)) 
-                    {
-                        if (condition.negateFinding == true) 
-                        {
-                            return false;
-                        }
-                        else 
-                        {
-                            foundPattern = true;
-                            break;
-                        }
-                    }
-                    startPos = match.index + match[0].length;
-                    match = XRegExp.exec(documentContents, conditionRegex, startPos);
-                }
-                if (condition.negateFinding == false && foundPattern == false) 
+                startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line + regionMatch[1]);
+                endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line + regionMatch[2] + 1);
+            }
+        }
+        let foundPattern = false;
+        //go through all of the text looking for a match with the given pattern
+        let match = XRegExp.exec(documentContents, conditionRegex, startPos);
+        while (match) 
+        {
+            //if we are passed the point we should be looking
+            if (match.index > endPos) 
+            {
+                if (condition.negateFinding == false) 
                 {
                     return false;
                 }
+                else 
+                {
+                    break;
+                }
             }
+
+
+            //calculate what line we are on by grabbing the text before the match & counting the newlines in it
+            let lineStart: number = DevSkimWorker.GetLineNumber(documentContents, match.index);
+            let newlineIndex: number = (lineStart == 0) ? -1 : documentContents.substr(0, match.index).lastIndexOf("\n");
+
+            //look for the suppression comment for that finding
+            if (DevSkimWorker.MatchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex, condition.pattern.scopes)) 
+            {
+                if (condition.negateFinding == true) 
+                {
+                    return false;
+                }
+                else 
+                {
+                    foundPattern = true;
+                    break;
+                }
+            }
+            startPos = match.index + match[0].length;
+            match = XRegExp.exec(documentContents, conditionRegex, startPos);
         }
+        if (condition.negateFinding == false && foundPattern == false) 
+        {
+            return false;
+        }
+        
 
         return true;
     }

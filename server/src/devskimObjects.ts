@@ -65,11 +65,25 @@ export interface Pattern
 	_comment?: string;
 }
 
+/**
+ * An Interface corresponding to the lambda section of the JSON
+ * rules files.  This object can only be used within conditions, and
+ * is an alternative to pattern
+ * 
+ * @export
+ * @interface Lambda
+ */
+export interface Lambda
+{
+	lambda_code: string;
+	_comment?: string;
+}
+
 
 /**
  * An Interface corresponding to the FixIt section of the JSON
  * rules files.  The FixIt contains the instructions to translate a flagged piece
- * of code into a prefered alternitive
+ * of code into a preferred alternative
  * 
  * @export
  * @interface FixIt
@@ -114,6 +128,7 @@ export interface Rule
 export interface Condition
 {
 	pattern: Pattern;
+	lambda: Lambda;
 	search_in: string;
 	_comment?: string;
 	negateFinding?: boolean;

@@ -16,13 +16,13 @@ import { SourceComments } from "./comments";
 
 /**
  * Class to handle Suppressions (i.e. comments that direct devskim to ignore a finding for either a period of time or permanently)
- * a suppression in practice would looke something like this (assuming a finding in a C file):
+ * a suppression in practice would look something like this (assuming a finding in a C file):
  * 
  *      strcpy(a,b); //DevSkim: ignore DS185832 until 2016-12-28
  * 
  * The comment after strcpy (which DevSkim would normally flag) tells devskim to ignore that specific finding (as Identified by the DS185832 - the strcpy rule)
  * until 2016-12-28.  prior to that date DevSkim shouldn't flag the finding. After that date it should.  This is an example of a temporary suppression, and is used
- * when the dev wants to fix something but is busy with other work at the moment.  If the date is ommitted DevSkim will never flag that finding again (provided the 
+ * when the dev wants to fix something but is busy with other work at the moment.  If the date is omitted DevSkim will never flag that finding again (provided the 
  * suppression comment remains next to the finding).
  * 
  * The logic to determine if a finding should be suppressed, as well as the logic to create the code action to add a suppression exist in this class
@@ -188,10 +188,12 @@ export class DevSkimSuppression
         if (isReviewRule)
         {
             action.fixName = `DevSkim: Mark ${ruleID} as Reviewed`;
-        } else if (isDateSet)
+        } 
+        else if (isDateSet)
         {
             action.fixName = `DevSkim: Suppress ${ruleID} for ${daysOffset.toString(10)} days`;
-        } else
+        } 
+        else
         {
             action.fixName = `DevSkim: Suppress ${ruleID} permanently`;
         }

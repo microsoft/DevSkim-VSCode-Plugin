@@ -6,7 +6,7 @@
  *
  */
 
-import { Rule, FixIt, Pattern } from "./devskimObjects";
+import { Rule, FixIt, Pattern, Condition } from "./devskimObjects";
 import * as path from 'path';
 import { IConnection } from "vscode-languageserver";
 import ErrnoException = NodeJS.ErrnoException;
@@ -195,7 +195,7 @@ export class RuleValidator implements IRuleValidator
         if (fix_its.length > 0)
             newRule.fix_its = fix_its;
 
-        newRule.conditions = loadedRule.conditions;
+        newRule.conditions = this.validateConditionsArray(loadedRule);
 
 
         if (!RuleValidator.isSet(this.fixedRules[loadedRule.filepath], "array"))
@@ -204,6 +204,62 @@ export class RuleValidator implements IRuleValidator
         }
         this.fixedRules[loadedRule.filepath].push(newRule);
         return newRule;
+    }
+
+    /**
+     * 
+     * @param loadedRule the rule loaded from the file system
+     */
+    private validateConditionsArray(loadedRule) : Condition[]
+    {
+        let conditions: Condition[] = [];
+        if (this.checkValue(loadedRule.conditions, loadedRule, "array", "", OutputAlert.Info))
+        {
+            for (let condition of loadedRule.conditions)
+            {
+                conditions.push(this.validateConditionObject(condition, loadedRule));
+            }
+        }
+        return loadedRule.conditions;
+
+    }
+
+    /**
+     * 
+     * @param loadedCondition 
+     * @param loadedRule 
+     */
+    private validateConditionObject(loadedCondition, loadedRule) : Condition
+    {
+        let condition: Condition = Object.create(null);
+
+        if(RuleValidator.isSet(loadedCondition.pattern, "Pattern"))
+        {
+            condition.pattern = this.validatePatternObject(loadedCondition.pattern, loadedRule);
+        }
+        else if(RuleValidator.isSet(loadedCondition.lambda, "Lambda"))
+        {
+            condition.lambda = loadedCondition.lambda;
+        }
+        else
+        {
+            let outcome: OutputMessages = Object.create(null);
+            outcome.alert = OutputAlert.Error;
+            outcome.message = "Condition must have either a pattern or a lambda; neither was found";
+            outcome.ruleid = loadedRule.id;
+            outcome.file = loadedRule.filepath;
+            this.outputMessages.push(outcome);
+            throw "Condition needs either a pattern or a lambda, and neither are present";
+        }
+
+        condition.negateFinding =  (RuleValidator.isSet(loadedCondition.negateFinding, "boolean")) ?
+                                        loadedCondition.negateFinding : false ;        
+        
+        condition.search_in = loadedCondition.search_in;
+
+        condition._comment = (RuleValidator.isSet(loadedCondition._comment, "string")) ? loadedCondition._comment : "";
+
+        return condition;
     }
 
 
