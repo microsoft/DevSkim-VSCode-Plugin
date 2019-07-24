@@ -6,7 +6,7 @@
  * This file contains the actual meat and potatoes of analysis.  The DevSkimWorker class does 
  * the actual work of analyzing data it was given
  * 
- * Most of the type declerations representing things like the rules used to analyze a file, and 
+ * Most of the type declarations representing things like the rules used to analyze a file, and 
  * problems found in a file, are in devskimObjects.ts
  * 
  * ------------------------------------------------------------------------------------------ */
@@ -15,14 +15,14 @@ import
 {
     computeKey, Condition, DevSkimProblem, DevskimRuleSeverity, Map, AutoFix,
     Rule, DevSkimAutoFixEdit, IDevSkimSettings,
-}
-    from "./devskimObjects";
+}    from "./devskimObjects";
+
 import { DevSkimSuppression, DevSkimSuppressionFinding } from "./suppressions";
 import { PathOperations } from "./pathOperations";
 import { SourceComments } from "./comments";
-import { RuleValidator } from "./ruleValidator";
 import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
 import { RulesLoader } from "./rulesLoader";
+import {DevskimLambdaEngine} from "./devskimLambda";
 
 /**
  * The bulk of the DevSkim analysis logic.  Loads rules in, exposes functions to run rules across a file
@@ -32,8 +32,6 @@ export class DevSkimWorker
     public dswSettings: DevSkimWorkerSettings = new DevSkimWorkerSettings();
     public readonly rulesDirectory: string;
     private analysisRules: Rule[];
-    private tempRules: Rule[];
-    private dir = require('node-dir');
 
     //codeActions is the object that holds all of the autofix mappings. we need to store them because
     //the CodeActions are created at a different point than the diagnostics, yet we still need to be able
@@ -419,105 +417,37 @@ export class DevSkimWorker
         return problem;
     }
 
-    public static MatchesConditions(conditions: Condition[], documentContents: string, findingRange: Range, langID: string): boolean 
-    {
-        return DevSkimWorker.MatchesConditionPattern(conditions, documentContents, findingRange, langID)
-    }
-
     /**
-     *
-     * @param {Condition[]} conditions the condition objects we are checking for
-     * @param {string} documentContents the document we are finding the conditions in
-     * @param {Range} findingRange the location of the finding we are looking for more conditions around
+     * Check if all of the conditions within a rule are met.  Called after the initial pattern finds an issue
+     * 
+     * @param {Condition[]} conditions the array of conditions for the rule that triggered
+     * @param {string} documentContents the document we are currently looking through
+     * @param {Range} findingRange the span of text for the current finding
      * @param {string} langID the language we are working in
      */
-    public static MatchesConditionPattern(conditions: Condition[], documentContents: string, findingRange: Range, langID: string): boolean
+    public static MatchesConditions(conditions: Condition[], documentContents: string, findingRange: Range, langID: string): boolean 
     {
         if (conditions != undefined && conditions && conditions.length != 0)
         {
-            let regionRegex: RegExp = /finding-region\((-*\d+),(-*\d+)\)/;
-            let XRegExp = require('xregexp');
-
             for (let condition of conditions) 
-            {
-                if (condition.negateFinding == undefined)
+            {   
+                //i know this looks weird - there is an object called pattern, nested inside another object called
+                //pattern. Sorry, that was poor naming convention
+                if(condition.pattern != undefined && condition.pattern && condition.pattern.pattern != undefined &&
+                    condition.pattern.pattern && condition.pattern.pattern.length > 0)
                 {
-                    condition.negateFinding = false;
-                }
-
-                let modifiers: string[] = (condition.pattern.modifiers != undefined && condition.pattern.modifiers.length > 0) ?
-                    condition.pattern.modifiers.concat(["g"]) : ["g"];
-
-                let conditionRegex: RegExp = DevSkimWorker.MakeRegex(condition.pattern.type, condition.pattern.pattern, modifiers, true);
-
-                let startPos: number = findingRange.start.line;
-                let endPos: number = findingRange.end.line;
-
-                //calculate where to look for the condition.  finding-only is just within the actual finding the original pattern flagged.
-                //finding-region(#,#) specifies an area around the finding.  A 0 for # means the line of the finding, negative values mean 
-                //that many lines prior to the finding, and positive values mean that many line later in the code
-                if (condition.search_in == undefined || condition.search_in) 
-                {
-                    startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line);
-                    endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line + 1);
-                }
-                else if (condition.search_in == "finding-only") 
-                {
-                    startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line) + findingRange.start.character;
-                    endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line) + findingRange.end.character;
-                }
-                else 
-                {
-                    let regionMatch = XRegExp.exec(condition.search_in, regionRegex);
-                    if (regionMatch && regionMatch.length > 2) 
+                    if(DevSkimWorker.MatchesConditionPattern(condition, documentContents, findingRange, langID))
                     {
-                        startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line + regionMatch[1]);
-                        endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line + regionMatch[2] + 1);
+                        return false;
                     }
                 }
-                let foundPattern = false;
-                //go through all of the text looking for a match with the given pattern
-                let match = XRegExp.exec(documentContents, conditionRegex, startPos);
-                while (match) 
+                else if(condition.lambda != undefined && condition.lambda && condition.lambda.lambda_code != undefined &&
+                    condition.lambda.lambda_code && condition.lambda.lambda_code.length > 0)
                 {
-                    //if we are passed the point we should be looking
-                    if (match.index > endPos) 
-                    {
-                        if (condition.negateFinding == false) 
-                        {
-                            return false;
-                        }
-                        else 
-                        {
-                            break;
-                        }
-                    }
-
-
-                    //calculate what line we are on by grabbing the text before the match & counting the newlines in it
-                    let lineStart: number = DevSkimWorker.GetLineNumber(documentContents, match.index);
-                    let newlineIndex: number = (lineStart == 0) ? -1 : documentContents.substr(0, match.index).lastIndexOf("\n");
-
-                    //look for the suppression comment for that finding
-                    if (DevSkimWorker.MatchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex, condition.pattern.scopes)) 
-                    {
-                        if (condition.negateFinding == true) 
-                        {
-                            return false;
-                        }
-                        else 
-                        {
-                            foundPattern = true;
-                            break;
-                        }
-                    }
-                    startPos = match.index + match[0].length;
-                    match = XRegExp.exec(documentContents, conditionRegex, startPos);
+                    let lambdaWorker : DevskimLambdaEngine = new DevskimLambdaEngine(condition, documentContents, findingRange, langID);
+                    return lambdaWorker.ExecuteLambda(); 
                 }
-                if (condition.negateFinding == false && foundPattern == false) 
-                {
-                    return false;
-                }
+
             }
         }
 
@@ -525,11 +455,108 @@ export class DevSkimWorker
     }
 
     /**
-     * returns the number of newlines (regardless of platform) from the beginning of the provided text to the
-     * current location
+     * Check to see if a RegEx powered condition is met or not
+     * 
+     * @param {Condition} condition the condition objects we are checking for
+     * @param {string} documentContents the document we are finding the conditions in
+     * @param {Range} findingRange the location of the finding we are looking for more conditions around
+     * @param {string} langID the language we are working in
+     */
+    public static MatchesConditionPattern(condition: Condition, documentContents: string, findingRange: Range, langID: string): boolean
+    {
+        let regionRegex: RegExp = /finding-region\s*\((-*\d+),\s*(-*\d+)\s*\)/;
+        let XRegExp = require('xregexp');
+
+
+        if (condition.negateFinding == undefined)
+        {
+            condition.negateFinding = false;
+        }
+
+        let modifiers: string[] = (condition.pattern.modifiers != undefined && condition.pattern.modifiers.length > 0) ?
+            condition.pattern.modifiers.concat(["g"]) : ["g"];
+
+        let conditionRegex: RegExp = DevSkimWorker.MakeRegex(condition.pattern.type, condition.pattern.pattern, modifiers, true);
+
+        let startPos: number = findingRange.start.line;
+        let endPos: number = findingRange.end.line;
+
+        //calculate where to look for the condition.  finding-only is just within the actual finding the original pattern flagged.
+        //finding-region(#,#) specifies an area around the finding.  A 0 for # means the line of the finding, negative values mean 
+        //that many lines prior to the finding, and positive values mean that many line later in the code
+        if (condition.search_in == undefined || condition.search_in.length == 0) 
+        {
+            startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line);
+            endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line + 1);
+        }
+        else if (condition.search_in == "finding-only") 
+        {
+            startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line) + findingRange.start.character;
+            endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line) + findingRange.end.character;
+        }
+        else 
+        {
+            let regionMatch = XRegExp.exec(condition.search_in, regionRegex);
+            if (regionMatch && regionMatch.length > 2) 
+            {
+                startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line + regionMatch[1]);
+                endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line + regionMatch[2] + 1);
+            }
+        }
+        let foundPattern = false;
+        //go through all of the text looking for a match with the given pattern
+        let match = XRegExp.exec(documentContents, conditionRegex, startPos);
+        while (match) 
+        {
+            //if we are passed the point we should be looking
+            if (match.index > endPos) 
+            {
+                if (condition.negateFinding == false) 
+                {
+                    return false;
+                }
+                else 
+                {
+                    break;
+                }
+            }
+
+
+            //calculate what line we are on by grabbing the text before the match & counting the newlines in it
+            let lineStart: number = DevSkimWorker.GetLineNumber(documentContents, match.index);
+            let newlineIndex: number = (lineStart == 0) ? -1 : documentContents.substr(0, match.index).lastIndexOf("\n");
+
+            //look for the suppression comment for that finding
+            if (DevSkimWorker.MatchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex, condition.pattern.scopes)) 
+            {
+                if (condition.negateFinding == true) 
+                {
+                    return false;
+                }
+                else 
+                {
+                    foundPattern = true;
+                    break;
+                }
+            }
+            startPos = match.index + match[0].length;
+            match = XRegExp.exec(documentContents, conditionRegex, startPos);
+        }
+        if (condition.negateFinding == false && foundPattern == false) 
+        {
+            return false;
+        }
+        
+
+        return true;
+    }
+
+    /**
+     * The documentContents is just a stream of text, but when interacting with the editor its common to need
+     * the line number.  This counts the newlines to the current document position
      *
      * @private
-     * @param {string} documentContents the text to search for nelines in
+     * @param {string} documentContents the text to count newlines in
      * @param {number} currentPosition the point in the text that we should count newlines to
      * @returns {number}
      *
@@ -595,7 +622,7 @@ export class DevSkimWorker
         if (rule.fix_its !== undefined && rule.fix_its.length > 0) 
         {
             //recordCodeAction below acts like a stack, putting the most recently added rule first.
-            //Since the very first fix in the rule is usually the prefered one (when there are multiples)
+            //Since the very first fix in the rule is usually the preferred one (when there are multiples)
             //we want it to be first in the fixes collection, so we go through in reverse order 
             for (let fixIndex = rule.fix_its.length - 1; fixIndex >= 0; fixIndex--) 
             {
@@ -621,13 +648,13 @@ export class DevSkimWorker
     }
 
     /**
-     * Removes any findings from the problems array corresponding to rules that were overriden by other rules
+     * Removes any findings from the problems array corresponding to rules that were overridden by other rules
      * for example, both the Java specific MD5 rule and the generic MD5 rule will trigger on the same usage of MD5
-     * in Java.  We should only report the Java specific finding, as it supercedes the generic rule
+     * in Java.  We should only report the Java specific finding, as it supersedes the generic rule
      *
      * @private
      * @param {DevSkimProblem[]} problems array of findings
-     * @returns {DevSkimProblem[]} findings with any overriden findings removed
+     * @returns {DevSkimProblem[]} findings with any overridden findings removed
      */
     private processOverrides(problems: DevSkimProblem[]): DevSkimProblem[] 
     {
