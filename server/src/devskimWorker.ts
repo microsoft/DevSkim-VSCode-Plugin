@@ -22,6 +22,7 @@ import { PathOperations } from "./pathOperations";
 import { SourceComments } from "./comments";
 import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
 import { RulesLoader } from "./rulesLoader";
+import {DevskimLambdaEngine} from "./devskimLambda";
 
 /**
  * The bulk of the DevSkim analysis logic.  Loads rules in, exposes functions to run rules across a file
@@ -430,6 +431,8 @@ export class DevSkimWorker
         {
             for (let condition of conditions) 
             {   
+                //i know this looks weird - there is an object called pattern, nested inside another object called
+                //pattern. Sorry, that was poor naming convention
                 if(condition.pattern != undefined && condition.pattern && condition.pattern.pattern != undefined &&
                     condition.pattern.pattern && condition.pattern.pattern.length > 0)
                 {
@@ -437,7 +440,13 @@ export class DevSkimWorker
                     {
                         return false;
                     }
-                }         
+                }
+                else if(condition.lambda != undefined && condition.lambda && condition.lambda.lambda_code != undefined &&
+                    condition.lambda.lambda_code && condition.lambda.lambda_code.length > 0)
+                {
+                    let lambdaWorker : DevskimLambdaEngine = new DevskimLambdaEngine(condition, documentContents, findingRange, langID);
+                    return lambdaWorker.ExecuteLambda(); 
+                }
 
             }
         }
@@ -613,7 +622,7 @@ export class DevSkimWorker
         if (rule.fix_its !== undefined && rule.fix_its.length > 0) 
         {
             //recordCodeAction below acts like a stack, putting the most recently added rule first.
-            //Since the very first fix in the rule is usually the prefered one (when there are multiples)
+            //Since the very first fix in the rule is usually the preferred one (when there are multiples)
             //we want it to be first in the fixes collection, so we go through in reverse order 
             for (let fixIndex = rule.fix_its.length - 1; fixIndex >= 0; fixIndex--) 
             {

@@ -1,5 +1,42 @@
 [
     {
+        "name": "eval for untrusted data",
+        "id": "DS189439",
+        "description": "If untrusted data (data from HTTP requests, user submitted files, etc.) is included in an eval statement it can allow enable an attacker to inject their own code.",
+        "recommendation": "Edit the eval so that no untrusted date is included.  If untrusted data is absolutely necessary a great deal of care should be taken to ensure it is properly escaped so that it cannot be executed.  This is not as simple as just escaping quotes.",
+        "applies_to": [
+            "php"
+        ],
+        "tags": [
+            "PHP.DangerousFunctionCall"
+        ],
+        "severity": "important",
+        "_comment": "",
+        "rule_info": "DS189424.md",
+        "patterns": [
+            {
+                "pattern": "\\beval\\(([^,]+)\\)",
+                "type": "regex",
+                "scopes": [
+                    "code"
+                ],
+                "_comment": ""
+            }
+        ],
+        "conditions" : [
+            {
+                "lambda" : 
+                {
+                    "lambda_code": "() => { return true }",
+                    "_comment": ""
+                },
+                "search_in":"finding-only",
+                "negate_finding": true,
+                "_comment": "" 
+            }          
+        ]        
+    },    
+    {
         "name": "$_REQUEST should be avoided",
         "id": "DS144886",
         "description": "$_REQUEST combines POST, GET, and cookie values in one array, making it easy for an attacker to modify a POST or cookie value by instead putting it in a GET and sending the URL to the victim",
