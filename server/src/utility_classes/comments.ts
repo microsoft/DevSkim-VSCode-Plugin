@@ -167,7 +167,7 @@ export class SourceComments
             return true;
         }
 
-        //now test for block comments for languages that supprot them.  If the last instance of a start
+        //now test for block comments for languages that support them.  If the last instance of a start
         //of a block comment occurs AFTER the last instance of the end of a block comment, then the finding is
         //in a block comment.  NOTE - things like conditional compilation blocks will screw up this logic and 
         //to cover block comment starts/ends in those blocks this logic will need to be expanded out.  That's

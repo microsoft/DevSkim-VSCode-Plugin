@@ -6,7 +6,7 @@
  *
  */
 
-import { Rule, FixIt, Pattern, Condition, Lambda } from "./devskimObjects";
+import { Rule, FixIt, Pattern, Condition, Lambda } from "../devskimObjects";
 import * as path from 'path';
 import { IConnection } from "vscode-languageserver";
 import ErrnoException = NodeJS.ErrnoException;
@@ -374,7 +374,7 @@ export class RuleValidator implements IRuleValidator
             {
                 let outcome: OutputMessages = Object.create(null);
                 outcome.alert = OutputAlert.Warning;
-                outcome.message = "'fix_it'was present but empty.  As the schema has changed it should be removed";
+                outcome.message = "'fix_it was present but empty.  As the schema has changed it should be removed";
                 outcome.ruleid = loadedRule.id;
                 outcome.file = loadedRule.filepath;
                 this.outputMessages.push(outcome);
@@ -479,7 +479,7 @@ export class RuleValidator implements IRuleValidator
 
     /**
      * Make sure the fixit name is present and not too long
-     * @param fixitName name of the fixit (e.g. 'Change to strcp_S')
+     * @param fixitName name of the fixit (e.g. 'Change to strcpy_S')
      * @param loadedRule rule loaded from File System whose severity is being validated 
      */
     private validateFixitName(fixitName: string, loadedRule): string
@@ -873,7 +873,7 @@ export class RuleValidator implements IRuleValidator
      * @param arrayToValidate 
      * @param arrayName 
      * @param loadedRule the rule currently being scrutinized.  This is used to create any output messages.  It would be more performant to
-     *   pass just the ruleID and file, so consider refactoring.  Unfortunately I was lazy, and a ton of funcitons already take this
+     *   pass just the ruleID and file, so consider refactoring.  Unfortunately I was lazy, and a ton of functions already take this
      * @param stringValidator function to validate the individual strings in the array, since this is the point of variance between tags, applies_to, etc.
      * the function should accept a string and loadedRule as params, and return a string (in case it needs to do any cleanup)
      */
@@ -919,7 +919,7 @@ export class RuleValidator implements IRuleValidator
      * Ensures that a pattern modifier is one of the regular expression modifiers
      * @param modifier a regex modifier
      * @param loadedRule the rule currently being scrutinized.  This is used to create any output messages.  It would be more performant to
-     *   pass just the ruleID and file, so consider refactoring.  Unfortunately I was lazy, and a ton of funcitons already take this 
+     *   pass just the ruleID and file, so consider refactoring.  Unfortunately I was lazy, and a ton of functions already take this 
      */
     private validateSpecificPatternModifiers(modifier: string, loadedRule): string
     {
@@ -945,9 +945,9 @@ export class RuleValidator implements IRuleValidator
     /**
      * validator function for each string in the overrides array.  checks to make sure the format of the string is DS######
      * (that it is a ruleID), and writes a warning to the log if it isn't.
-     * @param overridden ruleID for the rule that was overriden
+     * @param overridden ruleID for the rule that was overridden
      * @param loadedRule the rule currently being scrutinized.  This is used to create any output messages.  It would be more performant to
-     *   pass just the ruleID and file, so consider refactoring.  Unfortunately I was lazy, and a ton of funcitons already take this
+     *   pass just the ruleID and file, so consider refactoring.  Unfortunately I was lazy, and a ton of functions already take this
      */
     private validateSpecificOverride(overridden: string, loadedRule): string
     {

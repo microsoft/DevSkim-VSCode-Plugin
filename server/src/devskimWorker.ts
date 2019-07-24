@@ -17,11 +17,11 @@ import
     Rule, DevSkimAutoFixEdit, IDevSkimSettings,
 }    from "./devskimObjects";
 
-import { DevSkimSuppression, DevSkimSuppressionFinding } from "./suppressions";
-import { PathOperations } from "./pathOperations";
-import { SourceComments } from "./comments";
+import { DevSkimSuppression, DevSkimSuppressionFinding } from "./utility_classes/suppressions";
+import { PathOperations } from "./utility_classes/pathOperations";
+import { SourceComments } from "./utility_classes/comments";
 import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
-import { RulesLoader } from "./rulesLoader";
+import { RulesLoader } from "./utility_classes/rulesLoader";
 import {DevskimLambdaEngine} from "./devskimLambda";
 
 /**

@@ -6,11 +6,11 @@
  * This file contains the actual meat and potatoes of analysis.  The DevSkimWorker class does 
  * the actual work of analyzing data it was given
  * 
- * Most of the type declerations representing things like the rules used to analyze a file, and 
+ * Most of the type declarations representing things like the rules used to analyze a file, and 
  * problems found in a file, are in devskimObjects.ts
  * 
  * ------------------------------------------------------------------------------------------ */
-import { DevSkimAutoFixEdit, DevskimRuleSeverity, IDevSkimSettings } from "./devskimObjects";
+import { DevSkimAutoFixEdit, DevskimRuleSeverity, IDevSkimSettings } from "../devskimObjects";
 import { Range } from 'vscode-languageserver';
 import { SourceComments } from "./comments";
 
@@ -47,7 +47,7 @@ export class DevSkimSuppression
     * @param {number} lineStart the line the finding starts on
     * @param {string} langID the language for the file according to VSCode (so that we can get the correct comment syntax)
     * @param {DevskimRuleSeverity} ruleSeverity (option) the severity of the rule - necessary if the rule is a Manual Review rule, since slightly different
-    *                                           logic is employed because of the different comment string.  If ommitted, assume a normal suppression 
+    *                                           logic is employed because of the different comment string.  If omitted, assume a normal suppression 
     * @returns {DevSkimAutoFixEdit[]} an array of code actions for suppressions (usually "Suppress X Days" and "Suppress Indefinitely")
     * 
     * @memberOf DevSkimSuppression
@@ -182,7 +182,7 @@ export class DevSkimSuppression
 
     private setActionFixName(isReviewRule: boolean, action: DevSkimAutoFixEdit, ruleID: string, isDateSet, daysOffset: number)
     {
-        // These are the strings that appear on the lightbulb menu to the user.
+        // These are the strings that appear on the light bulb menu to the user.
         // @todo: make localized.  Right now these are the only hard coded strings in the app.
         //  The rest come from the rules files and we have plans to make those localized as well
         if (isReviewRule)
@@ -210,7 +210,7 @@ export class DevSkimSuppression
      * @param {string} documentContents the content containing the finding
      * @param {string} ruleID the rule that triggered the finding
      * @param {DevskimRuleSeverity} ruleSeverity (option) the severity of the rule - necessary if the rule is a Manual Review rule, since slightly different
-     *                                           logic is employed because of the different comment string.  If ommitted, assume a normal suppression 
+     *                                           logic is employed because of the different comment string.  If omitted, assume a normal suppression 
      * @returns {boolean} true if this finding should be ignored, false if it shouldn't
      * 
      * @memberOf DevSkimWorker
@@ -272,12 +272,12 @@ export class DevSkimSuppression
      * Generate the string that gets inserted into a comment for a suppression
      *
      * @private
-     * @param {string} ruleIDs the DevSkim Rule ID that is being suppressed or reviewed (e.g. DS102158). Can be a list of IDs, comma seperated (eg. DS102158,DS162445) if suppressing
+     * @param {string} ruleIDs the DevSkim Rule ID that is being suppressed or reviewed (e.g. DS102158). Can be a list of IDs, comma separated (eg. DS102158,DS162445) if suppressing
      *                         multiple issues on a single line
      * @param {boolean} isReviewRule different strings are used if this is a code review rule versus a normal rule; one is marked reviewed and the other suppressed
      * @param {Date} date (optional) if this is a manual review rule (i.e. rule someone has to look at) this should be today's date, signifying that the person has reviewed the finding today.
-     *                    if it is a suppression (i.e. a normal finding) this is the date that they would like to be reminded of the finding.  For example, if somone suppresses a finding for
-     *                    thirty days this should be today + 30 days.  If ommitted for a suppression the finding will be suppressed permanently
+     *                    if it is a suppression (i.e. a normal finding) this is the date that they would like to be reminded of the finding.  For example, if someone suppresses a finding for
+     *                    thirty days this should be today + 30 days.  If omitted for a suppression the finding will be suppressed permanently
      * @returns {string}
      *
      * @memberOf DevSkimSuppression
