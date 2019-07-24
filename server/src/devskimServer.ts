@@ -185,7 +185,14 @@ export default class DevSkimServer
         } 
         else
         {
-            this.globalSettings = change.settings || this.globalSettings;
+            if(change.settings != undefined)
+            {
+                this.globalSettings = (change.settings.devskim) ? change.settings.devskim : change.settings;
+            }
+            else
+            {
+                this.globalSettings = this.globalSettings;
+            }            
         }
 
         // Revalidate any open text documents
@@ -222,6 +229,10 @@ export default class DevSkimServer
             });
             this.documentSettings.set(resource, result);
         }
+
+        //if this is grabbed from the configuration than result isn't actually the settings object 
+        //its an object with the settings object assigned to the "devskim" property
+        result = (result.devskim != undefined) ? result.devskim : result;
         return result;
     }
 

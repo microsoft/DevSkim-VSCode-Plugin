@@ -8,11 +8,11 @@ export class DevSkimWorkerSettings
 
     private settings: IDevSkimSettings;
 
-    public getSettings(settings?): IDevSkimSettings
+    public getSettings(settings?: IDevSkimSettings): IDevSkimSettings
     {
         if (settings)
         {
-            this.settings = (settings.devskim != undefined) ? settings.devskim : settings;
+            this.settings = settings;
             return this.settings;
         }
         if (this.settings)
@@ -37,7 +37,7 @@ export class DevSkimWorkerSettings
     public static defaultSettings(): IDevSkimSettings
     {
         return {
-            enableBestPracticeRules: true,
+            enableBestPracticeRules: false,
             enableDefenseInDepthSeverityRules: false,
             enableInformationalSeverityRules: false,
             enableLowSeverityRules: false,
@@ -58,7 +58,7 @@ export class DevSkimWorkerSettings
             manualReviewerName: "",
             removeFindingsOnClose: true,
             suppressionDurationInDays: 30,
-            validateRulesFiles: true,
+            validateRulesFiles: false,
         };
     }
 
