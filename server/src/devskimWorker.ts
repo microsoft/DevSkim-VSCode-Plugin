@@ -19,10 +19,10 @@ import
 
 import { DevSkimSuppression, DevSkimSuppressionFinding } from "./utility_classes/suppressions";
 import { PathOperations } from "./utility_classes/pathOperations";
-import { SourceComments } from "./utility_classes/comments";
 import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
 import { RulesLoader } from "./utility_classes/rulesLoader";
 import {DevskimLambdaEngine} from "./devskimLambda";
+import {DocumentUtilities} from "./utility_classes/document";
 
 /**
  * The bulk of the DevSkim analysis logic.  Loads rules in, exposes functions to run rules across a file
@@ -304,7 +304,7 @@ export class DevSkimWorker
                         let suppressionFinding: DevSkimSuppressionFinding = DevSkimSuppression.isFindingCommented(match.index, documentContents, rule.id, ruleSeverity);
 
                         //calculate what line we are on by grabbing the text before the match & counting the newlines in it
-                        let lineStart: number = DevSkimWorker.GetLineNumber(documentContents, match.index);
+                        let lineStart: number = DocumentUtilities.GetLineNumber(documentContents, match.index);
                         let newlineIndex: number = (lineStart == 0) ? -1 : documentContents.substr(0, match.index).lastIndexOf("\n");
                         let columnStart: number = match.index - newlineIndex - 1;
 
@@ -312,7 +312,7 @@ export class DevSkimWorker
                         //it's necessary to see if there are any newlines WITHIN the match so that we get the line the match ends on,
                         //not just the line it starts on.  Also, we use the substring for the match later when making fixes
                         let replacementSource: string = documentContents.substr(match.index, match[0].length);
-                        let lineEnd: number = DevSkimWorker.GetLineNumber(replacementSource, replacementSource.length) + lineStart;
+                        let lineEnd: number = DocumentUtilities.GetLineNumber(replacementSource, replacementSource.length) + lineStart;
 
                         let columnEnd = (lineStart == lineEnd) ?
                             columnStart + match[0].length :
@@ -322,12 +322,12 @@ export class DevSkimWorker
 
                         //look for the suppression comment for that finding
                         if (!suppressionFinding.showFinding &&
-                            DevSkimWorker.MatchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex, rule.patterns[patternIndex].scopes) &&
+                            DocumentUtilities.MatchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex, rule.patterns[patternIndex].scopes) &&
                             DevSkimWorker.MatchesConditions(rule.conditions, documentContents, range, langID)) 
                         {
 
                             //add in any fixes
-                            let problem: DevSkimProblem = DevSkimWorker.MakeProblem(rule, DevSkimWorker.MapRuleSeverity(rule.severity), range);
+                            let problem: DevSkimProblem = this.MakeProblem(rule, DevSkimWorker.MapRuleSeverity(rule.severity), range);
                             problem.fixes = problem.fixes.concat(DevSkimWorker.MakeFixes(rule, replacementSource, range));
                             problem.fixes = problem.fixes.concat(this.dsSuppressions.createActions(rule.id, documentContents, match.index, lineStart, langID, ruleSeverity));
 
@@ -340,7 +340,7 @@ export class DevSkimWorker
                             //highlight suppression finding for context
                             //this will look
                             let suppressionRange: Range = Range.create(lineStart, columnStart + suppressionFinding.ruleColumn, lineStart, columnStart + suppressionFinding.ruleColumn + rule.id.length);
-                            let problem: DevSkimProblem = DevSkimWorker.MakeProblem(rule, DevskimRuleSeverity.WarningInfo, suppressionRange, range);
+                            let problem: DevSkimProblem = this.MakeProblem(rule, DevskimRuleSeverity.WarningInfo, suppressionRange, range);
 
                             problems.push(problem);
 
@@ -355,32 +355,7 @@ export class DevSkimWorker
         return problems;
     }
 
-    /**
-     * Check to see if the finding occurs within the scope expected
-     * see scope param for details
-     *
-     * @public
-     * @param {string} langID
-     * @param {string} docContentsToFinding
-     * @param {number} newlineIndex
-     * @param {string} scopes values are code (finding should only occur in code), comment (finding should only occur code comments), or all (finding occurs anywhere)
-     * @returns {boolean}
-     * @memberof DevSkimWorker
-     */
-    public static MatchIsInScope(langID: string, docContentsToFinding: string, newlineIndex: number, scopes: string[]): boolean 
-    {
-        if (scopes.indexOf("all") > -1)
-            return true;
 
-        let findingInComment: boolean = SourceComments.IsFindingInComment(langID, docContentsToFinding, newlineIndex);
-
-        for (let scope of scopes) 
-        {
-            if ((scope == "code" && !findingInComment) || (scope == "comment" && findingInComment))
-                return true;
-        }
-        return false;
-    }
 
     /**
      * There are two conditions where this function gets called.  The first is to mark the code a rule triggered on and
@@ -399,7 +374,7 @@ export class DevSkimWorker
      * @param {Range} problemRange
      * @param {Range} [suppressedFindingRange]
      */
-    public static MakeProblem(rule: Rule, warningLevel: DevskimRuleSeverity, problemRange: Range, suppressedFindingRange?: Range): DevSkimProblem
+    public MakeProblem(rule: Rule, warningLevel: DevskimRuleSeverity, problemRange: Range, suppressedFindingRange?: Range): DevSkimProblem
     {
         let problem: DevSkimProblem = new DevSkimProblem(rule.description, rule.name,
             rule.id, warningLevel, rule.recommendation, rule.ruleInfo, problemRange);
@@ -486,21 +461,21 @@ export class DevSkimWorker
         //that many lines prior to the finding, and positive values mean that many line later in the code
         if (condition.search_in == undefined || condition.search_in.length == 0) 
         {
-            startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line);
-            endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line + 1);
+            startPos = DocumentUtilities.GetDocumentPosition(documentContents, findingRange.start.line);
+            endPos = DocumentUtilities.GetDocumentPosition(documentContents, findingRange.end.line + 1);
         }
         else if (condition.search_in == "finding-only") 
         {
-            startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line) + findingRange.start.character;
-            endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line) + findingRange.end.character;
+            startPos = DocumentUtilities.GetDocumentPosition(documentContents, findingRange.start.line) + findingRange.start.character;
+            endPos = DocumentUtilities.GetDocumentPosition(documentContents, findingRange.end.line) + findingRange.end.character;
         }
         else 
         {
             let regionMatch = XRegExp.exec(condition.search_in, regionRegex);
             if (regionMatch && regionMatch.length > 2) 
             {
-                startPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.start.line + regionMatch[1]);
-                endPos = DevSkimWorker.GetDocumentPosition(documentContents, findingRange.end.line + regionMatch[2] + 1);
+                startPos = DocumentUtilities.GetDocumentPosition(documentContents, findingRange.start.line + regionMatch[1]);
+                endPos = DocumentUtilities.GetDocumentPosition(documentContents, findingRange.end.line + regionMatch[2] + 1);
             }
         }
         let foundPattern = false;
@@ -523,11 +498,11 @@ export class DevSkimWorker
 
 
             //calculate what line we are on by grabbing the text before the match & counting the newlines in it
-            let lineStart: number = DevSkimWorker.GetLineNumber(documentContents, match.index);
+            let lineStart: number = DocumentUtilities.GetLineNumber(documentContents, match.index);
             let newlineIndex: number = (lineStart == 0) ? -1 : documentContents.substr(0, match.index).lastIndexOf("\n");
 
             //look for the suppression comment for that finding
-            if (DevSkimWorker.MatchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex, condition.pattern.scopes)) 
+            if (DocumentUtilities.MatchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex, condition.pattern.scopes)) 
             {
                 if (condition.negateFinding == true) 
                 {
@@ -551,58 +526,7 @@ export class DevSkimWorker
         return true;
     }
 
-    /**
-     * The documentContents is just a stream of text, but when interacting with the editor its common to need
-     * the line number.  This counts the newlines to the current document position
-     *
-     * @private
-     * @param {string} documentContents the text to count newlines in
-     * @param {number} currentPosition the point in the text that we should count newlines to
-     * @returns {number}
-     *
-     * @memberOf DevSkimWorker
-     */
-    public static GetLineNumber(documentContents: string, currentPosition: number): number 
-    {
-        let newlinePattern: RegExp = /(\r\n|\n|\r)/gm;
-        let subDocument: string = documentContents.substr(0, currentPosition);
-        let linebreaks: RegExpMatchArray = subDocument.match(newlinePattern);
-        return (linebreaks !== undefined && linebreaks !== null) ? linebreaks.length : 0;
-    }
-
-    /**
-     * Given the line number, find the number of characters in the document to get to that line number
-     * @param {string} documentContents the document we are parsing for the line
-     * @param {number} lineNumber the VS Code line number (internally, not UI - internally lines are 0 indexed, in the UI they start at 1)
-     */
-    public static GetDocumentPosition(documentContents: string, lineNumber: number): number 
-    {
-        if (lineNumber < 1)
-            return 0;
-        //the line number is 0 indexed, but we are counting newlines, which isn't, so add 1
-        lineNumber++;
-
-        let newlinePattern: RegExp = /(\r\n|\n|\r)/gm;
-        let line = 1;
-        let matchPosition = 0;
-        let XRegExp = require('xregexp');
-
-        //go through all of the text looking for a match with the given pattern
-        let match = XRegExp.exec(documentContents, newlinePattern, matchPosition);
-        while (match) 
-        {
-            line++;
-            matchPosition = match.index + match[0].length;
-
-            if (line == lineNumber)
-                return matchPosition;
-
-            match = XRegExp.exec(documentContents, newlinePattern, matchPosition);
-        }
-
-        return documentContents.length;
-
-    }
+ 
 
     /**
      * Create an array of fixes from the rule and the vulnerable part of the file being scanned

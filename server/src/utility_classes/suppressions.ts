@@ -12,7 +12,7 @@
  * ------------------------------------------------------------------------------------------ */
 import { DevSkimAutoFixEdit, DevskimRuleSeverity, IDevSkimSettings } from "../devskimObjects";
 import { Range } from 'vscode-languageserver';
-import { SourceComments } from "./comments";
+import { SourceContext } from "./sourceContext";
 
 /**
  * Class to handle Suppressions (i.e. comments that direct devskim to ignore a finding for either a period of time or permanently)
@@ -159,12 +159,12 @@ export class DevSkimSuppression
         // and insert the suppression just before the newline
         else
         {
-            let StartComment: string = SourceComments.GetLineComment(langID);
+            let StartComment: string = SourceContext.GetLineComment(langID);
             let EndComment = "";
             if (!StartComment || StartComment.length < 1)
             {
-                StartComment = SourceComments.GetBlockCommentStart(langID);
-                EndComment = SourceComments.GetBlockCommentEnd(langID);
+                StartComment = SourceContext.GetBlockCommentStart(langID);
+                EndComment = SourceContext.GetBlockCommentEnd(langID);
             }
 
             if (isReviewRule || isDateSet)

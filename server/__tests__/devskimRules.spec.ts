@@ -1,6 +1,6 @@
-import {DevSkimRules} from "../src/devskimRules";
+import {DevSkimRules} from "./devskimRules";
 import {DevSkimWorkerSettings} from "../src/devskimWorkerSettings";
-import {RuleValidator} from "../src/ruleValidator";
+import {RuleValidator} from "../src/utility_classes/ruleValidator";
 import {Connection, IConnection} from "vscode-languageserver";
 import {IDevSkimSettings} from "../src/devskimObjects";
 
