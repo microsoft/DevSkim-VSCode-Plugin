@@ -8,6 +8,6 @@
 		"lib": ["es6"],
 		"sourceMap": true
 	},
-	"include": ["src"],
+	"include": ["src", "__tests__/devskimRules.ts"],
 	"exclude": ["node_modules", "out/**/__mocks__/*"]
 }
