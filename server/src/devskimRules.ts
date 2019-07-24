@@ -21,10 +21,10 @@ import
 {
     DevskimRuleSeverity, Rule, IDevSkimSettings,
 }
-    from "../src/devskimObjects";
-import { IRuleValidator } from "../src/utility_classes/ruleValidator";
-import { DevSkimWorkerSettings } from "../src/devskimWorkerSettings";
-import { DevSkimWorker } from "../src/devskimWorker";
+    from "./devskimObjects";
+import { IRuleValidator } from "./utility_classes/ruleValidator";
+import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
+import { DevSkimWorker } from "./devskimWorker";
 import * as Path from "path";
 
 /**

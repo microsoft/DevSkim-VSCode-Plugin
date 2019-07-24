@@ -2,8 +2,8 @@
   "name": "devskim-vscode-plugin",
   "description": "This is the VS Code plugin project for DevSkim.  It is implemented in two parts - a Client that handles the integration and interaction with VS Code, and an out of proc server that handles the analysis.  This allows for more process intensive analysis without interfering in the responsiveness of the IDE.",
   "author": "Microsoft Corporation",
-  "license": "MIT",
-  "version": "0.5.0",
+  "license": "ISC",
+  "version": "1.0.0",
   "publisher": "MS-DevSkim",
   "repository": {
     "type": "git",

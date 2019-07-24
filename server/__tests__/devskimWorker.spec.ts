@@ -1,7 +1,7 @@
 const path = require('path');
 import {DevSkimWorker} from "../src/devskimWorker";
 import {Connection} from "vscode-languageserver";
-import {DevSkimSuppression} from "../src/utility_classes/suppressions";
+import {DevSkimSuppression} from "../src/suppressions";
 
 describe('DevSkimWorker', () => {
     const connection: any = { console: { log: (s) => (console.log(s)) } } as Connection;
