@@ -6,7 +6,7 @@
  * This file contains the actual meat and potatoes of analysis.  The DevSkimWorker class does 
  * the actual work of analyzing data it was given
  * 
- * Most of the type declerations representing things like the rules used to analyze a file, and 
+ * Most of the type declarations representing things like the rules used to analyze a file, and 
  * problems found in a file, are in devskimObjects.ts
  * 
  * ------------------------------------------------------------------------------------------ */
@@ -15,12 +15,11 @@ import
 {
     computeKey, Condition, DevSkimProblem, DevskimRuleSeverity, Map, AutoFix,
     Rule, DevSkimAutoFixEdit, IDevSkimSettings,
-}
-    from "./devskimObjects";
+}    from "./devskimObjects";
+
 import { DevSkimSuppression, DevSkimSuppressionFinding } from "./suppressions";
 import { PathOperations } from "./pathOperations";
 import { SourceComments } from "./comments";
-import { RuleValidator } from "./ruleValidator";
 import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
 import { RulesLoader } from "./rulesLoader";
 
@@ -32,8 +31,6 @@ export class DevSkimWorker
     public dswSettings: DevSkimWorkerSettings = new DevSkimWorkerSettings();
     public readonly rulesDirectory: string;
     private analysisRules: Rule[];
-    private tempRules: Rule[];
-    private dir = require('node-dir');
 
     //codeActions is the object that holds all of the autofix mappings. we need to store them because
     //the CodeActions are created at a different point than the diagnostics, yet we still need to be able
@@ -422,10 +419,10 @@ export class DevSkimWorker
     /**
      * Check if all of the conditions within a rule are met.  Called after the initial pattern finds an issue
      * 
-     * @param conditions 
-     * @param documentContents 
-     * @param findingRange 
-     * @param langID 
+     * @param {Condition[]} conditions the array of conditions for the rule that triggered
+     * @param {string} documentContents the document we are currently looking through
+     * @param {Range} findingRange the span of text for the current finding
+     * @param {string} langID the language we are working in
      */
     public static MatchesConditions(conditions: Condition[], documentContents: string, findingRange: Range, langID: string): boolean 
     {
@@ -451,7 +448,7 @@ export class DevSkimWorker
     /**
      * Check to see if a RegEx powered condition is met or not
      * 
-     * @param {Condition[]} condition the condition objects we are checking for
+     * @param {Condition} condition the condition objects we are checking for
      * @param {string} documentContents the document we are finding the conditions in
      * @param {Range} findingRange the location of the finding we are looking for more conditions around
      * @param {string} langID the language we are working in
@@ -546,11 +543,11 @@ export class DevSkimWorker
     }
 
     /**
-     * returns the number of newlines (regardless of platform) from the beginning of the provided text to the
-     * current location
+     * The documentContents is just a stream of text, but when interacting with the editor its common to need
+     * the line number.  This counts the newlines to the current document position
      *
      * @private
-     * @param {string} documentContents the text to search for nelines in
+     * @param {string} documentContents the text to count newlines in
      * @param {number} currentPosition the point in the text that we should count newlines to
      * @returns {number}
      *
@@ -642,13 +639,13 @@ export class DevSkimWorker
     }
 
     /**
-     * Removes any findings from the problems array corresponding to rules that were overriden by other rules
+     * Removes any findings from the problems array corresponding to rules that were overridden by other rules
      * for example, both the Java specific MD5 rule and the generic MD5 rule will trigger on the same usage of MD5
-     * in Java.  We should only report the Java specific finding, as it supercedes the generic rule
+     * in Java.  We should only report the Java specific finding, as it supersedes the generic rule
      *
      * @private
      * @param {DevSkimProblem[]} problems array of findings
-     * @returns {DevSkimProblem[]} findings with any overriden findings removed
+     * @returns {DevSkimProblem[]} findings with any overridden findings removed
      */
     private processOverrides(problems: DevSkimProblem[]): DevSkimProblem[] 
     {

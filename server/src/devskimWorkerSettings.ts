@@ -8,11 +8,11 @@ export class DevSkimWorkerSettings
 
     private settings: IDevSkimSettings;
 
-    public getSettings(settings?: IDevSkimSettings): IDevSkimSettings
+    public getSettings(settings?): IDevSkimSettings
     {
         if (settings)
         {
-            this.settings = settings;
+            this.settings = (settings.devskim != undefined) ? settings.devskim : settings;
             return this.settings;
         }
         if (this.settings)

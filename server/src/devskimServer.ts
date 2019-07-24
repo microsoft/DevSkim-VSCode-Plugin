@@ -182,7 +182,8 @@ export default class DevSkimServer
         if (this.hasConfigurationCapability)
         {
             this.documentSettings.clear();
-        } else
+        } 
+        else
         {
             this.globalSettings = change.settings || this.globalSettings;
         }
@@ -243,6 +244,7 @@ export default class DevSkimServer
             if (settings)
             {
                 delete this.worker.codeActions[textDocument.uri];
+                this.worker.dswSettings.getSettings(settings);
 
                 const problems: DevSkimProblem[] =
                     await this.worker.analyzeText(textDocument.getText(), textDocument.languageId, textDocument.uri);
