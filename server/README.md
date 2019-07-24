@@ -15,7 +15,7 @@ this will install the necessary dependencies from NPM
 The README.md in the root directory of this project contains the bulk of details relevant to working with the DevSkim VS Code plugin
 
 ## Project files
-Within this project the relevent files are:
+Within this project the relevant files are:
 * **package.json** - a vs code package definition, but very similar to the node.js format.  This is where NPM dependencies are listed. also contains instructions to copy build output to ../client/server so the client can use it
 * **src/devskimServer.ts** - contains the main VS Code language server functionality, i.e. responding to connection events, response handlers, etc.  This file orchestrates most of the activity
 * **src/devskimWorker.ts** - contains the class that handles all of the analysis logic
