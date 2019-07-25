@@ -14,13 +14,13 @@
   },
   "dependencies": {
     "glob-promise": "^3.4.0",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.15",
     "mkdirp": "^0.5.1",
     "node-dir": ">=0.1.17",
     "vscode-languageserver": "^5.2.1",
     "vscode-languageserver-protocol": "^3.14.1",
     "vscode-uri": "^1.0.6",
-    "xregexp": "^3.2.0"
+    "xregexp": "^4.2.4"
   },
   "devDependencies": {
     "@types/jest": "^24.0.11",
