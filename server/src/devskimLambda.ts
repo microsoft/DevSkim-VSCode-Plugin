@@ -56,14 +56,4 @@ export class DevskimLambdaEngine
         let lambdaFunction = eval(this.lambdaCode);
         return lambdaFunction();
     }
-
-    /**
-     * 
-     * @param source 
-     */
-    private GetVariableArray(source : string) : string[]
-    {
-        return SourceContext.ExtractVariablesFromString(this.langID,source);
-    }
-
 }

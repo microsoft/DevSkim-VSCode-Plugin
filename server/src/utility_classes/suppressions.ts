@@ -222,7 +222,7 @@ export class DevSkimSuppression
         let newlinePattern = /(\r\n|\n|\r)/gm;
         let isReviewRule = (ruleSeverity !== undefined && ruleSeverity != null && ruleSeverity == DevskimRuleSeverity.ManualReview);
         let regex: RegExp = (isReviewRule) ? DevSkimSuppression.reviewRegEx : DevSkimSuppression.suppressionRegEx;
-        let line;
+        let line : string;
         let finding: DevSkimSuppressionFinding = Object.create(null);
         finding.showFinding = false;
 
