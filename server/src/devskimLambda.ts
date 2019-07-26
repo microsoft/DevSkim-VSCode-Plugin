@@ -16,6 +16,7 @@
 
 import { Range } from 'vscode-languageserver';
 import { Condition } from "./devskimObjects";
+import { SourceContext} from "./utility_classes/sourceContext";
 
 export class DevskimLambdaEngine
 {
@@ -25,6 +26,13 @@ export class DevskimLambdaEngine
     private findingRange : Range;
     private langID : string;
 
+    /**
+     * 
+     * @param currentCondition 
+     * @param currentDocumentContents 
+     * @param currentFindingRange 
+     * @param currentLangID 
+     */
     constructor(currentCondition: Condition, currentDocumentContents: string, currentFindingRange: Range, currentLangID: string)
     {
         this.lambdaCode = currentCondition.lambda.lambda_code;
@@ -34,10 +42,18 @@ export class DevskimLambdaEngine
         this.langID = currentLangID;        
     }
 
+    /**
+     * Run the lambda from the condition
+     */
     public ExecuteLambda() : boolean
     {
+        //There is a known risk here.  This code is coming from a rule, so if that rule is editable by a malicious party
+        //the can inject code.  That said, within the github repo (or the VS marketplace) they could edit the source directly
+        //and bypass the rule, and on a user machine if they can edit the rule on the file system they likely have a multitude
+        //of simpler avenues for code execution, so the risk doesn't seem noteworthy.  If someone can think of an avenue where
+        //its possible to edit the json on the user machine without otherwise having code execution capability, please let us
+        //know 
         let lambdaFunction = eval(this.lambdaCode);
         return lambdaFunction();
     }
-
 }

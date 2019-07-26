@@ -12,29 +12,34 @@
  * ------------------------------------------------------------------------------------------ */
 import * as fs from "fs";
 
-const {promisify} = require('util');
-const {glob} = require('glob-promise');
+const { promisify } = require('util');
+const { glob } = require('glob-promise');
 const readFile = promisify(fs.readFile);
 
-import {IConnection, Range} from 'vscode-languageserver';
-import {DevSkimWorkerSettings} from "../devskimWorkerSettings";
+import { IConnection } from 'vscode-languageserver';
+import
+{
+    DevskimRuleSeverity, Rule, IDevSkimSettings,
+}
+    from "../src/devskimObjects";
+import { IRuleValidator } from "../src/utility_classes/ruleValidator";
+import { DevSkimWorkerSettings } from "../src/devskimWorkerSettings";
+import { DevSkimWorker } from "../src/devskimWorker";
 import * as Path from "path";
-import {DevskimRuleSeverity, IDevSkimSettings, Rule} from "../devskimObjects";
-import {IRuleValidator} from "../utility_classes/ruleValidator";
 
 /**
  * The bulk of the DevSkim analysis logic.  Loads rules in, exposes functions to run rules across a file
  */
-export class DevSkimRules {
+export class DevSkimRules
+{
     public readonly rulesDirectory: string;
     private analysisRules: Rule[];
-    private tempRules: Rule[];
-    private dir = require('node-dir');
 
 
-    constructor(private connection: IConnection, private settings: IDevSkimSettings, private ruleValidator: IRuleValidator) {
-        // this.rulesDirectory = DevSkimWorkerSettings.getRulesDirectory();
-        // this.loadRules();
+    constructor(private connection: IConnection, private settings: IDevSkimSettings, private ruleValidator: IRuleValidator)
+    {
+        this.rulesDirectory = DevSkimWorkerSettings.getRulesDirectory(connection);
+        this.loadRules();
     }
 
 
@@ -45,13 +50,20 @@ export class DevSkimRules {
      * should exist with reloading rules), but might be if doing a full analysis of a lot of files.  So in anticipation of that, I broke this
      * into its own function so such a check could be added.
      */
-    public refreshAnalysisRules(): void {
-        // this.loadRules();
+    public refreshAnalysisRules(): void
+    {
+        this.loadRules();
     }
 
-    public fromRoot(connection: IConnection, rootPath: string|null) {
-        /*
-        */
+
+    /**
+     * recursively load all of the JSON files in the $userhome/.vscode/extensions/vscode-devskim/rules sub directories
+     *
+     * @private
+     */
+    private async loadRules(): Promise<void>
+    {
+        return null;
     }
 
     /**
@@ -64,13 +76,20 @@ export class DevSkimRules {
      *
      * @memberOf DevSkimWorker
      */
-    public RuleSeverityEnabled(ruleSeverity: DevskimRuleSeverity): boolean {
-        return  true;
+    public RuleSeverityEnabled(ruleSeverity: DevskimRuleSeverity): boolean
+    {
+        return ruleSeverity == DevskimRuleSeverity.Critical ||
+            ruleSeverity == DevskimRuleSeverity.Important ||
+            ruleSeverity == DevskimRuleSeverity.Moderate ||
+            (ruleSeverity == DevskimRuleSeverity.BestPractice &&
+                this.settings.enableBestPracticeRules == true) ||
+            (ruleSeverity == DevskimRuleSeverity.ManualReview &&
+                this.settings.enableManualReviewRules == true);
     }
 
     /**
      * maps the string for severity received from the rules into the enum (there is inconsistencies with the case used
-     * in the rules, so this is case insensitive).  We convert to the enum as we do comparisons in a number of places
+     * in the rules, so this is case incentive).  We convert to the enum as we do comparisons in a number of places
      * and by using an enum we can get a transpiler error if we remove/change a label
      *
      * @param {string} severity
@@ -78,8 +97,23 @@ export class DevSkimRules {
      *
      * @memberOf DevSkimWorker
      */
-    public static MapRuleSeverity(severity: string): DevskimRuleSeverity {
-          return DevskimRuleSeverity.Critical;
+    public static MapRuleSeverity(severity: string): DevskimRuleSeverity
+    {
+        switch (severity.toLowerCase())
+        {
+            case "critical":
+                return DevskimRuleSeverity.Critical;
+            case "important":
+                return DevskimRuleSeverity.Important;
+            case "moderate":
+                return DevskimRuleSeverity.Moderate;
+            case "best-practice":
+                return DevskimRuleSeverity.BestPractice;
+            case "manual-review":
+                return DevskimRuleSeverity.ManualReview;
+            default:
+                return DevskimRuleSeverity.BestPractice;
+        }
     }
 
 

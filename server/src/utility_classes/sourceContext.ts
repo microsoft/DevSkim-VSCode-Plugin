@@ -3,15 +3,71 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ 
  *
- * Class for dealing with code comments, since VS Code doesn't (currently, as of this authoring)
- * expose an API to understand the comment characters for a language, or whether or not the current
- * code is commented
+ * Language aware class for working with the text of a document to understand source context
  * 
  * @export
- * @class SourceComments
+ * @class SourceContext
  */
-export class SourceComments
-{
+
+ export class SourceContext
+ {
+    /**
+     * Extract all of the variables from a string, and return them in array by the order they
+     * were found
+     * @param langID VSCode ID for the language (should be lower case)
+     * @param sourceString the string to parse for variables
+     */
+    public static ExtractVariablesFromString(langID: string, sourceString: string) : string[]
+    {
+        let variableArray: string[] =[];
+
+        variableArray.push("test");
+
+        return variableArray;
+    }
+
+
+    /**
+     * Checks to see if the finding is within code that is commented out.  Verifies both against
+     * line comments and block comments
+     * 
+     * @static
+     * @param {string} langID VSCode ID for the language (should be lower case)
+     * @param {string} documentContents the documentContents up to, but not including the finding
+     * @param {number} newlineIndex the index of the most recent newline, for checking line comments
+     * @returns {boolean} true if in a comment, false if active code
+     * 
+     * @memberOf SourceComments
+     */
+    public static IsFindingInComment(langID: string, documentContents: string, newlineIndex: number): boolean
+    {
+        if (documentContents.length < 1)
+        {
+            return false;
+        }
+
+        //first test for line comment.  If one is on the current line then the finding is in a comment
+        let startComment: string = SourceContext.GetLineComment(langID);
+        let commentText: string = (newlineIndex > -1) ? documentContents.substr(newlineIndex) : documentContents;
+        if (startComment.length > 0 && commentText.indexOf(startComment) > -1)
+        {
+            return true;
+        }
+
+        //now test for block comments for languages that support them.  If the last instance of a start
+        //of a block comment occurs AFTER the last instance of the end of a block comment, then the finding is
+        //in a block comment.  NOTE - things like conditional compilation blocks will screw up this logic and 
+        //to cover block comment starts/ends in those blocks this logic will need to be expanded out.  That's
+        //not a case we are worried about covering in preview, but may want to cover once we exit preview
+        startComment = SourceContext.GetBlockCommentStart(langID);
+        let endComment: string = SourceContext.GetBlockCommentEnd(langID);
+        return startComment.length > 0 && endComment.length > 0 &&
+            documentContents.lastIndexOf(startComment) > documentContents.lastIndexOf(endComment);
+    }
+
+
+    //******************************************************************************************************* */
+    //Language specific code below here
 
     /**
      * Retrieve the characters to start a comment in the given language (ex. "//" for C/C++/C#/Etc. )
@@ -138,43 +194,6 @@ export class SourceComments
 
             default: return "";
         }
-    }
+    }   
+ }
 
-    /**
-     * Checks to see if the finding is within code that is commented out.  Verifies both against
-     * line comments and block comments
-     * 
-     * @static
-     * @param {string} langID VSCode ID for the language (should be lower case)
-     * @param {string} documentContents the documentContents up to, but not including the finding
-     * @param {number} newlineIndex the index of the most recent newline, for checking line comments
-     * @returns {boolean} true if in a comment, false if active code
-     * 
-     * @memberOf SourceComments
-     */
-    public static IsFindingInComment(langID: string, documentContents: string, newlineIndex: number): boolean
-    {
-        if (documentContents.length < 1)
-        {
-            return false;
-        }
-
-        //first test for line comment.  If one is on the current line then the finding is in a comment
-        let startComment: string = SourceComments.GetLineComment(langID);
-        let commentText: string = (newlineIndex > -1) ? documentContents.substr(newlineIndex) : documentContents;
-        if (startComment.length > 0 && commentText.indexOf(startComment) > -1)
-        {
-            return true;
-        }
-
-        //now test for block comments for languages that supprot them.  If the last instance of a start
-        //of a block comment occurs AFTER the last instance of the end of a block comment, then the finding is
-        //in a block comment.  NOTE - things like conditional compilation blocks will screw up this logic and 
-        //to cover block comment starts/ends in those blocks this logic will need to be expanded out.  That's
-        //not a case we are worried about covering in preview, but may want to cover once we exit preview
-        startComment = SourceComments.GetBlockCommentStart(langID);
-        let endComment: string = SourceComments.GetBlockCommentEnd(langID);
-        return startComment.length > 0 && endComment.length > 0 &&
-            documentContents.lastIndexOf(startComment) > documentContents.lastIndexOf(endComment);
-    }
-}

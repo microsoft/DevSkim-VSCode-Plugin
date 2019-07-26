@@ -8,7 +8,7 @@
 
 import {Rule} from "../devskimObjects";
 import {IConnection} from "vscode-languageserver";
-import {IRuleValidator} from "../ruleValidator";
+import {IRuleValidator} from "../utility_classes/ruleValidator";
 
 
 /**
