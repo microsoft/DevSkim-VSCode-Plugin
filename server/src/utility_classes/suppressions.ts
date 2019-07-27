@@ -299,7 +299,7 @@ export class DevSkimSuppression
                     if(DocumentUtilities.GetDocumentPosition(documentContents, DocumentUtilities.GetLineNumber(documentContents, commentStart)) == commentStart)
                     {
                         line = (match) ? documentContents.substr(commentStart, match.index - commentStart) : documentContents.substr(startPosition);
-                        returnFinding = suppressionCheck(line, regex, startPosition); 
+                        returnFinding = suppressionCheck(line, regex, commentStart); 
                         if(returnFinding.showFinding)
                         {
                             break;
