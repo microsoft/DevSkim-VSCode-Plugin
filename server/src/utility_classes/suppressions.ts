@@ -13,6 +13,7 @@
 import { DevSkimAutoFixEdit, DevskimRuleSeverity, IDevSkimSettings } from "../devskimObjects";
 import { Range } from 'vscode-languageserver';
 import { SourceContext } from "./sourceContext";
+import { DocumentUtilities } from './document';
 
 /**
  * Class to handle Suppressions (i.e. comments that direct devskim to ignore a finding for either a period of time or permanently)
@@ -215,57 +216,105 @@ export class DevSkimSuppression
      * 
      * @memberOf DevSkimWorker
      */
-    public static isFindingCommented(startPosition: number, documentContents: string, ruleID: string,
+    public static isFindingCommented(startPosition: number, documentContents: string, ruleID: string, langID : string,
         ruleSeverity?: DevskimRuleSeverity): DevSkimSuppressionFinding
     {
         let XRegExp = require('xregexp');
-        let newlinePattern = /(\r\n|\n|\r)/gm;
         let isReviewRule = (ruleSeverity !== undefined && ruleSeverity != null && ruleSeverity == DevskimRuleSeverity.ManualReview);
         let regex: RegExp = (isReviewRule) ? DevSkimSuppression.reviewRegEx : DevSkimSuppression.suppressionRegEx;
         let line : string;
-        let finding: DevSkimSuppressionFinding = Object.create(null);
-        finding.showFinding = false;
+        let returnFinding : DevSkimSuppressionFinding;
 
-        let match = XRegExp.exec(documentContents, newlinePattern, startPosition);
-        if (match)
+        let suppressionCheck = (line: string, regex : RegExp, startPosition: number) =>
         {
-            line = documentContents.substr(startPosition, match.index - startPosition);
-        }
-        else
-        {
-            line = documentContents.substr(startPosition);
-        }
-
-        //look for the suppression comment
-        match = XRegExp.exec(line, regex);
-        if (match)
-        {
-            finding.ruleColumn = match[0].indexOf(ruleID);
-            if (finding.ruleColumn > -1)
+            let finding: DevSkimSuppressionFinding = Object.create(null);
+            finding.showFinding = false;
+            
+            //look for the suppression comment
+            match = XRegExp.exec(line, regex);
+            if (match)
             {
-                finding.ruleColumn += match.index;
-                if (!isReviewRule && match[2] !== undefined && match[2] != null && match[2].length > 0)
+                let suppressionIndex : number = match[0].indexOf(ruleID);
+                if (suppressionIndex > -1)
                 {
-                    const untilDate: number = Date.UTC(match[3], match[4] - 1, match[5], 0, 0, 0, 0);
-                    //we have a match of the rule, and haven't yet reached the "until" date, so ignore finding
-                    //if the "until" date is less than the current time, the suppression has expired and we should not ignore
-                    if (untilDate > Date.now()) 
+                    let lineStart : number = DocumentUtilities.GetLineNumber(documentContents,startPosition)
+                    suppressionIndex += match.index;
+                    finding.suppressionRange = Range.create(lineStart, suppressionIndex, lineStart, suppressionIndex + ruleID.length);
+                    finding.noRange = false;
+                    if (!isReviewRule && match[2] !== undefined && match[2] != null && match[2].length > 0)
+                    {
+                        const untilDate: number = Date.UTC(match[3], match[4] - 1, match[5], 0, 0, 0, 0);
+                        //we have a match of the rule, and haven't yet reached the "until" date, so ignore finding
+                        //if the "until" date is less than the current time, the suppression has expired and we should not ignore
+                        if (untilDate > Date.now()) 
+                        {
+                            finding.showFinding = true;
+                        }
+                    }
+                    else //we have a match with the rule (or all rules), and no "until" date, so we should ignore this finding
                     {
                         finding.showFinding = true;
                     }
                 }
-                else //we have a match with the rule (or all rules), and no "until" date, so we should ignore this finding
+                else if (match[0].indexOf("all") > -1)
                 {
                     finding.showFinding = true;
+                    finding.noRange = true;
                 }
             }
-            else if (match[0].indexOf("all") > -1)
-            {
-                finding.showFinding = true;
+            return finding;
+        }        
+        
+
+        let match = XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, startPosition);
+        line = (match) ? documentContents.substr(startPosition, match.index - startPosition) : documentContents.substr(startPosition);
+        returnFinding = suppressionCheck(line, regex, startPosition); 
+        
+        //we didn't find a suppression on the same line, but it might be a comment on the previous line
+        if(!returnFinding.showFinding)
+        {
+            let lineNumber : number = DocumentUtilities.GetLineNumber(documentContents,startPosition) -1;
+            while(lineNumber > -1)            {                
+                           
+                startPosition = DocumentUtilities.GetDocumentPosition(documentContents, lineNumber);
+                
+                match = XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, startPosition);
+                let secondLastMatch = (lineNumber -1 > -1) ? XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, DocumentUtilities.GetDocumentPosition(documentContents, lineNumber -1)) : false;
+                let lastMatch = (secondLastMatch) ? secondLastMatch.index : startPosition;
+                let subDoc : string = documentContents.substr(0, (match) ? match.index : startPosition);
+                //check if the last line is a full line comment
+                if(SourceContext.IsLineCommented(langID, subDoc, lastMatch))
+                {                    
+                    line = (match) ? documentContents.substr(startPosition, match.index - startPosition) : documentContents.substr(startPosition);
+                    returnFinding = suppressionCheck(line, regex, startPosition); 
+                    if(returnFinding.showFinding)
+                    {
+                        break;
+                    }
+                }
+                //check if its part of a block comment
+                else if(SourceContext.IsLineBlockCommented(langID, subDoc))
+                {
+                    let commentStart : number = SourceContext.GetStartOfLastBlockComment(langID,subDoc);
+                    if(DocumentUtilities.GetDocumentPosition(documentContents, DocumentUtilities.GetLineNumber(documentContents, commentStart)) == commentStart)
+                    {
+                        line = (match) ? documentContents.substr(commentStart, match.index - commentStart) : documentContents.substr(startPosition);
+                        returnFinding = suppressionCheck(line, regex, startPosition); 
+                        if(returnFinding.showFinding)
+                        {
+                            break;
+                        }
+                    }
+                }                
+                else
+                {
+                    break;
+                }
+                lineNumber--;  
             }
         }
 
-        return finding;
+        return returnFinding;
     }
 
     /**
@@ -310,5 +359,6 @@ export class DevSkimSuppression
 export class DevSkimSuppressionFinding
 {
     public showFinding: boolean;
-    public ruleColumn: number;
+    public suppressionRange: Range;
+    public noRange : boolean;
 }
