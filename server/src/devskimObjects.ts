@@ -20,9 +20,6 @@ import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
 export interface IDevSkimSettings
 {
 	enableBestPracticeRules: boolean;
-	enableDefenseInDepthSeverityRules: boolean;
-	enableInformationalSeverityRules: boolean;
-	enableLowSeverityRules: boolean;
 	enableManualReviewRules: boolean;
 	guidanceBaseURL: string;
 	ignoreFilesList: string[];
@@ -36,9 +33,6 @@ export interface IDevSkimSettings
 export class DevSkimSettings implements IDevSkimSettings
 {
 	enableBestPracticeRules: boolean = false;
-	enableDefenseInDepthSeverityRules: boolean = false;
-	enableInformationalSeverityRules: boolean = false;
-	enableLowSeverityRules: boolean = false;
 	enableManualReviewRules: boolean = false;
 	guidanceBaseURL: string = '';
 	ignoreFilesList: string[] = [];

@@ -48,10 +48,23 @@ export class DevSkimWorker
     //map seemed a little excessive to me.  Then again, I just wrote 3 paragraphs for how this works, so maybe I'm being too clever
     public codeActions: Map<Map<AutoFix>> = Object.create(null);
 
-    constructor(private connection: IConnection, private dsSuppressions: DevSkimSuppression, settings?: IDevSkimSettings) 
+    constructor(private connection: IConnection, private dsSuppressions: DevSkimSuppression, settings: IDevSkimSettings = DevSkimWorkerSettings.defaultSettings()) 
     {
         this.rulesDirectory = DevSkimWorkerSettings.getRulesDirectory(connection);
-        this.dswSettings.getSettings(settings);
+        this.dswSettings.setSettings(settings);
+        this.dsSuppressions.dsSettings = settings;
+    }
+
+    /**
+     * Call whenever the user updates their settings in the IDE, to ensure that the worker is using the most up to date
+     * version of the user's settings
+     * @param settings the current settings to update
+     */
+    public UpdateSettings(settings : IDevSkimSettings)
+    {
+        this.dswSettings.setSettings(settings);
+        this.dsSuppressions.dsSettings = settings;
+        
     }
 
     public async init(): Promise<void> 
@@ -321,7 +334,7 @@ export class DevSkimWorker
                         let range: Range = Range.create(lineStart, columnStart, lineEnd, columnEnd);
 
                         //look for the suppression comment for that finding
-                        if (!suppressionFinding.showFinding &&
+                        if (!suppressionFinding.showSuppressionFinding &&
                             DocumentUtilities.MatchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex, rule.patterns[patternIndex].scopes) &&
                             DevSkimWorker.MatchesConditions(rule.conditions, documentContents, range, langID)) 
                         {

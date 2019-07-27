@@ -35,8 +35,15 @@ export class DevSkimSuppression
     public static suppressionRegEx: RegExp = /DevSkim: ignore ([^\s]+)(?:\suntil ((\d{4})-(\d{2})-(\d{2})))?/i;
     public static reviewRegEx: RegExp = /DevSkim: reviewed ([^\s]+)(?:\son ((\d{4})-(\d{2})-(\d{2})))?/i;
 
+    /**
+     * Instantiate a Suppressions object.  This is necessary to insert a new suppression, but if 
+     * the only action necessary is checking if a finding is already suppressed, the static method
+     * isFindingCommented() should be used without instantiating the class
+     * @param dsSettings - the current settings, necessary to determine preferred comment style and reviewer name
+     */
     constructor(public dsSettings: IDevSkimSettings)
     {
+
     }
 
     /**
@@ -78,39 +85,39 @@ export class DevSkimSuppression
      * Create a Code Action for the user to invoke should they want to suppress a finding
      * 
      * @private
-     * @param {string} ruleID the rule to be suppressed
-     * @param {string} documentContents the current document
-     * @param {number} startCharacter the start point of the finding
-     * @param {number} lineStart the line the finding starts on
-     * @param {string} langID the language for the file according to VSCode (so that we can get the correct comment syntax)
-     * @param isReviewRule @todo
-     * @param daysOffset @todo
+     * @param {string}  ruleID the rule to be suppressed
+     * @param {string}  documentContents the current document
+     * @param {number}  startCharacter the start point of the finding
+     * @param {number}  lineStart the line the finding starts on
+     * @param {string}  langID the language for the file according to VSCode (so that we can get the correct comment syntax)
+     * @param {boolean} isReviewRule true if this is a manual review rule - the text is slightly different if it is
+     * @param {number}  daysOffset the number of days in the future a time based suppression should insert, comes from the user settings
      * @returns {DevSkimAutoFixEdit[]} an array of code actions for suppressions (usually "Suppress X Days" and "Suppress Indefinitely")
      * 
      * @memberOf DevSkimSuppression
      */
     private addAction(ruleID: string, documentContents: string, startCharacter: number, lineStart: number,
-        langID: string, isReviewRule: boolean, daysOffset?: number): DevSkimAutoFixEdit
+        langID: string, isReviewRule: boolean, daysOffset: number = -1): DevSkimAutoFixEdit
     {
         let action: DevSkimAutoFixEdit = Object.create(null);
-        let isDateSet = (daysOffset && daysOffset > 0);
         let regex: RegExp = (isReviewRule)
             ? DevSkimSuppression.reviewRegEx
             : DevSkimSuppression.suppressionRegEx;
 
-        this.setActionFixName(isReviewRule, action, ruleID, isDateSet, daysOffset);
+        this.setActionFixName(isReviewRule, action, ruleID, daysOffset);
 
+        //make the day in the future that a time based expression will expire
         const date = new Date();
-        if (!isReviewRule && isDateSet)
+        if (!isReviewRule && daysOffset > 0)
         {
             date.setDate(date.getDate() + daysOffset);
         }
 
+        //find the end of the current line of the finding
         let XRegExp = require('xregexp');
         let range: Range;
-        let newlinePattern = /(\r\n|\n|\r)/gm;
 
-        let match = XRegExp.exec(documentContents, newlinePattern, startCharacter);
+        let match = XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, startCharacter);
         if (match)
         {
             let columnStart = (lineStart == 0)
@@ -146,7 +153,7 @@ export class DevSkimSuppression
                     ruleID = ruleID + "," + match[1];
                 }
             }
-            if (isReviewRule || isDateSet)
+            if (isReviewRule || daysOffset > 0)
             {
                 action.text = this.makeActionString(ruleID, isReviewRule, date);
             }
@@ -168,7 +175,7 @@ export class DevSkimSuppression
                 EndComment = SourceContext.GetBlockCommentEnd(langID);
             }
 
-            if (isReviewRule || isDateSet)
+            if (isReviewRule || daysOffset > 0)
             {
                 action.text = " " + StartComment + this.makeActionString(ruleID, isReviewRule, date) + " " + EndComment;
             }
@@ -181,7 +188,14 @@ export class DevSkimSuppression
         return action;
     }
 
-    private setActionFixName(isReviewRule: boolean, action: DevSkimAutoFixEdit, ruleID: string, isDateSet, daysOffset: number)
+    /**
+     * Create the string that goes into the IDE UI to allow a user to automatically create a suppression
+     * @param isReviewRule True if this is a manual review rule - the text is slightly different if it is
+     * @param action the associated action that is triggered when the user clicks on this name in the IDE UI
+     * @param ruleID the rule id for the current finding
+     * @param daysOffset how many days to suppress the finding, if this 
+     */
+    private setActionFixName(isReviewRule: boolean, action: DevSkimAutoFixEdit, ruleID: string, daysOffset: number = -1)
     {
         // These are the strings that appear on the light bulb menu to the user.
         // @todo: make localized.  Right now these are the only hard coded strings in the app.
@@ -190,7 +204,7 @@ export class DevSkimSuppression
         {
             action.fixName = `DevSkim: Mark ${ruleID} as Reviewed`;
         } 
-        else if (isDateSet)
+        else if (daysOffset > 0)
         {
             action.fixName = `DevSkim: Suppress ${ruleID} for ${daysOffset.toString(10)} days`;
         } 
@@ -225,10 +239,22 @@ export class DevSkimSuppression
         let line : string;
         let returnFinding : DevSkimSuppressionFinding;
 
-        let suppressionCheck = (line: string, regex : RegExp, startPosition: number) =>
+        //its a little ugly to have a local function, but this is a convenient way of recalling this code repeatedly
+        //while not exposing it to any other function.  This code checks to see if a suppression for the current issue
+        //is present in the line of code being analyzed. It also allows the use of the current Document without increasing
+        //its memory footprint, given that this code has access to the parent function scope as well
+        /**
+         * Check if the current finding is suppressed on the line of code provided
+         * @param line the line of code to inspect for a suppression
+         * @param startPosition where in the document the line starts (for calculating line number)
+         * 
+         * @returns {DevSkimSuppressionFinding} a DevSkimSuppressionFinding - this object is used to highlight the DS#### in the suppression
+         *                                      so that mousing over it provides details on what was suppressed
+         */
+        let suppressionCheck = (line: string, startPosition: number) : DevSkimSuppressionFinding =>
         {
             let finding: DevSkimSuppressionFinding = Object.create(null);
-            finding.showFinding = false;
+            finding.showSuppressionFinding = false;
             
             //look for the suppression comment
             match = XRegExp.exec(line, regex);
@@ -248,17 +274,17 @@ export class DevSkimSuppression
                         //if the "until" date is less than the current time, the suppression has expired and we should not ignore
                         if (untilDate > Date.now()) 
                         {
-                            finding.showFinding = true;
+                            finding.showSuppressionFinding = true;
                         }
                     }
                     else //we have a match with the rule (or all rules), and no "until" date, so we should ignore this finding
                     {
-                        finding.showFinding = true;
+                        finding.showSuppressionFinding = true;
                     }
                 }
                 else if (match[0].indexOf("all") > -1)
                 {
-                    finding.showFinding = true;
+                    finding.showSuppressionFinding = true;
                     finding.noRange = true;
                 }
             }
@@ -266,28 +292,35 @@ export class DevSkimSuppression
         }        
         
 
+        startPosition = DocumentUtilities.GetDocumentPosition(documentContents, DocumentUtilities.GetLineNumber(documentContents,startPosition));
+        
         let match = XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, startPosition);
         line = (match) ? documentContents.substr(startPosition, match.index - startPosition) : documentContents.substr(startPosition);
-        returnFinding = suppressionCheck(line, regex, startPosition); 
+        returnFinding = suppressionCheck(line, startPosition); 
         
         //we didn't find a suppression on the same line, but it might be a comment on the previous line
-        if(!returnFinding.showFinding)
+        if(!returnFinding.showSuppressionFinding)
         {
+            //start looping back up the document, line by line.  This will break out when it finds a line
+            //that isn't all comment, and will terminate when at the beginning of the document
             let lineNumber : number = DocumentUtilities.GetLineNumber(documentContents,startPosition) -1;
-            while(lineNumber > -1)            {                
-                           
+            while(lineNumber > -1)            
+            {                
+                //get the start position of the current line we are looking for a comment in           
                 startPosition = DocumentUtilities.GetDocumentPosition(documentContents, lineNumber);
                 
+                //extract the line, and trim off the trailing space
                 match = XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, startPosition);
                 let secondLastMatch = (lineNumber -1 > -1) ? XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, DocumentUtilities.GetDocumentPosition(documentContents, lineNumber -1)) : false;
                 let lastMatch = (secondLastMatch) ? secondLastMatch.index : startPosition;
                 let subDoc : string = documentContents.substr(0, (match) ? match.index : startPosition);
+
                 //check if the last line is a full line comment
                 if(SourceContext.IsLineCommented(langID, subDoc, lastMatch))
                 {                    
                     line = (match) ? documentContents.substr(startPosition, match.index - startPosition) : documentContents.substr(startPosition);
-                    returnFinding = suppressionCheck(line, regex, startPosition); 
-                    if(returnFinding.showFinding)
+                    returnFinding = suppressionCheck(line, startPosition); 
+                    if(returnFinding.showSuppressionFinding)
                     {
                         break;
                     }
@@ -299,8 +332,8 @@ export class DevSkimSuppression
                     if(DocumentUtilities.GetDocumentPosition(documentContents, DocumentUtilities.GetLineNumber(documentContents, commentStart)) == commentStart)
                     {
                         line = (match) ? documentContents.substr(commentStart, match.index - commentStart) : documentContents.substr(startPosition);
-                        returnFinding = suppressionCheck(line, regex, commentStart); 
-                        if(returnFinding.showFinding)
+                        returnFinding = suppressionCheck(line, commentStart); 
+                        if(returnFinding.showSuppressionFinding)
                         {
                             break;
                         }
@@ -358,7 +391,7 @@ export class DevSkimSuppression
 
 export class DevSkimSuppressionFinding
 {
-    public showFinding: boolean;
+    public showSuppressionFinding: boolean;
     public suppressionRange: Range;
     public noRange : boolean;
 }

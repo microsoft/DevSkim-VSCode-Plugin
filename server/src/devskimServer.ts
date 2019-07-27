@@ -255,7 +255,7 @@ export default class DevSkimServer
             if (settings)
             {
                 delete this.worker.codeActions[textDocument.uri];
-                this.worker.dswSettings.getSettings(settings);
+                this.worker.UpdateSettings(settings);
 
                 const problems: DevSkimProblem[] =
                     await this.worker.analyzeText(textDocument.getText(), textDocument.languageId, textDocument.uri);
