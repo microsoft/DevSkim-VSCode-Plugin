@@ -167,13 +167,31 @@ export class DevSkimSuppression
         // and insert the suppression just before the newline
         else
         {
-            let StartComment: string = SourceContext.GetLineComment(langID);
-            let EndComment = "";
-            if (!StartComment || StartComment.length < 1)
+            let StartComment: string = "";
+            let EndComment : string = "";
+
+            //select the right comment type, based on the user settings and the
+            //comment capability of the programming language
+            if(this.dsSettings.suppressionCommentStyle == "block")
             {
                 StartComment = SourceContext.GetBlockCommentStart(langID);
                 EndComment = SourceContext.GetBlockCommentEnd(langID);
+                if (!StartComment || StartComment.length < 1 || !EndComment || EndComment.length < 1)
+                {
+                    StartComment = SourceContext.GetLineComment(langID);
+                }                   
             }
+            else
+            {
+                StartComment = SourceContext.GetLineComment(langID);
+                if (!StartComment || StartComment.length < 1)
+                {
+                    StartComment = SourceContext.GetBlockCommentStart(langID);
+                    EndComment = SourceContext.GetBlockCommentEnd(langID);
+                }                
+            }
+            
+            
 
             if (isReviewRule || daysOffset > 0)
             {
@@ -257,7 +275,7 @@ export class DevSkimSuppression
             finding.showSuppressionFinding = false;
             
             //look for the suppression comment
-            match = XRegExp.exec(line, regex);
+            let match = XRegExp.exec(line, regex);
             if (match)
             {
                 let suppressionIndex : number = match[0].indexOf(ruleID);
@@ -291,48 +309,47 @@ export class DevSkimSuppression
             return finding;
         }        
         
-
-        startPosition = DocumentUtilities.GetDocumentPosition(documentContents, DocumentUtilities.GetLineNumber(documentContents,startPosition));
         
-        let match = XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, startPosition);
-        line = (match) ? documentContents.substr(startPosition, match.index - startPosition) : documentContents.substr(startPosition);
+        let lineNumber : number = DocumentUtilities.GetLineNumber(documentContents,startPosition);
+        startPosition = DocumentUtilities.GetDocumentPosition(documentContents, lineNumber);
+        
+        line = DocumentUtilities.GetDocumentRestOfLine(documentContents, startPosition);
         returnFinding = suppressionCheck(line, startPosition); 
         
         //we didn't find a suppression on the same line, but it might be a comment on the previous line
         if(!returnFinding.showSuppressionFinding)
-        {
-            //start looping back up the document, line by line.  This will break out when it finds a line
-            //that isn't all comment, and will terminate when at the beginning of the document
-            let lineNumber : number = DocumentUtilities.GetLineNumber(documentContents,startPosition) -1;
+        { 
+            lineNumber--;           
             while(lineNumber > -1)            
             {                
                 //get the start position of the current line we are looking for a comment in           
                 startPosition = DocumentUtilities.GetDocumentPosition(documentContents, lineNumber);
                 
                 //extract the line, and trim off the trailing space
-                match = XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, startPosition);
-                let secondLastMatch = (lineNumber -1 > -1) ? XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, DocumentUtilities.GetDocumentPosition(documentContents, lineNumber -1)) : false;
-                let lastMatch = (secondLastMatch) ? secondLastMatch.index : startPosition;
-                let subDoc : string = documentContents.substr(0, (match) ? match.index : startPosition);
+               // let match = XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, startPosition);
+                //let secondLastMatch = (lineNumber -1 > -1) ? XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, DocumentUtilities.GetDocumentPosition(documentContents, lineNumber -1)) : false;
+                //let lastMatch = (secondLastMatch) ? secondLastMatch.index : startPosition;
+                //let subDoc : string = documentContents.substr(0, (match) ? match.index : startPosition);
+                let subDoc : string = DocumentUtilities.GetDocumentLineFromPosition(documentContents, startPosition);
 
                 //check if the last line is a full line comment
-                if(SourceContext.IsLineCommented(langID, subDoc, lastMatch))
+                if(SourceContext.IsLineCommented(langID, subDoc))
                 {                    
-                    line = (match) ? documentContents.substr(startPosition, match.index - startPosition) : documentContents.substr(startPosition);
-                    returnFinding = suppressionCheck(line, startPosition); 
+                    returnFinding = suppressionCheck(subDoc, startPosition); 
                     if(returnFinding.showSuppressionFinding)
                     {
                         break;
                     }
                 }
                 //check if its part of a block comment
-                else if(SourceContext.IsLineBlockCommented(langID, subDoc))
+                else if(SourceContext.IsLineBlockCommented(langID, documentContents, lineNumber))
                 {
-                    let commentStart : number = SourceContext.GetStartOfLastBlockComment(langID,subDoc);
-                    if(DocumentUtilities.GetDocumentPosition(documentContents, DocumentUtilities.GetLineNumber(documentContents, commentStart)) == commentStart)
+                    let commentStart : number = SourceContext.GetStartOfLastBlockComment(langID,documentContents.substr(0,startPosition + subDoc.length));
+                    let doc : string = DocumentUtilities.GetDocumentLineFromPosition(documentContents, commentStart).trim();
+
+                    if(SourceContext.GetStartOfLastBlockComment(langID,doc) == 0)
                     {
-                        line = (match) ? documentContents.substr(commentStart, match.index - commentStart) : documentContents.substr(startPosition);
-                        returnFinding = suppressionCheck(line, commentStart); 
+                        returnFinding = suppressionCheck(subDoc, commentStart); 
                         if(returnFinding.showSuppressionFinding)
                         {
                             break;

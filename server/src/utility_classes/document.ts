@@ -12,9 +12,11 @@
  */
 
 import { SourceContext } from "./sourceContext";
+
 export class DocumentUtilities
 {
     public static newlinePattern: RegExp = /(\r\n|\n|\r)/gm;
+    public static windowsOnlyNewlinePattern: RegExp = /(\r\n)/gm;
        /**
      * The documentContents is just a stream of text, but when interacting with the editor its common to need
      * the line number.  This counts the newlines to the current document position
@@ -63,6 +65,49 @@ export class DocumentUtilities
         }
 
         return documentContents.length;
+    }
+
+    /**
+     * Retrieves the full line of text for the given line number
+     * @param documentContents document string that the line is being extracted from
+     * @param lineNumber line number to extract 
+     */
+    public static GetDocumentLine(documentContents : string, lineNumber: number) : string
+    {
+        if(lineNumber < 0 )
+            return documentContents;
+
+        let startPosition : number = DocumentUtilities.GetDocumentPosition(documentContents, lineNumber);
+        return DocumentUtilities.GetDocumentRestOfLine(documentContents, startPosition);
+             
+
+    }
+
+    /**
+     * Retrieves the full line of text that the given documentPosition is in
+     * @param documentContents document string that the line is being extracted from
+     * @param documentPosition the character position within the documentContents, whose line contents will be retrieved
+     */
+    public static GetDocumentLineFromPosition(documentContents : string, documentPosition: number) : string
+    {
+        if(documentPosition < 0 )
+            return documentContents;
+            
+        let lineNumber : number = DocumentUtilities.GetLineNumber(documentContents,documentPosition);
+        return DocumentUtilities.GetDocumentLine(documentContents, lineNumber);
+    }
+
+    /**
+     * retrieves the partial line of text, starting at the specified document position
+     * @param documentContents document string that the line is being extracted from
+     * @param documentPosition the starting point within the line that will mark the beginning of the returned text
+     */
+    public static GetDocumentRestOfLine(documentContents: string, documentPosition: number) : string
+    {
+        let XRegExp = require('xregexp');
+
+        let match = XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, documentPosition);
+        return (match) ? documentContents.substr(documentPosition, match.index - documentPosition) : documentContents.substr(documentPosition);           
     }
 
     /**

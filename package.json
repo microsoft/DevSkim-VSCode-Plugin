@@ -94,6 +94,24 @@
           "default": 30,
           "description": "DevSkim allows for findings to be suppressed for a temporary period of time. The default is 30 days.  Set to 0 to disable temporary suppressions"
         },
+        "devskim.suppressionCommentStyle": {
+          "type": "string",
+          "enum": [
+            "line",
+            "block"
+          ],
+          "default": "line",
+          "description": "When DevSkim inserts a suppression comment it defaults to using single line comments for every language that has them.  Setting this to block will instead use block comments for the languages that support them.  Block comments are suggested if regularly adding explanations for why a finding was suppressed"
+        },    
+        "devskim.suppressionCommentPlacement": {
+          "type": "string",
+          "enum": [
+            "same line as finding",
+            "line above finding"
+          ],
+          "default": "same line as finding",
+          "description": "When DevSkim inserts a suppression comment it defaults placing the comment after the finding being suppressed, on the same line.  Changing this setting will place the suppression the line above the finding instead."
+        },              
         "devskim.guidanceBaseURL": {
           "type": "string",
           "default": "https://github.com/Microsoft/DevSkim/blob/master/guidance/",

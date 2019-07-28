@@ -14,17 +14,31 @@ import { DevSkimWorker } from "./devskimWorker";
 import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
 import { DevSkimSuppression } from "./utility_classes/suppressions";
 
-
+/**
+ * 
+ */
 export default class DevSkimServer
 {
 
     public static instance: DevSkimServer;
 
+    /**
+     * 
+     * @param documents 
+     * @param connection 
+     * @param worker 
+     */
     private constructor(private documents: TextDocuments, private connection: Connection, private worker: DevSkimWorker)
     {
         this.globalSettings = worker.dswSettings.getSettings();
     }
 
+    /**
+     * 
+     * @param documents 
+     * @param connection 
+     * @param params 
+     */
     public static async initialize(documents: TextDocuments, connection: Connection, params: InitializedParams): Promise<DevSkimServer>
     {
         const dsWorkerSettings = new DevSkimWorkerSettings();
@@ -36,11 +50,18 @@ export default class DevSkimServer
         return DevSkimServer.instance;
     }
 
+    /**
+     * 
+     */
     public async loadRules(): Promise<void>
     {
         return this.worker.init();
     }
 
+    /**
+     * 
+     * @param connection 
+     */
     public register(connection: Connection): void
     {
         this.documents.listen(this.connection);
@@ -78,6 +99,9 @@ export default class DevSkimServer
         this.documents.onDidChangeContent(this.onDidChangeContent.bind(this));
     }
 
+    /**
+     * 
+     */
     public capabilities(): ServerCapabilities
     {
         // @todo: review this to find the best implementation
@@ -95,6 +119,10 @@ export default class DevSkimServer
         // this.validateTextDocument(change.document);
     }
 
+    /**
+     * 
+     * @param change 
+     */
     private onDidClose(change)
     {
         if (this.globalSettings.removeFindingsOnClose)
@@ -104,6 +132,10 @@ export default class DevSkimServer
         }
     }
 
+    /**
+     * 
+     * @param change 
+     */
     private onDidChangeContent(change): Promise<void>
     {
         this.connection.console.log(`DevSkimServer: onDidChangeContent(${change.document.uri})`);
@@ -125,6 +157,10 @@ export default class DevSkimServer
         this.workspaceRoot = params.rootPath;
     }
 
+    /**
+     * 
+     * @param params 
+     */
     private onRequestValidateDocsRequest(params: ValidateDocsParams): void
     {
         for (let docs of params.textDocuments)
@@ -136,11 +172,18 @@ export default class DevSkimServer
         }
     }
 
+    /**
+     * 
+     */
     private onRequestReloadRulesRequest()
     {
         this.worker.refreshAnalysisRules();
     }
 
+    /**
+     * 
+     * @param params 
+     */
     private onCodeAction(params: CodeActionParams): Command[]
     {
         this.codeActions = [];
@@ -174,6 +217,10 @@ export default class DevSkimServer
         return this.codeActions;
     }
 
+    /**
+     * 
+     * @param change 
+     */
     private onDidChangeConfiguration(change: DidChangeConfigurationParams): void
     {
         //this was part of the template but I basically ignore it.  The settings should
@@ -203,11 +250,18 @@ export default class DevSkimServer
         });
     }
 
+    /**
+     * 
+     */
     private onDidChangeWatchedFiles(change: DidChangeWatchedFilesParams): void
     {
         noop;
     }
 
+    /**
+     * 
+     * @param pos 
+     */
     private onHover(pos: TextDocumentPositionParams): Promise<Hover>
     {
         this.connection.console.log(`onHover: ${pos.position.line}:${pos.position.character}`);

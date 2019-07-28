@@ -11,21 +11,6 @@
  import { DocumentUtilities } from './document';
  export class SourceContext
  {     
-    
-    /**
-     * Extract all of the variables from a string, and return them in array by the order they
-     * were found
-     * @param langID VSCode ID for the language (should be lower case)
-     * @param sourceString the string to parse for variables
-     */
-    public static ExtractVariablesFromString(langID: string, sourceString: string) : string[]
-    {
-        let variableArray: string[] =[];
-
-        variableArray.push("test");
-
-        return variableArray;
-    }
 
 
     /**
@@ -81,7 +66,7 @@
      * 
      * @memberOf SourceComments
      */
-    public static IsLineCommented(langID: string, documentContents: string, newlineIndex: number): boolean
+    public static IsLineCommented(langID: string, documentContents: string, newlineIndex: number = -1): boolean
     {
         if (documentContents.length < 1)
         {
@@ -104,30 +89,42 @@
      * @static
      * @param {string} langID VSCode ID for the language (should be lower case)
      * @param {string} documentContents the documentContents up to, but not including the next line
-     * @param {number} newlineIndex the index of the most recent newline, for checking line comments
+     * @param {number} lineNumber the line number we are checking
      * @param {boolean} onlyLine (Optional) if set to true, only checks if the full line is in a line comment
      * @returns {boolean} true if in a comment, false if active code
      * 
      * @memberOf SourceComments
      */
-    public static IsLineBlockCommented(langID: string, documentContents: string): boolean
+    public static IsLineBlockCommented(langID: string, documentContents: string, lineNumber: number): boolean
     {
-        if (documentContents.length < 1)
+        if (documentContents.length < 1 || lineNumber < 0)
         {
             return false;
         }
-        let tempDoc : string = documentContents.trim()
 
-        //now test for block comments for languages that support them.  If the last instance of a start
-        //of a block comment occurs AFTER the last instance of the end of a block comment, then the finding is
-        //in a block comment.  NOTE - things like conditional compilation blocks will screw up this logic and 
-        //to cover block comment starts/ends in those blocks this logic will need to be expanded out.  That's
-        //not a case we are worried about covering in preview, but may want to cover once we exit preview
         let startComment: string = SourceContext.GetBlockCommentStart(langID);
         let endComment: string = SourceContext.GetBlockCommentEnd(langID);
-        return startComment.length > 0 && endComment.length > 0 &&
-            tempDoc.lastIndexOf(startComment) < tempDoc.lastIndexOf(endComment) &&
-            tempDoc.lastIndexOf(endComment) == tempDoc.length -endComment.length;
+        if(startComment.length < 1 && endComment.length < 1)
+        {
+            return false;
+        }
+
+        let documentPosition: number = DocumentUtilities.GetDocumentPosition(documentContents,lineNumber + 1);
+        let subDocument: string = documentContents.substr(0,documentPosition);
+        let line : string = DocumentUtilities.GetDocumentLine(documentContents, lineNumber).trim();
+        let startIndex : number = subDocument.lastIndexOf(startComment);
+        let endIndex : number = subDocument.lastIndexOf(endComment);
+
+        if((startIndex > -1  && endIndex == -1 ) || (startIndex > endIndex))
+        {
+            return true;
+        }
+        else if(startIndex < endIndex)
+        {
+            return (line.length - endComment.length == line.lastIndexOf(endComment))
+        }
+
+        return false;
     }      
     
     /**

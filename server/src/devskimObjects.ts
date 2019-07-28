@@ -27,6 +27,8 @@ export interface IDevSkimSettings
 	manualReviewerName: string;
 	removeFindingsOnClose: boolean;
 	suppressionDurationInDays: number;
+	suppressionCommentStyle: string;
+	suppressionCommentPlacement: string;
 	validateRulesFiles: boolean;
 }
 
@@ -40,6 +42,8 @@ export class DevSkimSettings implements IDevSkimSettings
 	manualReviewerName: string = '';
 	removeFindingsOnClose: boolean = false;
 	suppressionDurationInDays: number = 0;
+	suppressionCommentStyle : string = "line";
+	suppressionCommentPlacement : string = "same line as finding";
 	validateRulesFiles: boolean = true;
 }
 
