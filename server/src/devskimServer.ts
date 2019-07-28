@@ -65,7 +65,11 @@ export default class DevSkimServer
     public register(connection: Connection): void
     {
         this.documents.listen(this.connection);
-        this.documents.onDidChangeContent(change =>
+        
+        //I don't know why this code was added when a handler is separately registered below - it doesn't make much sense to me
+        //and was causing analysis to run TWICE every time the document changed.  Commenting out for now, in case I missed the logic
+        //for it
+   /*     this.documents.onDidChangeContent(change =>
         {
 
             const problems = this.worker.analyzeText(change.document.getText(),
@@ -82,7 +86,7 @@ export default class DevSkimServer
                         diagnostic.range, diagnostic.code, fix, problem.ruleId);
                 }
             }
-        });
+        });*/
 
         // connection handlers
         connection.onInitialize(this.onInitialize.bind(this));
