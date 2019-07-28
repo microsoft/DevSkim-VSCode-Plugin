@@ -137,11 +137,23 @@ export class DevSkimSuppression
 
         // if there is an existing suppression that has expired (or there for a different issue)
         // then it needs to be replaced
-        match = XRegExp.exec(documentContents, regex, startCharacter);
+        let existingSuppression : DevSkimSuppressionFinding;
+        let suppressionStart : number = startCharacter;
+        let suppressionLine : number = lineStart;
+
+        existingSuppression= DevSkimSuppression.isFindingCommented(startCharacter,documentContents,ruleID,langID, isReviewRule, true);
+        
+        if (existingSuppression.showSuppressionFinding)
+        {
+            suppressionStart = DocumentUtilities.GetDocumentPosition(documentContents, existingSuppression.suppressionRange.start.line);
+            suppressionLine = existingSuppression.suppressionRange.start.line;
+        }
+        
+        match = XRegExp.exec(documentContents, regex, suppressionStart);
         if (match)
         {
-            let columnStart: number = (lineStart == 0) ? match.index : match.index - documentContents.substr(0, match.index).lastIndexOf("\n") - 1;
-            range = Range.create(lineStart, columnStart, lineStart, columnStart + match[0].length);
+            let columnStart: number = (suppressionLine == 0) ? match.index : match.index - documentContents.substr(0, match.index).lastIndexOf("\n") - 1;
+            range = Range.create(suppressionLine, columnStart, suppressionLine, columnStart + match[0].length);
             if (match[1] !== undefined && match[1] != null && match[1].length > 0)
             {
                 if (match[1].indexOf(ruleID) >= 0)
@@ -249,10 +261,9 @@ export class DevSkimSuppression
      * @memberOf DevSkimWorker
      */
     public static isFindingCommented(startPosition: number, documentContents: string, ruleID: string, langID : string,
-        ruleSeverity?: DevskimRuleSeverity): DevSkimSuppressionFinding
+        isReviewRule: boolean, evenExpired: boolean = false): DevSkimSuppressionFinding
     {
         let XRegExp = require('xregexp');
-        let isReviewRule = (ruleSeverity !== undefined && ruleSeverity != null && ruleSeverity == DevskimRuleSeverity.ManualReview);
         let regex: RegExp = (isReviewRule) ? DevSkimSuppression.reviewRegEx : DevSkimSuppression.suppressionRegEx;
         let line : string;
         let returnFinding : DevSkimSuppressionFinding;
@@ -290,7 +301,7 @@ export class DevSkimSuppression
                         const untilDate: number = Date.UTC(match[3], match[4] - 1, match[5], 0, 0, 0, 0);
                         //we have a match of the rule, and haven't yet reached the "until" date, so ignore finding
                         //if the "until" date is less than the current time, the suppression has expired and we should not ignore
-                        if (untilDate > Date.now()) 
+                        if (untilDate > Date.now() || evenExpired) 
                         {
                             finding.showSuppressionFinding = true;
                         }

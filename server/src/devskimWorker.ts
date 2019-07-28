@@ -314,7 +314,7 @@ export class DevSkimWorker
                         //the suppressionFinding object contains a flag if the finding has been suppressed as well as
                         //range info for the ruleID in the suppression text so that hover text can be added describing
                         //the finding that was suppress
-                        let suppressionFinding: DevSkimSuppressionFinding = DevSkimSuppression.isFindingCommented(match.index, documentContents, rule.id,langID, ruleSeverity);
+                        let suppressionFinding: DevSkimSuppressionFinding = DevSkimSuppression.isFindingCommented(match.index, documentContents, rule.id,langID, (ruleSeverity == DevskimRuleSeverity.ManualReview));
 
                         //calculate what line we are on by grabbing the text before the match & counting the newlines in it
                         let lineStart: number = DocumentUtilities.GetLineNumber(documentContents, match.index);
