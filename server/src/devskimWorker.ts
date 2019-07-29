@@ -613,7 +613,8 @@ export class DevSkimWorker
                 //there is some assumption that both will be on the same line, and it *might* be possible that they
                 //aren't BUT we can't blanket say remove all instances of the overridden finding, because it might flag
                 //issues the rule that supersedes it does not
-                for (let x = 0; x < problems.length; x++)
+                let x = 0;
+                while ( x < problems.length )
                 {
                     let matches = problems[x].ruleId.match(regexString);
                     let range: Range = (problem.suppressedFindingRange != null) ? problem.suppressedFindingRange : problem.range;
@@ -624,6 +625,10 @@ export class DevSkimWorker
                     {
                         problems.splice(x, 1);
                         overrideRemoved = true;
+                    }
+                    else
+                    {
+                        x++;
                     }
                 }
                 //clear the overrides so we don't process them on subsequent recursive calls to this

@@ -8,14 +8,13 @@
  * @export
  * @class RulesLoader
  */
-const path = require('path');
 const util = require('util');
 const fs = require('fs');
 const readFile = util.promisify(fs.readFile);
 const readdir = require('recursive-readdir');
 import { Rule } from '../devskimObjects';
 import { RuleValidator } from './ruleValidator';
-import { IConnection, Range } from 'vscode-languageserver';
+import { IConnection } from 'vscode-languageserver';
 
 
 export interface IRulesLoader

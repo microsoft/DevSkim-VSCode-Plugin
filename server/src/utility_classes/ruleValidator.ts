@@ -1067,7 +1067,7 @@ export class RuleValidator implements IRuleValidator
             this.outputMessages.push(outcome);
             if (alertLevel == OutputAlert.Error)
             {
-                throw warningMessage
+                throw warningMessage;
             }
         }
         return verifiedType;

@@ -249,11 +249,7 @@ export default class DevSkimServer
             if(change.settings != undefined)
             {
                 this.globalSettings = (change.settings.devskim) ? change.settings.devskim : change.settings;
-            }
-            else
-            {
-                this.globalSettings = this.globalSettings;
-            }            
+            }          
         }
 
         // Revalidate any open text documents

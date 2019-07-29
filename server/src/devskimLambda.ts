@@ -16,7 +16,6 @@
 
 import { Range } from 'vscode-languageserver';
 import { Condition } from "./devskimObjects";
-import { SourceContext} from "./utility_classes/sourceContext";
 
 export class DevskimLambdaEngine
 {
