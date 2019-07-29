@@ -1,3 +1,13 @@
+/* --------------------------------------------------------------------------------------------
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License. See License.txt in the project root for license information.
+ * ------------------------------------------------------------------------------------------ 
+ *
+ * Class to load the json based rules from the file system
+ * 
+ * @export
+ * @class RulesLoader
+ */
 const path = require('path');
 const util = require('util');
 const fs = require('fs');
