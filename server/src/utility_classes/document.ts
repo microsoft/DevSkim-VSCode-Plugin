@@ -139,7 +139,6 @@ export class DocumentUtilities
      */
     public static GetLeadingWhiteSpace(documentContents : string, lineNumber: number) : string
     {
-        let leadingWhitespace = "";
         let leadingWhitespacePattern:  RegExp = /^([ \t]+)/gm;
         let lineText : string = DocumentUtilities.GetLine(documentContents, lineNumber);
         let XRegExp = require('xregexp');
