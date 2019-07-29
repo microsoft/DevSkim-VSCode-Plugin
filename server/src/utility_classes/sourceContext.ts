@@ -111,7 +111,7 @@
 
         let documentPosition: number = DocumentUtilities.GetDocumentPosition(documentContents,lineNumber + 1);
         let subDocument: string = documentContents.substr(0,documentPosition);
-        let line : string = DocumentUtilities.GetDocumentLine(documentContents, lineNumber).trim();
+        let line : string = DocumentUtilities.GetLine(documentContents, lineNumber).trim();
         let startIndex : number = subDocument.lastIndexOf(startComment);
         let endIndex : number = subDocument.lastIndexOf(endComment);
 

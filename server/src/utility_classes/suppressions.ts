@@ -103,6 +103,7 @@ export class DevSkimSuppression
         let regex: RegExp = (isReviewRule)
             ? DevSkimSuppression.reviewRegEx
             : DevSkimSuppression.suppressionRegEx;
+        let startingWhitespace = " ";
 
         this.setActionFixName(isReviewRule, action, ruleID, daysOffset);
 
@@ -116,23 +117,33 @@ export class DevSkimSuppression
         //find the end of the current line of the finding
         let XRegExp = require('xregexp');
         let range: Range;
+        let match;
 
-        let match = XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, startCharacter);
-        if (match)
+        if(this.dsSettings.suppressionCommentPlacement == "same line as finding")
         {
-            let columnStart = (lineStart == 0)
-                ? match.index
-                : match.index - documentContents.substr(0, match.index).lastIndexOf("\n") - 1;
-            range = Range.create(lineStart, columnStart, lineStart, columnStart + match[0].length);
-            documentContents = documentContents.substr(0, match.index);
+            match = XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, startCharacter);
+            if (match)
+            {
+                let columnStart = (lineStart == 0)
+                    ? match.index
+                    : match.index - documentContents.substr(0, match.index).lastIndexOf("\n") - 1;
+                range = Range.create(lineStart, columnStart, lineStart, columnStart + match[0].length);
+                documentContents = documentContents.substr(0, match.index);
+            }
+            else
+            {
+                //replace with end of file
+                let columnStart = (lineStart == 0)
+                    ? documentContents.length
+                    : documentContents.length - documentContents.lastIndexOf("\n") - 1;
+                range = Range.create(lineStart, columnStart, lineStart, columnStart);
+            }
         }
         else
         {
-            //replace with end of file
-            let columnStart = (lineStart == 0)
-                ? documentContents.length
-                : documentContents.length - documentContents.lastIndexOf("\n") - 1;
-            range = Range.create(lineStart, columnStart, lineStart, columnStart);
+            range = Range.create(lineStart, 0, lineStart, 0);
+            startingWhitespace = DocumentUtilities.GetLeadingWhiteSpace(documentContents, lineStart);
+
         }
 
         // if there is an existing suppression that has expired (or there for a different issue)
@@ -150,7 +161,7 @@ export class DevSkimSuppression
         }
         
         match = XRegExp.exec(documentContents, regex, suppressionStart);
-        if (match)
+        if (match && DocumentUtilities.GetLineNumber(documentContents, match.index) == suppressionLine)
         {
             let columnStart: number = (suppressionLine == 0) ? match.index : match.index - documentContents.substr(0, match.index).lastIndexOf("\n") - 1;
             range = Range.create(suppressionLine, columnStart, suppressionLine, columnStart + match[0].length);
@@ -175,8 +186,7 @@ export class DevSkimSuppression
             }
         }
 
-        // if there is not an existing suppression then we need to find the newline
-        // and insert the suppression just before the newline
+        // if there is not an existing suppression we need to create the full suppression text
         else
         {
             let StartComment: string = "";
@@ -204,14 +214,22 @@ export class DevSkimSuppression
             }
             
             
+            let optionalNewline: string = "";
+            
+            if (this.dsSettings.suppressionCommentPlacement != "same line as finding") 
+            {
+                optionalNewline = DocumentUtilities.GetNewlineCharacter(documentContents);
+            }
+            
+            
 
             if (isReviewRule || daysOffset > 0)
             {
-                action.text = " " + StartComment + this.makeActionString(ruleID, isReviewRule, date) + " " + EndComment;
+                action.text = startingWhitespace + StartComment + this.makeActionString(ruleID, isReviewRule, date) + " " + EndComment + optionalNewline;
             }
             else
             {
-                action.text = " " + StartComment + this.makeActionString(ruleID, isReviewRule) + " " + EndComment;
+                action.text = startingWhitespace + StartComment + this.makeActionString(ruleID, isReviewRule) + " " + EndComment + optionalNewline;
             }
         }
         action.range = range;
@@ -256,12 +274,13 @@ export class DevSkimSuppression
      * @param {string} ruleID the rule that triggered the finding
      * @param {DevskimRuleSeverity} ruleSeverity (option) the severity of the rule - necessary if the rule is a Manual Review rule, since slightly different
      *                                           logic is employed because of the different comment string.  If omitted, assume a normal suppression 
+     * @param {boolean} anySuppression will look for any suppression, regardless of if it doesn't match ruleID, or is expired
      * @returns {boolean} true if this finding should be ignored, false if it shouldn't
      * 
      * @memberOf DevSkimWorker
      */
     public static isFindingCommented(startPosition: number, documentContents: string, ruleID: string, langID : string,
-        isReviewRule: boolean, evenExpired: boolean = false): DevSkimSuppressionFinding
+        isReviewRule: boolean, anySuppression : boolean = false): DevSkimSuppressionFinding
     {
         let XRegExp = require('xregexp');
         let regex: RegExp = (isReviewRule) ? DevSkimSuppression.reviewRegEx : DevSkimSuppression.suppressionRegEx;
@@ -290,7 +309,7 @@ export class DevSkimSuppression
             if (match)
             {
                 let suppressionIndex : number = match[0].indexOf(ruleID);
-                if (suppressionIndex > -1)
+                if (suppressionIndex > -1 || anySuppression)
                 {
                     let lineStart : number = DocumentUtilities.GetLineNumber(documentContents,startPosition)
                     suppressionIndex += match.index;
@@ -301,7 +320,7 @@ export class DevSkimSuppression
                         const untilDate: number = Date.UTC(match[3], match[4] - 1, match[5], 0, 0, 0, 0);
                         //we have a match of the rule, and haven't yet reached the "until" date, so ignore finding
                         //if the "until" date is less than the current time, the suppression has expired and we should not ignore
-                        if (untilDate > Date.now() || evenExpired) 
+                        if (untilDate > Date.now() || anySuppression) 
                         {
                             finding.showSuppressionFinding = true;
                         }
@@ -324,7 +343,7 @@ export class DevSkimSuppression
         let lineNumber : number = DocumentUtilities.GetLineNumber(documentContents,startPosition);
         startPosition = DocumentUtilities.GetDocumentPosition(documentContents, lineNumber);
         
-        line = DocumentUtilities.GetDocumentRestOfLine(documentContents, startPosition);
+        line = DocumentUtilities.GetPartialLine(documentContents, startPosition);
         returnFinding = suppressionCheck(line, startPosition); 
         
         //we didn't find a suppression on the same line, but it might be a comment on the previous line
@@ -341,7 +360,7 @@ export class DevSkimSuppression
                 //let secondLastMatch = (lineNumber -1 > -1) ? XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, DocumentUtilities.GetDocumentPosition(documentContents, lineNumber -1)) : false;
                 //let lastMatch = (secondLastMatch) ? secondLastMatch.index : startPosition;
                 //let subDoc : string = documentContents.substr(0, (match) ? match.index : startPosition);
-                let subDoc : string = DocumentUtilities.GetDocumentLineFromPosition(documentContents, startPosition);
+                let subDoc : string = DocumentUtilities.GetLineFromPosition(documentContents, startPosition);
 
                 //check if the last line is a full line comment
                 if(SourceContext.IsLineCommented(langID, subDoc))
@@ -356,7 +375,7 @@ export class DevSkimSuppression
                 else if(SourceContext.IsLineBlockCommented(langID, documentContents, lineNumber))
                 {
                     let commentStart : number = SourceContext.GetStartOfLastBlockComment(langID,documentContents.substr(0,startPosition + subDoc.length));
-                    let doc : string = DocumentUtilities.GetDocumentLineFromPosition(documentContents, commentStart).trim();
+                    let doc : string = DocumentUtilities.GetLineFromPosition(documentContents, commentStart).trim();
 
                     if(SourceContext.GetStartOfLastBlockComment(langID,doc) == 0)
                     {
