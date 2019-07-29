@@ -97,11 +97,14 @@
      */
     public static IsLineBlockCommented(langID: string, documentContents: string, lineNumber: number): boolean
     {
+        //well no need to check if un-useful values were passed in
         if (documentContents.length < 1 || lineNumber < 0)
         {
             return false;
         }
 
+        //first check if the language even has block comments. kinda pointless to look for them
+        //if the language doesn't
         let startComment: string = SourceContext.GetBlockCommentStart(langID);
         let endComment: string = SourceContext.GetBlockCommentEnd(langID);
         if(startComment.length < 1 && endComment.length < 1)
@@ -109,19 +112,25 @@
             return false;
         }
 
+        //get the document up to the current line, but not further, and also get the text of the current line
         let documentPosition: number = DocumentUtilities.GetDocumentPosition(documentContents,lineNumber + 1);
         let subDocument: string = documentContents.substr(0,documentPosition);
         let line : string = DocumentUtilities.GetLine(documentContents, lineNumber).trim();
+
+        //find the last occurrences in the sub document of both the start and end comments
         let startIndex : number = subDocument.lastIndexOf(startComment);
         let endIndex : number = subDocument.lastIndexOf(endComment);
 
+        //if we have a start index PASSED the end index, that means the current line is in a block comment
+        //and the end is further on in the document, passed that line
         if((startIndex > -1  && endIndex == -1 ) || (startIndex > endIndex))
         {
             return true;
         }
+        //if the start index is earlier, then we should check if the end index ends the current line (or at least there are no characters after it)
         else if(startIndex < endIndex)
         {
-            return (line.length - endComment.length == line.lastIndexOf(endComment))
+            return (line.trim().length - endComment.length == line.trim().lastIndexOf(endComment))
         }
 
         return false;
