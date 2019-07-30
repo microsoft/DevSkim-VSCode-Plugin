@@ -8,7 +8,6 @@
  * @export
  * @class DevSkimServer
  */
-import { noop } from "@babel/types";
 import
 {
     CodeActionParams, Connection, Diagnostic, DidChangeConfigurationParams, InitializedParams, Hover,
@@ -76,33 +75,10 @@ export default class DevSkimServer
     {
         this.documents.listen(this.connection);
         
-        //I don't know why this code was added when a handler is separately registered below - it doesn't make much sense to me
-        //and was causing analysis to run TWICE every time the document changed.  Commenting out for now, in case I missed the logic
-        //for it
-   /*     this.documents.onDidChangeContent(change =>
-        {
-
-            const problems = this.worker.analyzeText(change.document.getText(),
-                change.document.languageId, change.document.uri);
-
-            for (let problem of problems)
-            {
-                let diagnostic: Diagnostic = problem.makeDiagnostic(this.worker.dswSettings);
-                this.diagnostics.push(diagnostic);
-
-                for (let fix of problem.fixes)
-                {
-                    this.worker.recordCodeAction(change.document.uri, change.document.version,
-                        diagnostic.range, diagnostic.code, fix, problem.ruleId);
-                }
-            }
-        });*/
-
         // connection handlers
         connection.onInitialize(this.onInitialize.bind(this));
         connection.onCodeAction(this.onCodeAction.bind(this));
         connection.onDidChangeConfiguration(this.onDidChangeConfiguration.bind(this));
-        connection.onDidChangeWatchedFiles(this.onDidChangeWatchedFiles.bind(this));
         connection.onHover(this.onHover.bind(this));
         connection.onRequest(ReloadRulesRequest.type, this.onRequestReloadRulesRequest.bind(this));
         connection.onRequest(ValidateDocsRequest.type, this.onRequestValidateDocsRequest.bind(this));
@@ -258,14 +234,6 @@ export default class DevSkimServer
             this.connection.console.log(`DevSkimServer: onDidChangeConfiguration(${td.uri})`);
             return this.validateTextDocument(td);
         });
-    }
-
-    /**
-     * 
-     */
-    private onDidChangeWatchedFiles(change: DidChangeWatchedFilesParams): void
-    {
-        noop;
     }
 
     /**

@@ -61,6 +61,9 @@ export class RuleValidator implements IRuleValidator
 
         if (!readRules) readRules = [];
 
+        //We intentionally throw exceptions when a rule catastrophically fails validation , but that will get logged in the output message
+        //so we don't actually need to handle the exception.  The catch block is empty because we want to keep
+        //processing the rest of the rules
         for (let loadedRule of readRules)
         {
             try 
@@ -70,6 +73,7 @@ export class RuleValidator implements IRuleValidator
             }
             catch (err)
             {
+                //lgtm - to stop it from complaining about the noop.  The noop is intentional, to show the catch code wasn't overlooked                
                 noop;
             }
         }
