@@ -11,8 +11,7 @@
 import
 {
     CodeActionParams, Connection, Diagnostic, DidChangeConfigurationParams, InitializedParams, Hover,
-    InitializeParams, RequestType, ServerCapabilities, TextDocument, TextDocuments, TextDocumentPositionParams,
-    DidChangeWatchedFilesParams,
+    InitializeParams, RequestType, ServerCapabilities, TextDocument, TextDocuments, TextDocumentPositionParams    
 } from "vscode-languageserver";
 
 import { Command, TextEdit } from 'vscode-languageserver-protocol';
