@@ -48,10 +48,23 @@ export class DevSkimWorker
     //map seemed a little excessive to me.  Then again, I just wrote 3 paragraphs for how this works, so maybe I'm being too clever
     public codeActions: Map<Map<AutoFix>> = Object.create(null);
 
-    constructor(private connection: IConnection, private dsSuppressions: DevSkimSuppression, settings?: IDevSkimSettings) 
+    constructor(private connection: IConnection, private dsSuppressions: DevSkimSuppression, settings: IDevSkimSettings = DevSkimWorkerSettings.defaultSettings()) 
     {
         this.rulesDirectory = DevSkimWorkerSettings.getRulesDirectory(connection);
-        this.dswSettings.getSettings(settings);
+        this.dswSettings.setSettings(settings);
+        this.dsSuppressions.dsSettings = settings;
+    }
+
+    /**
+     * Call whenever the user updates their settings in the IDE, to ensure that the worker is using the most up to date
+     * version of the user's settings
+     * @param settings the current settings to update
+     */
+    public UpdateSettings(settings : IDevSkimSettings)
+    {
+        this.dswSettings.setSettings(settings);
+        this.dsSuppressions.dsSettings = settings;
+        
     }
 
     public async init(): Promise<void> 
@@ -301,7 +314,7 @@ export class DevSkimWorker
                         //the suppressionFinding object contains a flag if the finding has been suppressed as well as
                         //range info for the ruleID in the suppression text so that hover text can be added describing
                         //the finding that was suppress
-                        let suppressionFinding: DevSkimSuppressionFinding = DevSkimSuppression.isFindingCommented(match.index, documentContents, rule.id, ruleSeverity);
+                        let suppressionFinding: DevSkimSuppressionFinding = DevSkimSuppression.isFindingCommented(match.index, documentContents, rule.id,langID, (ruleSeverity == DevskimRuleSeverity.ManualReview));
 
                         //calculate what line we are on by grabbing the text before the match & counting the newlines in it
                         let lineStart: number = DocumentUtilities.GetLineNumber(documentContents, match.index);
@@ -321,7 +334,7 @@ export class DevSkimWorker
                         let range: Range = Range.create(lineStart, columnStart, lineEnd, columnEnd);
 
                         //look for the suppression comment for that finding
-                        if (!suppressionFinding.showFinding &&
+                        if (!suppressionFinding.showSuppressionFinding &&
                             DocumentUtilities.MatchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex, rule.patterns[patternIndex].scopes) &&
                             DevSkimWorker.MatchesConditions(rule.conditions, documentContents, range, langID)) 
                         {
@@ -335,12 +348,11 @@ export class DevSkimWorker
                         }
                         //throw a pop up if there is a review/suppression comment with the rule id, so that people can figure out what was
                         //suppressed/reviewed
-                        else if (suppressionFinding.ruleColumn > 0) 
+                        else if (!suppressionFinding.noRange) 
                         {
                             //highlight suppression finding for context
                             //this will look
-                            let suppressionRange: Range = Range.create(lineStart, columnStart + suppressionFinding.ruleColumn, lineStart, columnStart + suppressionFinding.ruleColumn + rule.id.length);
-                            let problem: DevSkimProblem = this.MakeProblem(rule, DevskimRuleSeverity.WarningInfo, suppressionRange, range);
+                            let problem: DevSkimProblem = this.MakeProblem(rule, DevskimRuleSeverity.WarningInfo, suppressionFinding.suppressionRange, range);
 
                             problems.push(problem);
 
@@ -601,7 +613,8 @@ export class DevSkimWorker
                 //there is some assumption that both will be on the same line, and it *might* be possible that they
                 //aren't BUT we can't blanket say remove all instances of the overridden finding, because it might flag
                 //issues the rule that supersedes it does not
-                for (let x = 0; x < problems.length; x++)
+                let x = 0;
+                while ( x < problems.length )
                 {
                     let matches = problems[x].ruleId.match(regexString);
                     let range: Range = (problem.suppressedFindingRange != null) ? problem.suppressedFindingRange : problem.range;
@@ -612,6 +625,10 @@ export class DevSkimWorker
                     {
                         problems.splice(x, 1);
                         overrideRemoved = true;
+                    }
+                    else
+                    {
+                        x++;
                     }
                 }
                 //clear the overrides so we don't process them on subsequent recursive calls to this

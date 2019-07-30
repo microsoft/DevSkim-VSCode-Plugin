@@ -1,4 +1,4 @@
-import {DevSkimSuppression} from "../src/suppressions";
+import {DevSkimSuppression} from "../src/utility_classes/suppressions";
 import {DevskimRuleSeverity, DevSkimSettings, IDevSkimSettings} from "../src/devskimObjects";
 
 jest.mock("../src/devskimObjects");

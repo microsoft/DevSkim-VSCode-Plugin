@@ -1,0 +1,4 @@
+path_classifiers:
+    test:
+        - "**/_tests_"
+        - "**/_mocks_"

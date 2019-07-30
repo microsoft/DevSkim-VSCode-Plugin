@@ -1,9 +1,17 @@
-import { noop } from "@babel/types";
+/* --------------------------------------------------------------------------------------------
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License. See License.txt in the project root for license information.
+ * ------------------------------------------------------------------------------------------ 
+ *
+ * Bulk of LSP logic
+ * 
+ * @export
+ * @class DevSkimServer
+ */
 import
 {
     CodeActionParams, Connection, Diagnostic, DidChangeConfigurationParams, InitializedParams, Hover,
-    InitializeParams, RequestType, ServerCapabilities, TextDocument, TextDocuments, TextDocumentPositionParams,
-    DidChangeWatchedFilesParams,
+    InitializeParams, RequestType, ServerCapabilities, TextDocument, TextDocuments, TextDocumentPositionParams    
 } from "vscode-languageserver";
 
 import { Command, TextEdit } from 'vscode-languageserver-protocol';
@@ -14,17 +22,31 @@ import { DevSkimWorker } from "./devskimWorker";
 import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
 import { DevSkimSuppression } from "./utility_classes/suppressions";
 
-
+/**
+ * 
+ */
 export default class DevSkimServer
 {
 
     public static instance: DevSkimServer;
 
+    /**
+     * 
+     * @param documents 
+     * @param connection 
+     * @param worker 
+     */
     private constructor(private documents: TextDocuments, private connection: Connection, private worker: DevSkimWorker)
     {
         this.globalSettings = worker.dswSettings.getSettings();
     }
 
+    /**
+     * 
+     * @param documents 
+     * @param connection 
+     * @param params 
+     */
     public static async initialize(documents: TextDocuments, connection: Connection, params: InitializedParams): Promise<DevSkimServer>
     {
         const dsWorkerSettings = new DevSkimWorkerSettings();
@@ -36,38 +58,26 @@ export default class DevSkimServer
         return DevSkimServer.instance;
     }
 
+    /**
+     * 
+     */
     public async loadRules(): Promise<void>
     {
         return this.worker.init();
     }
 
+    /**
+     * 
+     * @param connection 
+     */
     public register(connection: Connection): void
     {
         this.documents.listen(this.connection);
-        this.documents.onDidChangeContent(change =>
-        {
-
-            const problems = this.worker.analyzeText(change.document.getText(),
-                change.document.languageId, change.document.uri);
-
-            for (let problem of problems)
-            {
-                let diagnostic: Diagnostic = problem.makeDiagnostic(this.worker.dswSettings);
-                this.diagnostics.push(diagnostic);
-
-                for (let fix of problem.fixes)
-                {
-                    this.worker.recordCodeAction(change.document.uri, change.document.version,
-                        diagnostic.range, diagnostic.code, fix, problem.ruleId);
-                }
-            }
-        });
-
+        
         // connection handlers
         connection.onInitialize(this.onInitialize.bind(this));
         connection.onCodeAction(this.onCodeAction.bind(this));
         connection.onDidChangeConfiguration(this.onDidChangeConfiguration.bind(this));
-        connection.onDidChangeWatchedFiles(this.onDidChangeWatchedFiles.bind(this));
         connection.onHover(this.onHover.bind(this));
         connection.onRequest(ReloadRulesRequest.type, this.onRequestReloadRulesRequest.bind(this));
         connection.onRequest(ValidateDocsRequest.type, this.onRequestValidateDocsRequest.bind(this));
@@ -78,6 +88,9 @@ export default class DevSkimServer
         this.documents.onDidChangeContent(this.onDidChangeContent.bind(this));
     }
 
+    /**
+     * 
+     */
     public capabilities(): ServerCapabilities
     {
         // @todo: review this to find the best implementation
@@ -95,6 +108,10 @@ export default class DevSkimServer
         // this.validateTextDocument(change.document);
     }
 
+    /**
+     * 
+     * @param change 
+     */
     private onDidClose(change)
     {
         if (this.globalSettings.removeFindingsOnClose)
@@ -104,6 +121,10 @@ export default class DevSkimServer
         }
     }
 
+    /**
+     * 
+     * @param change 
+     */
     private onDidChangeContent(change): Promise<void>
     {
         this.connection.console.log(`DevSkimServer: onDidChangeContent(${change.document.uri})`);
@@ -125,6 +146,10 @@ export default class DevSkimServer
         this.workspaceRoot = params.rootPath;
     }
 
+    /**
+     * 
+     * @param params 
+     */
     private onRequestValidateDocsRequest(params: ValidateDocsParams): void
     {
         for (let docs of params.textDocuments)
@@ -136,11 +161,18 @@ export default class DevSkimServer
         }
     }
 
+    /**
+     * 
+     */
     private onRequestReloadRulesRequest()
     {
         this.worker.refreshAnalysisRules();
     }
 
+    /**
+     * 
+     * @param params 
+     */
     private onCodeAction(params: CodeActionParams): Command[]
     {
         this.codeActions = [];
@@ -174,6 +206,10 @@ export default class DevSkimServer
         return this.codeActions;
     }
 
+    /**
+     * 
+     * @param change 
+     */
     private onDidChangeConfiguration(change: DidChangeConfigurationParams): void
     {
         //this was part of the template but I basically ignore it.  The settings should
@@ -188,11 +224,7 @@ export default class DevSkimServer
             if(change.settings != undefined)
             {
                 this.globalSettings = (change.settings.devskim) ? change.settings.devskim : change.settings;
-            }
-            else
-            {
-                this.globalSettings = this.globalSettings;
-            }            
+            }          
         }
 
         // Revalidate any open text documents
@@ -203,11 +235,10 @@ export default class DevSkimServer
         });
     }
 
-    private onDidChangeWatchedFiles(change: DidChangeWatchedFilesParams): void
-    {
-        noop;
-    }
-
+    /**
+     * 
+     * @param pos 
+     */
     private onHover(pos: TextDocumentPositionParams): Promise<Hover>
     {
         this.connection.console.log(`onHover: ${pos.position.line}:${pos.position.character}`);
@@ -255,7 +286,7 @@ export default class DevSkimServer
             if (settings)
             {
                 delete this.worker.codeActions[textDocument.uri];
-                this.worker.dswSettings.getSettings(settings);
+                this.worker.UpdateSettings(settings);
 
                 const problems: DevSkimProblem[] =
                     await this.worker.analyzeText(textDocument.getText(), textDocument.languageId, textDocument.uri);

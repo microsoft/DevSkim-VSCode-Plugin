@@ -12,9 +12,34 @@
  */
 
 import { SourceContext } from "./sourceContext";
+
 export class DocumentUtilities
 {
-       /**
+    public static newlinePattern: RegExp = /(\r\n|\n|\r)/gm;
+    public static windowsOnlyNewlinePattern: RegExp = /(\r\n)/gm;
+    
+
+    /**
+     * Returns the newline character conventions used in the document - \r\n if windows, \n otherwise
+     * @param documentContents the document being parsed.  If \r\n is in the document, its assumed its using windows conventions
+     */
+    public static GetNewlineCharacter(documentContents: string) : string
+    {
+        let XRegExp = require('xregexp');
+
+        //go through all of the text looking for a match with the given pattern
+        let match = XRegExp.exec(documentContents, DocumentUtilities.windowsOnlyNewlinePattern, 0);
+        if(match)
+        {
+            return "\r\n";
+        }
+        else
+        {
+            return "\n";
+        }        
+
+    }
+    /**
      * The documentContents is just a stream of text, but when interacting with the editor its common to need
      * the line number.  This counts the newlines to the current document position
      *
@@ -26,9 +51,9 @@ export class DocumentUtilities
      */
     public static GetLineNumber(documentContents: string, currentPosition: number): number 
     {
-        let newlinePattern: RegExp = /(\r\n|\n|\r)/gm;
+
         let subDocument: string = documentContents.substr(0, currentPosition);
-        let linebreaks: RegExpMatchArray = subDocument.match(newlinePattern);
+        let linebreaks: RegExpMatchArray = subDocument.match(DocumentUtilities.newlinePattern);
         return (linebreaks !== undefined && linebreaks !== null) ? linebreaks.length : 0;
     }
 
@@ -44,13 +69,12 @@ export class DocumentUtilities
         //the line number is 0 indexed, but we are counting newlines, which isn't, so add 1
         lineNumber++;
 
-        let newlinePattern: RegExp = /(\r\n|\n|\r)/gm;
         let line = 1;
         let matchPosition = 0;
         let XRegExp = require('xregexp');
 
         //go through all of the text looking for a match with the given pattern
-        let match = XRegExp.exec(documentContents, newlinePattern, matchPosition);
+        let match = XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, matchPosition);
         while (match) 
         {
             line++;
@@ -59,10 +83,71 @@ export class DocumentUtilities
             if (line == lineNumber)
                 return matchPosition;
 
-            match = XRegExp.exec(documentContents, newlinePattern, matchPosition);
+            match = XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, matchPosition);
         }
 
         return documentContents.length;
+    }
+
+    /**
+     * Retrieves the full line of text for the given line number
+     * @param documentContents document string that the line is being extracted from
+     * @param lineNumber line number to extract 
+     */
+    public static GetLine(documentContents : string, lineNumber: number) : string
+    {
+        if(lineNumber < 0 )
+            return documentContents;
+
+        let startPosition : number = DocumentUtilities.GetDocumentPosition(documentContents, lineNumber);
+        return DocumentUtilities.GetPartialLine(documentContents, startPosition);
+             
+
+    }
+
+    /**
+     * Retrieves the full line of text that the given documentPosition is in
+     * @param documentContents document string that the line is being extracted from
+     * @param documentPosition the character position within the documentContents, whose line contents will be retrieved
+     */
+    public static GetLineFromPosition(documentContents : string, documentPosition: number) : string
+    {
+        if(documentPosition < 0 )
+            return documentContents;
+            
+        let lineNumber : number = DocumentUtilities.GetLineNumber(documentContents,documentPosition);
+        return DocumentUtilities.GetLine(documentContents, lineNumber);
+    }
+
+    /**
+     * retrieves the partial line of text, starting at the specified document position
+     * @param documentContents document string that the line is being extracted from
+     * @param documentPosition the starting point within the line that will mark the beginning of the returned text
+     */
+    public static GetPartialLine(documentContents: string, documentPosition: number) : string
+    {
+        let XRegExp = require('xregexp');
+
+        let match = XRegExp.exec(documentContents, DocumentUtilities.newlinePattern, documentPosition);
+        return (match) ? documentContents.substr(documentPosition, match.index - documentPosition) : documentContents.substr(documentPosition);           
+    }
+
+    /**
+     * 
+     * @param documentContents 
+     * @param lineNumber 
+     */
+    public static GetLeadingWhiteSpace(documentContents : string, lineNumber: number) : string
+    {
+        let leadingWhitespacePattern:  RegExp = /^([ \t]+)/gm;
+        let lineText : string = DocumentUtilities.GetLine(documentContents, lineNumber);
+        let XRegExp = require('xregexp');
+
+        let match = XRegExp.exec(lineText, leadingWhitespacePattern);
+
+
+        return (match) ? match[1] : ""; 
+
     }
 
     /**

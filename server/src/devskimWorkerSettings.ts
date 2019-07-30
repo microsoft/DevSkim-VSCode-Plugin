@@ -1,20 +1,75 @@
+/* --------------------------------------------------------------------------------------------
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License. See License.txt in the project root for license information.
+ * ------------------------------------------------------------------------------------------ 
+ * 
+ * This file contains a wrapper for the settings interface, providing additional utility functions
+ * 
+ * ------------------------------------------------------------------------------------------ */
 import { IDevSkimSettings } from "./devskimObjects";
 import * as path from "path";
 import { IConnection } from 'vscode-languageserver';
+import { isArray } from 'util';
 
-
+/**
+ * Wrapper class for IDevSkimSettings interface, providing additional functionality on top of the
+ * raw data structure in the interface
+ */
 export class DevSkimWorkerSettings
 {
 
     private settings: IDevSkimSettings;
 
-    public getSettings(settings?: IDevSkimSettings): IDevSkimSettings
+    /**
+     * Update the settings used by this object.  If the incoming object has invalid values for any field
+     * those values will be replaced with the defaults.  This is useful if only wanting to update 
+     * some settings from the defaults (for example, when running from the CLI)
+     * @param settings the new settings
+     */ 
+    public setSettings(settings: IDevSkimSettings)
     {
-        if (settings)
-        {
-            this.settings = settings;
-            return this.settings;
-        }
+        let defaults : IDevSkimSettings = DevSkimWorkerSettings.defaultSettings();
+
+        //validating the incoming settings, and replace with defaults for fields that don't validate
+        settings.enableBestPracticeRules = (settings.enableBestPracticeRules != undefined && settings.enableBestPracticeRules != null) ?
+                                            settings.enableBestPracticeRules : defaults.enableBestPracticeRules;
+
+        settings.enableManualReviewRules = (settings.enableManualReviewRules != undefined && settings.enableManualReviewRules != null) ?
+                                            settings.enableManualReviewRules : defaults.enableManualReviewRules;      
+        
+        settings.guidanceBaseURL = (settings.guidanceBaseURL != undefined && settings.guidanceBaseURL != null && settings.guidanceBaseURL.length > 0) ?
+                                            settings.guidanceBaseURL : defaults.guidanceBaseURL;       
+
+        settings.suppressionCommentStyle = (settings.suppressionCommentStyle != undefined && settings.suppressionCommentStyle != null && (settings.suppressionCommentStyle == "line" || settings.suppressionCommentStyle == "block")) ?
+                                            settings.suppressionCommentStyle : defaults.suppressionCommentStyle;    
+                                            
+        settings.suppressionDurationInDays = (settings.suppressionDurationInDays != undefined && settings.suppressionDurationInDays != null  && settings.suppressionDurationInDays > -1) ?
+                                            settings.suppressionDurationInDays : defaults.suppressionDurationInDays;     
+                                            
+        settings.ignoreFilesList = (settings.ignoreFilesList != undefined && settings.ignoreFilesList != null && isArray(settings.ignoreFilesList)) ?
+                                            settings.ignoreFilesList : defaults.ignoreFilesList;  
+                                            
+        settings.ignoreRulesList = (settings.ignoreRulesList != undefined && settings.ignoreRulesList != null && isArray(settings.ignoreRulesList)) ?
+                                            settings.ignoreRulesList : defaults.ignoreRulesList;      
+                                            
+        settings.manualReviewerName = (settings.manualReviewerName != undefined && settings.manualReviewerName != null && settings.manualReviewerName.length > 0) ?
+                                            settings.manualReviewerName : defaults.manualReviewerName;   
+                                            
+        settings.removeFindingsOnClose = (settings.removeFindingsOnClose != undefined && settings.removeFindingsOnClose != null) ?
+                                            settings.removeFindingsOnClose : defaults.removeFindingsOnClose ;     
+                                            
+        settings.validateRulesFiles = (settings.validateRulesFiles != undefined && settings.validateRulesFiles != null) ?
+                                            settings.validateRulesFiles : defaults.validateRulesFiles ;                                             
+                                            
+        this.settings = settings;
+    }
+
+    /**
+     * Get the current settings for this object
+     * @returns {DevSkimProblem[]} the current settings
+     */
+    public getSettings(): IDevSkimSettings
+    {
         if (this.settings)
         {
             return this.settings;
@@ -26,6 +81,10 @@ export class DevSkimWorkerSettings
         return this.settings;
     }
 
+    /**
+     * Determine where the rules live, given the executing context of DevSkim (CLI, IDE, etc.)
+     * @param connection 
+     */
     public static getRulesDirectory(connection: IConnection): string
     {
         const configRulesDir = DevSkimWorkerSettings.getRulesDirectoryFromEnvironment();
@@ -34,13 +93,14 @@ export class DevSkimWorkerSettings
         return rulesDir;
     }
 
+    /**
+     * generate a default settings object for scenarios where the settings may not be available
+     * e.g. for the CLI, or on first startup before the IDE configuration has synced
+     */
     public static defaultSettings(): IDevSkimSettings
     {
         return {
             enableBestPracticeRules: false,
-            enableDefenseInDepthSeverityRules: false,
-            enableInformationalSeverityRules: false,
-            enableLowSeverityRules: false,
             enableManualReviewRules: true,
             guidanceBaseURL: "https://github.com/Microsoft/DevSkim/blob/master/guidance/",
             ignoreFilesList: [
@@ -58,6 +118,8 @@ export class DevSkimWorkerSettings
             manualReviewerName: "",
             removeFindingsOnClose: true,
             suppressionDurationInDays: 30,
+            suppressionCommentStyle: "line",
+            suppressionCommentPlacement : "same line as finding",
             validateRulesFiles: false,
         };
     }
