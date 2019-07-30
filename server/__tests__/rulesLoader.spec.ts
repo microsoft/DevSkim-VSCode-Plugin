@@ -1,7 +1,7 @@
 const path = require('path');
 import {Connection} from 'vscode-languageserver';
 jest.mock('vscode-languageserver');
-import {RulesLoader} from '../src/rulesLoader';
+import {RulesLoader} from '../src/utility_classes/rulesLoader';
 
 describe('RulesLoader', () => {
 
@@ -11,6 +11,6 @@ describe('RulesLoader', () => {
         const ruleDir = path.join(__dirname, "../data/rules");
         const loader = new RulesLoader(connection, true, ruleDir);
         const rules = await loader.loadRules();
-        expect(rules.length).toEqual(81);
+        expect(rules.length).toEqual(82);
     });
 });

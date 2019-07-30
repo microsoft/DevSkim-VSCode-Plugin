@@ -102,7 +102,7 @@
           ],
           "default": "line",
           "description": "When DevSkim inserts a suppression comment it defaults to using single line comments for every language that has them.  Setting this to block will instead use block comments for the languages that support them.  Block comments are suggested if regularly adding explanations for why a finding was suppressed"
-        },    
+        },
         "devskim.suppressionCommentPlacement": {
           "type": "string",
           "enum": [
@@ -111,7 +111,7 @@
           ],
           "default": "same line as finding",
           "description": "When DevSkim inserts a suppression comment it defaults placing the comment after the finding being suppressed, on the same line.  Changing this setting will place the suppression the line above the finding instead."
-        },              
+        },
         "devskim.guidanceBaseURL": {
           "type": "string",
           "default": "https://github.com/Microsoft/DevSkim/blob/master/guidance/",
@@ -226,7 +226,7 @@
     "recursive-readdir": "^2.2.2"
   },
   "devDependencies": {
-    "@types/jest": "^24.0.13",
+    "@types/jest": "^24.0.16",
     "@types/node": "^11.13.10",
     "@typescript-eslint/eslint-plugin": "^1.9.0",
     "@typescript-eslint/parser": "^1.9.0",
