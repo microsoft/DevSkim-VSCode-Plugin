@@ -21,8 +21,6 @@ import { settings } from "cluster";
 
 var program = require("commander");
 
-var problems : DevSkimProblem[] = [];
-
 //set up the command line options for the "analyze" command
 program.command('analyze')
     .description('analyze the files in the specified directory for security mistakes')
