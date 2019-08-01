@@ -8,7 +8,7 @@
 
 import { Rule, FixIt, Pattern, Condition, Lambda } from "../devskimObjects";
 import * as path from 'path';
-import { IConnection } from "vscode-languageserver";
+import { DebugLogger } from "./logger";
 import ErrnoException = NodeJS.ErrnoException;
 import { noop } from "@babel/types";
 const mkdirp = require('mkdirp');
@@ -36,11 +36,11 @@ export class RuleValidator implements IRuleValidator
 
     /**
      *
-     * @param connection
+     * @param logger
      * @param rd
      * @param ed
      */
-    constructor(private connection: IConnection, rd: string, ed: string)
+    constructor(private logger: DebugLogger, rd: string, ed: string)
     {
         this.rulesDir = rd;
         this.errorDir = ed;
@@ -89,15 +89,14 @@ export class RuleValidator implements IRuleValidator
                     {
                         if (err)
                         {
-                            this.connection.console
-                                .log(`RuleValidator - outputValidation  err: ${err.message}`);
+                            this.logger.log(`RuleValidator - outputValidation  err: ${err.message}`);
                         }
                     });
             }
             if (this.writeoutNewRules)
             {
                 let newrulePath = path.join(this.errorDir, "..", "newrules");
-                this.connection.console.log(`RuleValidator - outputValidation: ${newrulePath}`);
+                this.logger.log(`RuleValidator - outputValidation: ${newrulePath}`);
 
                 for (let key in this.fixedRules)
                 {
@@ -106,12 +105,12 @@ export class RuleValidator implements IRuleValidator
                     try
                     {
                         mkdirp.sync(path.dirname(filePath));
-                        this.connection.console.log(`RuleValidator - newRulePath - file: ${filePath}`);
+                        this.logger.log(`RuleValidator - newRulePath - file: ${filePath}`);
                         await this.fs.writeFileSync(filePath, JSON.stringify(this.fixedRules[key], null, 4));
                     }
                     catch (err)
                     {
-                        this.connection.console.log(`RuleValidator - validateRules err: >>${err.message}<<`);
+                        this.logger.log(`RuleValidator - validateRules err: >>${err.message}<<`);
                     }
                 }
             }

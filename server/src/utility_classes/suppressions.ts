@@ -323,7 +323,7 @@ export class DevSkimSuppression
                 let suppressionIndex : number = match[0].indexOf(ruleID);
                 if (suppressionIndex > -1 || anySuppression)
                 {
-                    let lineStart : number = DocumentUtilities.GetLineNumber(documentContents,startPosition)
+                    let lineStart : number = DocumentUtilities.GetLineNumber(documentContents,startPosition);
                     suppressionIndex += match.index;
                     finding.suppressionRange = Range.create(lineStart, suppressionIndex, lineStart, suppressionIndex + ruleID.length);
                     finding.noRange = false;
@@ -349,7 +349,7 @@ export class DevSkimSuppression
                 }
             }
             return finding;
-        }        
+        };        
         
         
         let lineNumber : number = DocumentUtilities.GetLineNumber(documentContents,startPosition);

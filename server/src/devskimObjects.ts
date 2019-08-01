@@ -213,6 +213,7 @@ export class DevSkimProblem
 	public replacement: string;
 	public fixes: DevSkimAutoFixEdit[];
 	public suppressedFindingRange: Range;
+	public filePath: string;
 
 	public overrides: string[]; //a collection of ruleIDs that this rule supersedes
 

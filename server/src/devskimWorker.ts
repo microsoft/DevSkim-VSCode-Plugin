@@ -23,6 +23,7 @@ import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
 import { RulesLoader } from "./utility_classes/rulesLoader";
 import {DevskimLambdaEngine} from "./devskimLambda";
 import {DocumentUtilities} from "./utility_classes/document";
+import { DebugLogger } from "./utility_classes/logger";
 
 /**
  * The bulk of the DevSkim analysis logic.  Loads rules in, exposes functions to run rules across a file
@@ -48,9 +49,9 @@ export class DevSkimWorker
     //map seemed a little excessive to me.  Then again, I just wrote 3 paragraphs for how this works, so maybe I'm being too clever
     public codeActions: Map<Map<AutoFix>> = Object.create(null);
 
-    constructor(private connection: IConnection, private dsSuppressions: DevSkimSuppression, settings: IDevSkimSettings = DevSkimWorkerSettings.defaultSettings()) 
+    constructor(private logger: DebugLogger, private dsSuppressions: DevSkimSuppression, settings: IDevSkimSettings = DevSkimWorkerSettings.defaultSettings()) 
     {
-        this.rulesDirectory = DevSkimWorkerSettings.getRulesDirectory(connection);
+        this.rulesDirectory = DevSkimWorkerSettings.getRulesDirectory(logger);
         this.dswSettings.setSettings(settings);
         this.dsSuppressions.dsSettings = settings;
     }
@@ -165,7 +166,7 @@ export class DevSkimWorker
      */
     private async loadRules(): Promise<void> 
     {
-        const loader = new RulesLoader(this.connection, true, this.rulesDirectory);
+        const loader = new RulesLoader(this.logger, true, this.rulesDirectory);
         const rules = await loader.loadRules();
         this.analysisRules = await loader.validateRules(rules)
     }
@@ -343,7 +344,7 @@ export class DevSkimWorker
                             let problem: DevSkimProblem = this.MakeProblem(rule, DevSkimWorker.MapRuleSeverity(rule.severity), range);
                             problem.fixes = problem.fixes.concat(DevSkimWorker.MakeFixes(rule, replacementSource, range));
                             problem.fixes = problem.fixes.concat(this.dsSuppressions.createActions(rule.id, documentContents, match.index, lineStart, langID, ruleSeverity));
-
+                            problem.filePath = documentURI;
                             problems.push(problem);
                         }
                         //throw a pop up if there is a review/suppression comment with the rule id, so that people can figure out what was
