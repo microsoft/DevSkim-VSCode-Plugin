@@ -73,7 +73,7 @@ export class RuleValidator implements IRuleValidator
             }
             catch (err)
             {                        
-                noop; // lgtm - to stop it from complaining about the noop.  The noop is intentional, to show the catch code wasn't overlooked        
+                noop();       
             }
         }
 

@@ -32,6 +32,18 @@ program.command('analyze')
         analyze(options);
     });
 
+//set up the command line options for the "analyze" command
+program.command('rules')
+    .description('output the inventory of currently installed analysis rules')
+    .option("-t, --terse", "lists just the rule ID and name, but no summary")
+    .option("-l, --language", "groups the output by language")
+    .option("-f, --filepath", "includes the filepath for each rule, to facilitate editing the rule")
+    .option("-v, -validate", "validates each rule for errors in the construction of the rules")
+    .option("-o, --output_file [outputFile]", "The file to write output into. If not specified, output is written to devskim_results.json")
+    .action(function(options) {
+        analyze(options);
+    });    
+
 /**
  * Create a DevSkimSettings object from the specified command line options (or defaults if no relevant option is present)
  * @param option the options passed from the command line analysis command
