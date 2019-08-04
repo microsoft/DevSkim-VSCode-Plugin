@@ -30,6 +30,7 @@ export interface IDevSkimSettings
 	suppressionCommentStyle: string;
 	suppressionCommentPlacement: string;
 	validateRulesFiles: boolean;
+	logToConsole : boolean;
 }
 
 export class DevSkimSettings implements IDevSkimSettings
@@ -44,7 +45,8 @@ export class DevSkimSettings implements IDevSkimSettings
 	suppressionDurationInDays: number = 0;
 	suppressionCommentStyle : string = "line";
 	suppressionCommentPlacement : string = "same line as finding";
-	validateRulesFiles: boolean = true;
+	validateRulesFiles: boolean = false;
+	logToConsole : boolean = false;
 }
 
 /**

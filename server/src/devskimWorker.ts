@@ -10,7 +10,7 @@
  * problems found in a file, are in devskimObjects.ts
  * 
  * ------------------------------------------------------------------------------------------ */
-import { IConnection, Range } from 'vscode-languageserver';
+import { Range } from 'vscode-languageserver';
 import 
 {
     computeKey, Condition, DevSkimProblem, DevskimRuleSeverity, Map, AutoFix,
@@ -157,6 +157,14 @@ export class DevSkimWorker
     public async refreshAnalysisRules(): Promise<void> 
     {
         return this.loadRules();
+    }
+
+    /**
+     * Return the collection of rules currently loaded into the analysis engine
+     */
+    public retrieveLoadedRules() : Rule[]
+    {
+        return this.analysisRules;
     }
 
     /**

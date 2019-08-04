@@ -27,7 +27,7 @@ export class DebugLogger
     
     public log(message : string)
     {
-        if(true)
+        if(this.settings.logToConsole)
         {
             this.debugConsole.log(message);
         }

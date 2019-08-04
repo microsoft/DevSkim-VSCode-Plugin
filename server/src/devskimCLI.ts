@@ -9,15 +9,19 @@
  * 
  */
 
-import {IDevSkimSettings, DevSkimSettings, DevSkimProblem, Fixes, AutoFix, FixIt, DevSkimAutoFixEdit, Rule} from "./devskimObjects";
+// To DO - keep or remove   -      import {IDevSkimSettings, DevSkimSettings, DevSkimProblem, Fixes, AutoFix, FixIt, DevSkimAutoFixEdit, Rule} from "./devskimObjects";
+
+import {IDevSkimSettings, DevSkimProblem, Rule} from "./devskimObjects";
+
 import {DevSkimWorker} from "./devskimWorker";
 import {PathOperations} from "./utility_classes/pathOperations";
 import {DevSkimWorkerSettings} from "./devskimWorkerSettings"
 import {DevSkimSuppression} from "./utility_classes/suppressions"
 import {DebugLogger} from "./utility_classes/logger"
+//import * as SARIF21 from "@schemastore/sarif-2.1.0-rtm.4";
 
-import * as path from 'path';
-import { settings } from "cluster";
+// To DO - keep or remove   -    import * as path from 'path';
+//import { settings } from "cluster";
 
 var program = require("commander");
 
@@ -27,7 +31,7 @@ program.command('analyze')
     .option("-b, --best_practice", "include best practice findings in the output")
     .option("-m, --manual_review", "include manual review findings in the output")
     .option("-d, --directory [directory]", "The parent directory to containing the files to analyze.  If not provided, the current working directory is used")
-    .option("-o, --output_file [outputFile]", "The file to write output into. If not specified, output is written to devskim_results.json")
+    .option("-o, --output_file [outputFile]", "The file to write output into. If this option is set but no file specified, output is written to devskim_results.json")
     .action(function(options) {
         analyze(options);
     });
@@ -36,12 +40,10 @@ program.command('analyze')
 program.command('rules')
     .description('output the inventory of currently installed analysis rules')
     .option("-t, --terse", "lists just the rule ID and name, but no summary")
-    .option("-l, --language", "groups the output by language")
-    .option("-f, --filepath", "includes the filepath for each rule, to facilitate editing the rule")
     .option("-v, -validate", "validates each rule for errors in the construction of the rules")
-    .option("-o, --output_file [outputFile]", "The file to write output into. If not specified, output is written to devskim_results.json")
+    .option("-o, --output_file [outputFile]", "The file to write output into. If this option is set but no file specified, output is written to devskim_rules.html")
     .action(function(options) {
-        analyze(options);
+        inventoryRules(options);
     });    
 
 /**
@@ -104,11 +106,27 @@ function WriteOutputCLI(problems: DevSkimProblem[], directory : string)
 
 }
 
+async function inventoryRules(options) : Promise<void>
+{
+    var settings : IDevSkimSettings  = buildSettings(options);
+    const dsSuppression = new DevSkimSuppression(settings);
+    const logger : DebugLogger = new DebugLogger(settings);
+
+    var analysisEngine : DevSkimWorker = new DevSkimWorker(logger, dsSuppression, settings);
+    await analysisEngine.init();
+    let rules : Rule[] = analysisEngine.retrieveLoadedRules();
+    for(let rule of rules)
+    {
+        console.log(rule.id+" , "+rule.name);
+    }      
+     
+
+}
 /**
  * 
  * @param options 
  */
-function analyze(options)
+async function analyze(options) : Promise<void>
 {
     let directory: string = (options == undefined || options.directory == undefined ) ? 
         process.cwd() :  options.directory;
@@ -121,7 +139,7 @@ function analyze(options)
     var settings : IDevSkimSettings  = buildSettings(options);
 
     let dir = require('node-dir'); 
-    dir.files(directory, function(err, files) {
+    dir.files(directory, async function(err, files) {
             if (err)
             {
                 console.log(err);
@@ -139,7 +157,9 @@ function analyze(options)
             const dsSuppression = new DevSkimSuppression(settings);
             const logger : DebugLogger = new DebugLogger(settings);
 
-            var analysisEngine : DevSkimWorker = new DevSkimWorker(logger, dsSuppression, settings);         
+            var analysisEngine : DevSkimWorker = new DevSkimWorker(logger, dsSuppression, settings);
+            await analysisEngine.init();
+
             let pathOp : PathOperations = new PathOperations();
             var problems : DevSkimProblem[] = [];
             

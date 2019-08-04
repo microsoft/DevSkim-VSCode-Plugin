@@ -60,7 +60,10 @@ export class DevSkimWorkerSettings
                                             settings.removeFindingsOnClose : defaults.removeFindingsOnClose ;     
                                             
         settings.validateRulesFiles = (settings.validateRulesFiles != undefined && settings.validateRulesFiles != null) ?
-                                            settings.validateRulesFiles : defaults.validateRulesFiles ;                                             
+                                            settings.validateRulesFiles : defaults.validateRulesFiles ;   
+                                            
+        settings.logToConsole = (settings.logToConsole != undefined && settings.logToConsole != null) ?
+                                            settings.logToConsole : defaults.logToConsole ;                                              
                                             
         this.settings = settings;
     }
@@ -122,6 +125,7 @@ export class DevSkimWorkerSettings
             suppressionCommentStyle: "line",
             suppressionCommentPlacement : "same line as finding",
             validateRulesFiles: false,
+            logToConsole: false
         };
     }
 

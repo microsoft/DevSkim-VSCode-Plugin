@@ -26,7 +26,6 @@ export interface IRulesLoader
 
 export class RulesLoader
 {
-    private tempRules: Rule[] = [];
     private analysisRules: Rule[] = [];
 
     constructor(private logger: DebugLogger, private validate: boolean = true, private rulesDirectory?: string)
@@ -63,7 +62,7 @@ export class RulesLoader
                         rule.filepath = filePath;
                         tempRules.push(rule);
                     }
-                    // this.connection.console.log(`DevSkimWorker loadRules() so far: ${tempRules.length || 0}.`);
+                    this.logger.log(`DevSkimWorker loadRules() so far: ${tempRules.length || 0}.`);
                 }
             });
         }
