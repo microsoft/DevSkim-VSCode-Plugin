@@ -11,14 +11,15 @@
 
 // To DO - keep or remove   -      import {IDevSkimSettings, DevSkimSettings, DevSkimProblem, Fixes, AutoFix, FixIt, DevSkimAutoFixEdit, Rule} from "./devskimObjects";
 
-import {IDevSkimSettings, DevSkimProblem, Rule} from "./devskimObjects";
+import {IDevSkimSettings, DevSkimProblem, Rule, FileInfo} from "./devskimObjects";
 
 import {DevSkimWorker} from "./devskimWorker";
 import {PathOperations} from "./utility_classes/pathOperations";
-import {DevSkimWorkerSettings} from "./devskimWorkerSettings"
-import {DevSkimSuppression} from "./utility_classes/suppressions"
-import {DebugLogger} from "./utility_classes/logger"
-//import * as SARIF21 from "@schemastore/sarif-2.1.0-rtm.4";
+import {DevSkimWorkerSettings} from "./devskimWorkerSettings";
+import {DevSkimSuppression} from "./utility_classes/suppressions";
+import {DebugLogger} from "./utility_classes/logger";
+import {Sarif21R4} from "./utility_classes/sarif21R4";
+
 
 // To DO - keep or remove   -    import * as path from 'path';
 //import { settings } from "cluster";
@@ -133,10 +134,13 @@ async function analyze(options) : Promise<void>
 
     let outputFile: string= (options == undefined || options.output_file == undefined ) ? 
         "" :  options.output_file;
+        
     
-    let FilesToLog : Object = {};
+
+    let FilesToLog : FileInfo[] = [];
     
     var settings : IDevSkimSettings  = buildSettings(options);
+    let sarif : Sarif21R4 = new Sarif21R4(settings);
 
     let dir = require('node-dir'); 
     dir.files(directory, async function(err, files) {
@@ -171,10 +175,13 @@ async function analyze(options) : Promise<void>
                     let langID : string = pathOp.getLangFromPath(curFile);
                     problems = problems.concat(analysisEngine.analyzeText(documentContents,langID, curFile));
                     
-                    /*let fileMetadata : SarifFile = Object.create(null);
-                    fileMetadata.length = documentContents.length;
-                    fileMetadata.mimetype = pathOp.getMimeFromPath(curFile);
-                    FilesToLog[pathOp.fileToURI(curFile)] = fileMetadata;*/
+                    let fileMetadata : FileInfo = Object.create(null);
+                    fileMetadata.fileURI = pathOp.fileToURI(curFile);
+                    fileMetadata.sourceLanguage = pathOp.getLangFromPath(curFile, true);
+
+                    fileMetadata.fileSize = fs.statSync(curFile).size;                    
+                    
+                    FilesToLog.push(fileMetadata);
                 }						
             }
 
@@ -184,7 +191,9 @@ async function analyze(options) : Promise<void>
             }
             else
             {
-                //WriteOutputFile(problems,analysisEngine.getAnalysisRules(),FilesToLog,outputFile,directory, settings);
+                sarif.AddFiles(FilesToLog);
+                sarif.AddRules(analysisEngine.retrieveLoadedRules());
+                sarif.WriteToFile(outputFile,directory);
             }
             
         });	

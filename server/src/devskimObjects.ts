@@ -49,6 +49,15 @@ export class DevSkimSettings implements IDevSkimSettings
 	logToConsole : boolean = false;
 }
 
+export interface FileInfo
+{
+	fileURI : string;
+	sourceLanguage : string;
+	fileSize : number;
+	sha256hash : string;
+	sha512hash : string;
+} 
+
 /**
  * An Interface corresponding to the Pattern section of the JSON
  * rules files.  The pattern is used to match a problem within the source

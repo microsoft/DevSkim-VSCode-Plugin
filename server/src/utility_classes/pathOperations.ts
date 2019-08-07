@@ -1,3 +1,5 @@
+import { BADSTR } from 'dns';
+
 /* --------------------------------------------------------------------------------------------
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
@@ -309,15 +311,15 @@ export class PathOperations
         return "text/plain";
     }
 
-    public getLangFromPath(filePath : string) : string
+    public getLangFromPath(filePath : string, sarifConvention : boolean = false) : string
     {
         let path = require('path');
 
         let extension : string = path.extname(filePath);
         switch (extension.toLowerCase())
         {
-            case ".bat":
-            case ".cmd": return "text/plain";
+            case ".bat": return "bat";
+            case ".cmd": return "cmd";
 
             case ".clj":
             case ".cljs":
@@ -339,7 +341,7 @@ export class PathOperations
             case ".hh":
             case ".hxx":
             case ".hpp":
-            case ".h++": return "cpp";
+            case ".h++": return (sarifConvention) ? "cplusplus" : "cpp";
 
             case ".cs":
             case ".csx":
@@ -420,7 +422,7 @@ export class PathOperations
             case "markdn": return "markdown";
 
             case ".m":
-            case ".mm": return "objective-c";
+            case ".mm": return (sarifConvention) ? "objectivec" : "objective-c";
             
             case ".php":
             case ".php3":
@@ -471,7 +473,13 @@ export class PathOperations
 
             case ".rs": return "rust";
 
+            case ".scala":
+            case ".sc": return "scala";
+
             case ".scss": return "scss";
+
+            case ".scala":
+            case ".sc": return "scala";
 
             case ".shadder": return "shaderlab";
 
@@ -506,7 +514,7 @@ export class PathOperations
             case ".vba":
             case "brs":
             case ".bas":  
-            case ".vbs": return "vb";
+            case ".vbs": return (sarifConvention) ? "visualbasic" : "vb";
 
             case ".xml":
             case ".xsd":
