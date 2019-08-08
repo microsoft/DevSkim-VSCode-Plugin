@@ -1,5 +1,3 @@
-import { BADSTR } from 'dns';
-
 /* --------------------------------------------------------------------------------------------
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
@@ -207,6 +205,9 @@ export class PathOperations
             case ".erb":  return "text/plain";
 
             case ".rs": return "text/plain";
+
+            case ".scala":
+            case ".sc": return "text/plain";
 
             case ".scss": return "text/plain";
 
@@ -477,9 +478,6 @@ export class PathOperations
             case ".sc": return "scala";
 
             case ".scss": return "scss";
-
-            case ".scala":
-            case ".sc": return "scala";
 
             case ".shadder": return "shaderlab";
 
