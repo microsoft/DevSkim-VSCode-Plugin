@@ -62,6 +62,7 @@ export class Sarif21R4
                     case "critical":
                     case "important":
                     case "moderate":    newSarifRule.defaultConfiguration = {"level": "error"};
+                        break;
                     default: newSarifRule.defaultConfiguration = {"level": "note"};
                 }
                 //sarif doesn't have a field for the security severity, so put it in a property bag
@@ -82,6 +83,7 @@ export class Sarif21R4
             sarifFile.location.uri = file.fileURI;
             sarifFile.length = file.fileSize;
             sarifFile.sourceLanguage = file.sourceLanguage;
+            sarifFile.hashes = {"sha-256" : file.sha256hash, "sha-512": file.sha512hash};
             this.SarifFileObject.runs[0].artifacts.push(sarifFile);
         }
     }
@@ -95,12 +97,14 @@ export class Sarif21R4
         {
             let sarifResult : SARIF21R4.Result = Object.create(null);
             sarifResult.ruleId = problem.ruleId;
-            sarifResult.message = {"text" : problem.message}
+            sarifResult.message = {"text" : problem.message};
+            
             switch(problem.severity)
             {
                 case DevSkimObjects.DevskimRuleSeverity.Critical:
                 case DevSkimObjects.DevskimRuleSeverity.Important:
                 case DevSkimObjects.DevskimRuleSeverity.Moderate:    sarifResult.level = "error";
+                    break;
                 default: sarifResult.level = "note";
             }
             sarifResult.locations = [];

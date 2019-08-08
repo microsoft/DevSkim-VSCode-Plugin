@@ -136,7 +136,7 @@ async function analyze(options) : Promise<void>
         "" :  options.output_file;
         
     
-
+    const crypto = require('crypto');
     let FilesToLog : FileInfo[] = [];
     
     var settings : IDevSkimSettings  = buildSettings(options);
@@ -178,7 +178,8 @@ async function analyze(options) : Promise<void>
                     let fileMetadata : FileInfo = Object.create(null);
                     fileMetadata.fileURI = pathOp.fileToURI(curFile);
                     fileMetadata.sourceLanguage = pathOp.getLangFromPath(curFile, true);
-
+                    fileMetadata.sha256hash = crypto.createHash('sha256').update(documentContents).digest('hex');
+                    fileMetadata.sha512hash = crypto.createHash('sha512').update(documentContents).digest('hex');
                     fileMetadata.fileSize = fs.statSync(curFile).size;                    
                     
                     FilesToLog.push(fileMetadata);
