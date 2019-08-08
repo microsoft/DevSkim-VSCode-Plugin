@@ -225,7 +225,6 @@ export class DevSkimProblem
 	public fixes: DevSkimAutoFixEdit[];
 	public suppressedFindingRange: Range;
 	public filePath: string;
-
 	public overrides: string[]; //a collection of ruleIDs that this rule supersedes
 
     /**

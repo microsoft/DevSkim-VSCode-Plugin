@@ -8,6 +8,7 @@
 
 import * as SARIF21R4 from "@schemastore/sarif-2.1.0-rtm.4";
 import * as DevSkimObjects from "../devskimObjects";
+import {PathOperations} from "./pathOperations";
 
 export class Sarif21R4
 {
@@ -88,10 +89,13 @@ export class Sarif21R4
     public AddResults(problems : DevSkimObjects.DevSkimProblem[])
     {
         this.SarifFileObject.runs[0].results = [];
+        let pathOp : PathOperations = new PathOperations();
+
         for(let problem of problems)
         {
             let sarifResult : SARIF21R4.Result = Object.create(null);
             sarifResult.ruleId = problem.ruleId;
+            sarifResult.message = {"text" : problem.message}
             switch(problem.severity)
             {
                 case DevSkimObjects.DevskimRuleSeverity.Critical:
@@ -99,6 +103,18 @@ export class Sarif21R4
                 case DevSkimObjects.DevskimRuleSeverity.Moderate:    sarifResult.level = "error";
                 default: sarifResult.level = "note";
             }
+            sarifResult.locations = [];
+            sarifResult.locations[0] = Object.create(null);
+            sarifResult.locations[0].physicalLocation = Object.create(null);
+            sarifResult.locations[0].physicalLocation.artifactLocation = {"uri" : pathOp.fileToURI(problem.filePath), "sourceLanguage" : pathOp.getLangFromPath(problem.filePath, true)};
+            sarifResult.locations[0].physicalLocation.region = Object.create(null);
+            //LSP uses 0 indexed lines/columns, SARIF expects 1 indexed, hence the + 1
+            sarifResult.locations[0].physicalLocation.region.startLine = problem.range.start.line + 1;
+            sarifResult.locations[0].physicalLocation.region.endLine = problem.range.end.line + 1;
+
+            sarifResult.locations[0].physicalLocation.region.startColumn = problem.range.start.character + 1;
+            sarifResult.locations[0].physicalLocation.region.endColumn = problem.range.end.character + 1;
+            this.SarifFileObject.runs[0].results.push(sarifResult);
         }
     }
 

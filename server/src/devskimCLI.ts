@@ -173,7 +173,7 @@ async function analyze(options) : Promise<void>
                 {
                     let documentContents : string = fs.readFileSync(curFile, "utf8");
                     let langID : string = pathOp.getLangFromPath(curFile);
-                    problems = problems.concat(analysisEngine.analyzeText(documentContents,langID, curFile));
+                    problems = problems.concat(analysisEngine.analyzeText(documentContents,langID, curFile, false));
                     
                     let fileMetadata : FileInfo = Object.create(null);
                     fileMetadata.fileURI = pathOp.fileToURI(curFile);
@@ -193,6 +193,7 @@ async function analyze(options) : Promise<void>
             {
                 sarif.AddFiles(FilesToLog);
                 sarif.AddRules(analysisEngine.retrieveLoadedRules());
+                sarif.AddResults(problems);
                 sarif.WriteToFile(outputFile,directory);
             }
             

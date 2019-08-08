@@ -81,7 +81,7 @@ export class DevSkimWorker
      * @param {string} documentURI the URI identifying the file
      * @returns {DevSkimProblem[]} an array of all of the issues found in the text
      */
-    public analyzeText(documentContents: string, langID: string, documentURI: string): DevSkimProblem[] 
+    public analyzeText(documentContents: string, langID: string, documentURI: string, includeSuppressions : boolean = true): DevSkimProblem[] 
     {
         let problems: DevSkimProblem[] = [];
 
@@ -93,7 +93,7 @@ export class DevSkimWorker
         {
 
             //find out what issues are in the current document
-            problems = this.runAnalysis(documentContents, langID, documentURI);
+            problems = this.runAnalysis(documentContents, langID, documentURI, includeSuppressions);
 
             //remove any findings from rules that have been overridden by other rules
             problems = this.processOverrides(problems);
@@ -286,7 +286,7 @@ export class DevSkimWorker
      * @param {string} documentURI URI identifying the document
      * @returns {DevSkimProblem[]} all of the issues identified in the analysis
      */
-    private runAnalysis(documentContents: string, langID: string, documentURI: string): DevSkimProblem[] 
+    private runAnalysis(documentContents: string, langID: string, documentURI: string, includeSuppressions : boolean = true): DevSkimProblem[] 
     {
         let problems: DevSkimProblem[] = [];
         let XRegExp = require('xregexp');
@@ -357,7 +357,7 @@ export class DevSkimWorker
                         }
                         //throw a pop up if there is a review/suppression comment with the rule id, so that people can figure out what was
                         //suppressed/reviewed
-                        else if (!suppressionFinding.noRange) 
+                        else if (!suppressionFinding.noRange && includeSuppressions) 
                         {
                             //highlight suppression finding for context
                             //this will look
