@@ -14,7 +14,8 @@ const readFile = util.promisify(fs.readFile);
 const readdir = require('recursive-readdir');
 import { Rule } from '../devskimObjects';
 import { RuleValidator } from './ruleValidator';
-import { IConnection } from 'vscode-languageserver';
+import { DebugLogger } from './logger';
+
 
 
 export interface IRulesLoader
@@ -25,10 +26,9 @@ export interface IRulesLoader
 
 export class RulesLoader
 {
-    private tempRules: Rule[] = [];
     private analysisRules: Rule[] = [];
 
-    constructor(private connection: IConnection, private validate: boolean = true, private rulesDirectory?: string)
+    constructor(private logger: DebugLogger, private validate: boolean = true, private rulesDirectory?: string)
     {
     }
 
@@ -37,14 +37,14 @@ export class RulesLoader
 
         const tempRules: Rule[] = [];
         const rootDir = rulesDirectory ? rulesDirectory : this.rulesDirectory;
-        this.connection.console.log(`RulesLoader: loadRules() starting ...`);
-        this.connection.console.log(`RulesLoader: loadRules() from ${rootDir}`);
+        this.logger.log(`RulesLoader: loadRules() starting ...`);
+        this.logger.log(`RulesLoader: loadRules() from ${rootDir}`);
 
         const filesFound = await readdir(rootDir, ["!*.json"])
             .then(files => (files))
             .catch(e =>
             {
-                this.connection.console.log(`loadRules exception: ${e.message}`);
+                this.logger.log(`loadRules exception: ${e.message}`);
             });
         for (let filePath of filesFound)
         {
@@ -62,7 +62,7 @@ export class RulesLoader
                         rule.filepath = filePath;
                         tempRules.push(rule);
                     }
-                    // this.connection.console.log(`DevSkimWorker loadRules() so far: ${tempRules.length || 0}.`);
+                    this.logger.log(`DevSkimWorker loadRules() so far: ${tempRules.length || 0}.`);
                 }
             });
         }
@@ -71,10 +71,10 @@ export class RulesLoader
 
     public async validateRules(rules: Rule[]): Promise<Rule[]>
     {
-        let validator: RuleValidator = new RuleValidator(this.connection, this.rulesDirectory, this.rulesDirectory);
+        let validator: RuleValidator = new RuleValidator(this.logger, this.rulesDirectory, this.rulesDirectory);
         this.analysisRules =
             await validator.validateRules(rules, this.validate);
-        this.connection.console.log(`RulesLoader: validateRules() done. Rules found: ${this.analysisRules.length || 0}.`);
+        this.logger.log(`RulesLoader: validateRules() done. Rules found: ${this.analysisRules.length || 0}.`);
         return this.analysisRules;
     }
 }

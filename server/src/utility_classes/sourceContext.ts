@@ -130,7 +130,7 @@
         //if the start index is earlier, then we should check if the end index ends the current line (or at least there are no characters after it)
         else if(startIndex < endIndex)
         {
-            return (line.trim().length - endComment.length == line.trim().lastIndexOf(endComment))
+            return (line.trim().length - endComment.length == line.trim().lastIndexOf(endComment));
         }
 
         return false;

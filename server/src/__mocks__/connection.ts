@@ -2,7 +2,7 @@ import {noop} from "@babel/types";
 
 export class Console {
     log(): void {
-        noop;
+        noop();
     }
 
 }

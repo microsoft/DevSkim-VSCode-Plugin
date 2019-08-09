@@ -1,6 +1,6 @@
 {
   "name": "devskim-vscode-plugin",
-  "description": "This is the VS Code plugin project for DevSkim.  It is implemented in two parts - a Client that handles the integration and interaction with VS Code, and an out of proc server that handles the analysis.  This allows for more process intensive analysis without interfering in the responsiveness of the IDE.",
+  "description": "DevSkim Security Analyzer Plugin for IDEs.  Find security mistakes as the code is authored, and fix them with a mouse click",
   "author": "Microsoft Corporation",
   "license": "ISC",
   "version": "1.0.0",

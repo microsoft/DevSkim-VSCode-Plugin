@@ -8,8 +8,9 @@
  * ------------------------------------------------------------------------------------------ */
 import { IDevSkimSettings } from "./devskimObjects";
 import * as path from "path";
-import { IConnection } from 'vscode-languageserver';
+import { DebugLogger } from "./utility_classes/logger";
 import { isArray } from 'util';
+
 
 /**
  * Wrapper class for IDevSkimSettings interface, providing additional functionality on top of the
@@ -59,7 +60,10 @@ export class DevSkimWorkerSettings
                                             settings.removeFindingsOnClose : defaults.removeFindingsOnClose ;     
                                             
         settings.validateRulesFiles = (settings.validateRulesFiles != undefined && settings.validateRulesFiles != null) ?
-                                            settings.validateRulesFiles : defaults.validateRulesFiles ;                                             
+                                            settings.validateRulesFiles : defaults.validateRulesFiles ;   
+                                            
+        settings.logToConsole = (settings.logToConsole != undefined && settings.logToConsole != null) ?
+                                            settings.logToConsole : defaults.logToConsole ;                                              
                                             
         this.settings = settings;
     }
@@ -85,11 +89,11 @@ export class DevSkimWorkerSettings
      * Determine where the rules live, given the executing context of DevSkim (CLI, IDE, etc.)
      * @param connection 
      */
-    public static getRulesDirectory(connection: IConnection): string
+    public static getRulesDirectory(logger: DebugLogger): string
     {
         const configRulesDir = DevSkimWorkerSettings.getRulesDirectoryFromEnvironment();
         const rulesDir = configRulesDir || path.join(__dirname, "../data/rules");
-        connection.console.log(`DevSkimWorkerSettings: getRulesDirectory - ${rulesDir}`);
+        logger.log(`DevSkimWorkerSettings: getRulesDirectory - ${rulesDir}`);
         return rulesDir;
     }
 
@@ -121,6 +125,7 @@ export class DevSkimWorkerSettings
             suppressionCommentStyle: "line",
             suppressionCommentPlacement : "same line as finding",
             validateRulesFiles: false,
+            logToConsole: false
         };
     }
 

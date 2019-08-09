@@ -30,6 +30,7 @@ export interface IDevSkimSettings
 	suppressionCommentStyle: string;
 	suppressionCommentPlacement: string;
 	validateRulesFiles: boolean;
+	logToConsole : boolean;
 }
 
 export class DevSkimSettings implements IDevSkimSettings
@@ -44,8 +45,18 @@ export class DevSkimSettings implements IDevSkimSettings
 	suppressionDurationInDays: number = 0;
 	suppressionCommentStyle : string = "line";
 	suppressionCommentPlacement : string = "same line as finding";
-	validateRulesFiles: boolean = true;
+	validateRulesFiles: boolean = false;
+	logToConsole : boolean = false;
 }
+
+export interface FileInfo
+{
+	fileURI : string;
+	sourceLanguage : string;
+	fileSize : number;
+	sha256hash : string;
+	sha512hash : string;
+} 
 
 /**
  * An Interface corresponding to the Pattern section of the JSON
@@ -213,7 +224,7 @@ export class DevSkimProblem
 	public replacement: string;
 	public fixes: DevSkimAutoFixEdit[];
 	public suppressedFindingRange: Range;
-
+	public filePath: string;
 	public overrides: string[]; //a collection of ruleIDs that this rule supersedes
 
     /**
