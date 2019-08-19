@@ -15,8 +15,8 @@ export class Sarif21R4
     private SarifFileObject : SARIF21R4.StaticAnalysisResultsFormatSARIFVersion210Rtm4JSONSchema;
     
     /**
-     * 
-     * @param settings 
+     * Initialize a Sarif v2.1 object with the basic tool info
+     * @param settings DevSkimSettings that this analysis was run with (mostly to see if optional rules were enabled)
      */
     constructor(private settings : DevSkimObjects.IDevSkimSettings)
     {
@@ -39,8 +39,9 @@ export class Sarif21R4
     }
 
     /**
-     * 
-     * @param rules 
+     * Add all of the rules from this analysis run to the Sarif object that will be output (Goes into runs[0].tool.driver.rules in the output)
+     * @param rules array of all of the rules loaded.  The settings that the overall object was instantiated with in the constructor determine 
+     * if the manual review and best practice rules are included
      */
     public AddRules(rules : DevSkimObjects.Rule[])
     {
@@ -72,6 +73,10 @@ export class Sarif21R4
         }
     }
 
+    /**
+     * Add all of the files analyzed to the sarif output.  This goes in runs[0].artifacts
+     * @param files array of all of the files and their meta data that were analyzed
+     */
     public AddFiles(files : DevSkimObjects.FileInfo[])
     {
         this.SarifFileObject.runs[0].artifacts = [];
@@ -81,6 +86,7 @@ export class Sarif21R4
             let sarifFile : SARIF21R4.Artifact = Object.create(null);
             sarifFile.location = Object.create(null);
             sarifFile.location.uri = file.fileURI;
+            sarifFile.location.uriBaseId = "%srcroot%";
             sarifFile.length = file.fileSize;
             sarifFile.sourceLanguage = file.sourceLanguage;
             sarifFile.hashes = {"sha-256" : file.sha256hash, "sha-512": file.sha512hash};
@@ -88,6 +94,10 @@ export class Sarif21R4
         }
     }
 
+    /**
+     * Add the results of the analysis to the sarif object.  Will populate runs[0].results in the output
+     * @param problems array of every finding from the analysis run
+     */
     public AddResults(problems : DevSkimObjects.DevSkimProblem[])
     {
         this.SarifFileObject.runs[0].results = [];
@@ -118,11 +128,20 @@ export class Sarif21R4
 
             sarifResult.locations[0].physicalLocation.region.startColumn = problem.range.start.character + 1;
             sarifResult.locations[0].physicalLocation.region.endColumn = problem.range.end.character + 1;
+            if(problem.snippet && problem.snippet.length > 0)
+            {
+                sarifResult.locations[0].physicalLocation.region.snippet = {"text" : problem.snippet}
+            }
             this.SarifFileObject.runs[0].results.push(sarifResult);
         }
     }
 
-
+    /**
+     * Output the current sarif object.  AddResults, AddFiles, and AddRules should be called first to get the full output, though this can
+     * be called before if only partial sarif output is desired
+     * @param outputFile file name for the output
+     * @param directory directory that was analyzed (NOT the directory to the output is written to - that will go in the same directory devskim was run from)
+     */
     public WriteToFile(outputFile : string, directory : string)
     {
         let fs  = require("fs");

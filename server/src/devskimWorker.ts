@@ -349,7 +349,7 @@ export class DevSkimWorker
                         {
 
                             //add in any fixes
-                            let problem: DevSkimProblem = this.MakeProblem(rule, DevSkimWorker.MapRuleSeverity(rule.severity), range);
+                            let problem: DevSkimProblem = this.MakeProblem(rule, DevSkimWorker.MapRuleSeverity(rule.severity), range, match[0]);
                             problem.fixes = problem.fixes.concat(DevSkimWorker.MakeFixes(rule, replacementSource, range));
                             problem.fixes = problem.fixes.concat(this.dsSuppressions.createActions(rule.id, documentContents, match.index, lineStart, langID, ruleSeverity));
                             problem.filePath = documentURI;
@@ -361,7 +361,7 @@ export class DevSkimWorker
                         {
                             //highlight suppression finding for context
                             //this will look
-                            let problem: DevSkimProblem = this.MakeProblem(rule, DevskimRuleSeverity.WarningInfo, suppressionFinding.suppressionRange, range);
+                            let problem: DevSkimProblem = this.MakeProblem(rule, DevskimRuleSeverity.WarningInfo, suppressionFinding.suppressionRange,"", range);
 
                             problems.push(problem);
 
@@ -393,12 +393,13 @@ export class DevSkimWorker
      * @param {Rule} rule
      * @param {DevskimRuleSeverity} warningLevel
      * @param {Range} problemRange
+     * @param {string} snippet
      * @param {Range} [suppressedFindingRange]
      */
-    public MakeProblem(rule: Rule, warningLevel: DevskimRuleSeverity, problemRange: Range, suppressedFindingRange?: Range): DevSkimProblem
+    public MakeProblem(rule: Rule, warningLevel: DevskimRuleSeverity, problemRange: Range, snippet: string, suppressedFindingRange?: Range): DevSkimProblem
     {
         let problem: DevSkimProblem = new DevSkimProblem(rule.description, rule.name,
-            rule.id, warningLevel, rule.recommendation, rule.ruleInfo, problemRange);
+            rule.id, warningLevel, rule.recommendation, rule.ruleInfo, problemRange, snippet);
 
         if (suppressedFindingRange) 
         {

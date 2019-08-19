@@ -20,10 +20,6 @@ import {DevSkimSuppression} from "./utility_classes/suppressions";
 import {DebugLogger} from "./utility_classes/logger";
 import {Sarif21R4} from "./utility_classes/sarif21R4";
 
-
-// To DO - keep or remove   -    import * as path from 'path';
-//import { settings } from "cluster";
-
 var program = require("commander");
 
 //set up the command line options for the "analyze" command
@@ -68,6 +64,11 @@ function buildSettings(option) : IDevSkimSettings
 
 }
 
+/**
+ * Call after DevSkimWorker.Analyze is run.  This exhausts the findings to the command line
+ * @param problems the problems detected in the files analyzed
+ * @param directory the directory that was analyzed 
+ */
 function WriteOutputCLI(problems: DevSkimProblem[], directory : string)
 {
     let issueText : string = (problems.length == 1)? 
@@ -107,6 +108,10 @@ function WriteOutputCLI(problems: DevSkimProblem[], directory : string)
 
 }
 
+/**
+ * function invoked from command line. Right now a simplistic stub that simply lists the rules, but TO-DO, create much better output
+ * @param options the command line options this functionality was invoked with
+ */
 async function inventoryRules(options) : Promise<void>
 {
     var settings : IDevSkimSettings  = buildSettings(options);
@@ -119,13 +124,11 @@ async function inventoryRules(options) : Promise<void>
     for(let rule of rules)
     {
         console.log(rule.id+" , "+rule.name);
-    }      
-     
-
+    }          
 }
 /**
- * 
- * @param options 
+ * function invoked from the command line. analyzes the contents of a directory
+ * @param options the command line options this functionality was invoked with
  */
 async function analyze(options) : Promise<void>
 {
@@ -176,7 +179,11 @@ async function analyze(options) : Promise<void>
                     problems = problems.concat(analysisEngine.analyzeText(documentContents,langID, curFile, false));
                     
                     let fileMetadata : FileInfo = Object.create(null);
+                    //the URI needs to be relative to the directory being analyzed, so get the current file URI
+                    //and then chop off the bits for the parent directory
                     fileMetadata.fileURI = pathOp.fileToURI(curFile);
+                    fileMetadata.fileURI = fileMetadata.fileURI.substr(pathOp.fileToURI(directory).length+1);
+                    
                     fileMetadata.sourceLanguage = pathOp.getLangFromPath(curFile, true);
                     fileMetadata.sha256hash = crypto.createHash('sha256').update(documentContents).digest('hex');
                     fileMetadata.sha512hash = crypto.createHash('sha512').update(documentContents).digest('hex');
