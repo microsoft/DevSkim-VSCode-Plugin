@@ -1,4 +1,5 @@
-path_classifiers:
-    test:
-        - "**/_tests_"
-        - "**/_mocks_"
+queries:
+  - include: js/jsdoc/unknown-parameter
+  - include: js/jsdoc/malformed-param-tag
+  - include: js/node/cyclic-import
+  - include: js/node/unused-npm-dependency
