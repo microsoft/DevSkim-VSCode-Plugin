@@ -219,13 +219,14 @@ export class DevSkimProblem
 	public source: string;
 	public severity: DevskimRuleSeverity;
 	public ruleId: string; //the id in the rules JSON files
-	public message: string;
-	public issueURL: string;
-	public replacement: string;
-	public fixes: DevSkimAutoFixEdit[];
-	public suppressedFindingRange: Range;
-	public filePath: string;
+	public message: string; //a description of the problem
+	public issueURL: string; //url for more info on the issue
+	public replacement: string; //text on how to deal with the problem, intended to guide the user
+	public fixes: DevSkimAutoFixEdit[]; //fixes for the issue discovered
+	public suppressedFindingRange: Range; //if there is a suppression comment, the range for that comment
+	public filePath: string; //the location of the file the finding was discovered in
 	public overrides: string[]; //a collection of ruleIDs that this rule supersedes
+	public snippet: string; //the offending code snippet that the problem is located in
 
     /**
      * Creates an instance of DevSkimProblem.
@@ -238,7 +239,7 @@ export class DevSkimProblem
      * @param {string} issueURL a URL to some place the dev can get more information on the problem (rules_info in the rules JSON)
      * @param {Range} range where the problem was found in the file (line start, column start, line end, column end) 
      */
-	constructor(message: string, source: string, ruleId: string, severity: DevskimRuleSeverity, replacement: string, issueURL: string, range: Range)
+	constructor(message: string, source: string, ruleId: string, severity: DevskimRuleSeverity, replacement: string, issueURL: string, range: Range, snippet : string)
 	{
 		this.fixes = [];
 		this.overrides = [];
@@ -250,6 +251,7 @@ export class DevSkimProblem
 		this.range = (range !== undefined) ? range : Range.create(0, 0, 0, 0);
 		this.severity = severity;
 		this.suppressedFindingRange = null;
+		this.snippet = snippet;
 	}
 
 	/**

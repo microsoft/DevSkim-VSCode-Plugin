@@ -18,11 +18,7 @@ import {PathOperations} from "./utility_classes/pathOperations";
 import {DevSkimWorkerSettings} from "./devskimWorkerSettings";
 import {DevSkimSuppression} from "./utility_classes/suppressions";
 import {DebugLogger} from "./utility_classes/logger";
-import {Sarif21R4} from "./utility_classes/sarif21R4";
-
-
-// To DO - keep or remove   -    import * as path from 'path';
-//import { settings } from "cluster";
+import {Sarif21R4} from "./utility_classes/outputFile";
 
 var program = require("commander");
 
@@ -68,6 +64,11 @@ function buildSettings(option) : IDevSkimSettings
 
 }
 
+/**
+ * Call after DevSkimWorker.Analyze is run.  This exhausts the findings to the command line
+ * @param problems the problems detected in the files analyzed
+ * @param directory the directory that was analyzed 
+ */
 function WriteOutputCLI(problems: DevSkimProblem[], directory : string)
 {
     let issueText : string = (problems.length == 1)? 
@@ -107,6 +108,10 @@ function WriteOutputCLI(problems: DevSkimProblem[], directory : string)
 
 }
 
+/**
+ * function invoked from command line. Right now a simplistic stub that simply lists the rules, but TO-DO, create much better output
+ * @param options the command line options this functionality was invoked with
+ */
 async function inventoryRules(options) : Promise<void>
 {
     var settings : IDevSkimSettings  = buildSettings(options);
@@ -119,13 +124,11 @@ async function inventoryRules(options) : Promise<void>
     for(let rule of rules)
     {
         console.log(rule.id+" , "+rule.name);
-    }      
-     
-
+    }          
 }
 /**
- * 
- * @param options 
+ * function invoked from the command line. analyzes the contents of a directory
+ * @param options the command line options this functionality was invoked with
  */
 async function analyze(options) : Promise<void>
 {
@@ -144,6 +147,7 @@ async function analyze(options) : Promise<void>
 
     let dir = require('node-dir'); 
     dir.files(directory, async function(err, files) {
+        
             if (err)
             {
                 console.log(err);
@@ -158,6 +162,7 @@ async function analyze(options) : Promise<void>
             
             let fs = require("fs"); 
             
+            
             const dsSuppression = new DevSkimSuppression(settings);
             const logger : DebugLogger = new DebugLogger(settings);
 
@@ -171,31 +176,47 @@ async function analyze(options) : Promise<void>
             {						
                 if(curFile.indexOf(".git") == -1 && !PathOperations.ignoreFile(curFile,settings.ignoreFilesList))
                 {
+                    //give some indication of progress as files are analyzed
+                    console.log("Analyzing \""+curFile.substr(directory.length+1) + "\"");
+                    
+
                     let documentContents : string = fs.readFileSync(curFile, "utf8");
                     let langID : string = pathOp.getLangFromPath(curFile);
+
                     problems = problems.concat(analysisEngine.analyzeText(documentContents,langID, curFile, false));
+
+                    //if writing to a file, add the metadata for the file that is analyzed
+                    if(outputFile.length > 0)
+                    {                        
                     
-                    let fileMetadata : FileInfo = Object.create(null);
-                    fileMetadata.fileURI = pathOp.fileToURI(curFile);
-                    fileMetadata.sourceLanguage = pathOp.getLangFromPath(curFile, true);
-                    fileMetadata.sha256hash = crypto.createHash('sha256').update(documentContents).digest('hex');
-                    fileMetadata.sha512hash = crypto.createHash('sha512').update(documentContents).digest('hex');
-                    fileMetadata.fileSize = fs.statSync(curFile).size;                    
-                    
-                    FilesToLog.push(fileMetadata);
+                        let fileMetadata : FileInfo = Object.create(null);
+                        //the URI needs to be relative to the directory being analyzed, so get the current file URI
+                        //and then chop off the bits for the parent directory
+                        fileMetadata.fileURI = pathOp.fileToURI(curFile);
+                        fileMetadata.fileURI = fileMetadata.fileURI.substr(pathOp.fileToURI(directory).length+1);
+                        
+                        fileMetadata.sourceLanguage = pathOp.getLangFromPath(curFile, true);
+                        fileMetadata.sha256hash = crypto.createHash('sha256').update(documentContents).digest('hex');
+                        fileMetadata.sha512hash = crypto.createHash('sha512').update(documentContents).digest('hex');
+                        fileMetadata.fileSize = fs.statSync(curFile).size;
+                        FilesToLog.push(fileMetadata);                
+                    }            
                 }						
             }
-
-            if(outputFile.length < 1)
-            {
-                WriteOutputCLI(problems,directory);
+            //just add a space at the end to make the final text more readable
+            console.log("\n-----------------------\n");
+            
+            //if we are writing to the file, build it and output
+            if(outputFile.length > 0)
+            {             
+                sarif.AddFiles(FilesToLog);
+                sarif.AddRules(analysisEngine.retrieveLoadedRules());
+                sarif.AddResults(problems, directory);
+                sarif.WriteToFile(outputFile,directory);
             }
             else
             {
-                sarif.AddFiles(FilesToLog);
-                sarif.AddRules(analysisEngine.retrieveLoadedRules());
-                sarif.AddResults(problems);
-                sarif.WriteToFile(outputFile,directory);
+                WriteOutputCLI(problems, directory);
             }
             
         });	
