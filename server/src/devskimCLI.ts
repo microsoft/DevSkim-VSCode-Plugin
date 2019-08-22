@@ -18,7 +18,7 @@ import {PathOperations} from "./utility_classes/pathOperations";
 import {DevSkimWorkerSettings} from "./devskimWorkerSettings";
 import {DevSkimSuppression} from "./utility_classes/suppressions";
 import {DebugLogger} from "./utility_classes/logger";
-import {Sarif21R4} from "./utility_classes/sarif21R4";
+import {Sarif21R4} from "./utility_classes/outputFile";
 
 var program = require("commander");
 
@@ -147,6 +147,7 @@ async function analyze(options) : Promise<void>
 
     let dir = require('node-dir'); 
     dir.files(directory, async function(err, files) {
+        
             if (err)
             {
                 console.log(err);
@@ -199,9 +200,10 @@ async function analyze(options) : Promise<void>
             }
             else
             {
+
                 sarif.AddFiles(FilesToLog);
                 sarif.AddRules(analysisEngine.retrieveLoadedRules());
-                sarif.AddResults(problems);
+                sarif.AddResults(problems, directory);
                 sarif.WriteToFile(outputFile,directory);
             }
             
