@@ -102,7 +102,7 @@ export class Sarif21R4 extends outputFile
                     default: newSarifRule.defaultConfiguration = {"level": "note"};
                 }
                 //sarif doesn't have a field for the security severity, so put it in a property bag
-                newSarifRule.properties = {"severity": rule.severity};
+                newSarifRule.properties = {"MSRC-severity": rule.severity};
                 this.SarifFileObject.runs[0].tool.driver.rules.push(newSarifRule);
             }
         }
@@ -187,6 +187,6 @@ export class Sarif21R4 extends outputFile
         let fs  = require("fs");
         
         fs.writeFile(outputFile, JSON.stringify(this.SarifFileObject , null, 4), (err)=> {});  
-        console.log("Analyzed all files under %s and wrote the findings to %s", directory, outputFile);
+        console.log("Analyzed all files under \"%s\" and wrote the findings to %s", directory, outputFile);
     }    
 }

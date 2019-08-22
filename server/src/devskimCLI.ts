@@ -162,6 +162,7 @@ async function analyze(options) : Promise<void>
             
             let fs = require("fs"); 
             
+            
             const dsSuppression = new DevSkimSuppression(settings);
             const logger : DebugLogger = new DebugLogger(settings);
 
@@ -175,36 +176,47 @@ async function analyze(options) : Promise<void>
             {						
                 if(curFile.indexOf(".git") == -1 && !PathOperations.ignoreFile(curFile,settings.ignoreFilesList))
                 {
+                    //give some indication of progress as files are analyzed
+                    console.log("Analyzing \""+curFile.substr(directory.length+1) + "\"");
+                    
+
                     let documentContents : string = fs.readFileSync(curFile, "utf8");
                     let langID : string = pathOp.getLangFromPath(curFile);
+
                     problems = problems.concat(analysisEngine.analyzeText(documentContents,langID, curFile, false));
+
+                    //if writing to a file, add the metadata for the file that is analyzed
+                    if(outputFile.length > 0)
+                    {                        
                     
-                    let fileMetadata : FileInfo = Object.create(null);
-                    //the URI needs to be relative to the directory being analyzed, so get the current file URI
-                    //and then chop off the bits for the parent directory
-                    fileMetadata.fileURI = pathOp.fileToURI(curFile);
-                    fileMetadata.fileURI = fileMetadata.fileURI.substr(pathOp.fileToURI(directory).length+1);
-                    
-                    fileMetadata.sourceLanguage = pathOp.getLangFromPath(curFile, true);
-                    fileMetadata.sha256hash = crypto.createHash('sha256').update(documentContents).digest('hex');
-                    fileMetadata.sha512hash = crypto.createHash('sha512').update(documentContents).digest('hex');
-                    fileMetadata.fileSize = fs.statSync(curFile).size;                    
-                    
-                    FilesToLog.push(fileMetadata);
+                        let fileMetadata : FileInfo = Object.create(null);
+                        //the URI needs to be relative to the directory being analyzed, so get the current file URI
+                        //and then chop off the bits for the parent directory
+                        fileMetadata.fileURI = pathOp.fileToURI(curFile);
+                        fileMetadata.fileURI = fileMetadata.fileURI.substr(pathOp.fileToURI(directory).length+1);
+                        
+                        fileMetadata.sourceLanguage = pathOp.getLangFromPath(curFile, true);
+                        fileMetadata.sha256hash = crypto.createHash('sha256').update(documentContents).digest('hex');
+                        fileMetadata.sha512hash = crypto.createHash('sha512').update(documentContents).digest('hex');
+                        fileMetadata.fileSize = fs.statSync(curFile).size;
+                        FilesToLog.push(fileMetadata);                
+                    }            
                 }						
             }
-
-            if(outputFile.length < 1)
-            {
-                WriteOutputCLI(problems,directory);
-            }
-            else
-            {
-
+            //just add a space at the end to make the final text more readable
+            console.log("\n-----------------------\n");
+            
+            //if we are writing to the file, build it and output
+            if(outputFile.length > 0)
+            {             
                 sarif.AddFiles(FilesToLog);
                 sarif.AddRules(analysisEngine.retrieveLoadedRules());
                 sarif.AddResults(problems, directory);
                 sarif.WriteToFile(outputFile,directory);
+            }
+            else
+            {
+                WriteOutputCLI(problems, directory);
             }
             
         });	
