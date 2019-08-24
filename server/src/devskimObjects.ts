@@ -15,6 +15,7 @@ import
 } from 'vscode-languageserver';
 
 import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
+import {GitRepoInfo } from 'git-repo-info';
 
 // These are the example settings defined in the client's package.json
 export interface IDevSkimSettings
@@ -56,7 +57,14 @@ export interface FileInfo
 	fileSize : number;
 	sha256hash : string;
 	sha512hash : string;
-} 
+}
+
+export interface DirectoryInfo
+{
+	directoryPath : string;
+	gitRepo : string;
+	gitInfo : GitRepoInfo;
+}
 
 /**
  * An Interface corresponding to the Pattern section of the JSON

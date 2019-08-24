@@ -20,6 +20,7 @@
   "dependencies": {
     "@schemastore/sarif-2.1.0-rtm.4": "0.0.2",
     "commander": "^2.20.0",
+    "git-repo-info": "^2.1.0",
     "glob-promise": "^3.4.0",
     "lodash": "^4.17.15",
     "mkdirp": "^0.5.1",

@@ -17,23 +17,29 @@ export abstract class outputFile
     constructor(settings : DevSkimObjects.IDevSkimSettings) {this.settings = settings};
 
     /**
-     * Add all of the rules from this analysis run to the Sarif object that will be output (Goes into runs[0].tool.driver.rules in the output)
+     * 
+     * @param runNumber 
+     */
+    public abstract CreateRun(runNumber : number, directoryInfo : DevSkimObjects.DirectoryInfo) : void;
+
+    /**
+     * Add all of the rules from this analysis run to the Sarif object that will be output (Goes into runs[runNumber].tool.driver.rules in the output)
      * @param rules array of all of the rules loaded.  The settings that the overall object was instantiated with in the constructor determine 
      * if the manual review and best practice rules are included
      */
-    public abstract AddRules(rules : DevSkimObjects.Rule[]) :void;
+    public abstract AddRules(rules : DevSkimObjects.Rule[], runNumber : number) :void;
 
     /**
-     * Add all of the files analyzed to the sarif output.  This goes in runs[0].artifacts
+     * Add all of the files analyzed to the sarif output.  This goes in runs[runNumber].artifacts
      * @param files array of all of the files and their meta data that were analyzed
      */
-    public abstract AddFiles(files : DevSkimObjects.FileInfo[]) :void;
+    public abstract AddFiles(files : DevSkimObjects.FileInfo[], runNumber : number) :void;
 
     /**
-     * Add the results of the analysis to the sarif object.  Will populate runs[0].results in the output
+     * Add the results of the analysis to the sarif object.  Will populate runs[runNumber].results in the output
      * @param problems array of every finding from the analysis run
      */    
-    public abstract AddResults(problems : DevSkimObjects.DevSkimProblem[], directory : string) : void;
+    public abstract AddResults(problems : DevSkimObjects.DevSkimProblem[], directory : string, runNumber : number) : void;
 
     /**
      * Output the current sarif object.  AddResults, AddFiles, and AddRules should be called first to get the full output, though this can
@@ -59,28 +65,54 @@ export class Sarif21R4 extends outputFile
         this.SarifFileObject.version = "2.1.0";
         this.SarifFileObject.$schema =  "https://raw.githubusercontent.com/oasis-tcs/sarifspec/master/Schemata/sarif-schema-2.1.0.json";
         this.SarifFileObject.runs = [];
-        this.SarifFileObject.runs[0] = Object.create(null);
-        this.SarifFileObject.runs[0].tool = Object.create(null);
-        this.SarifFileObject.runs[0].tool.driver = Object(null);
-        this.SarifFileObject.runs[0].tool.driver.name = "DevSkim";
-        this.SarifFileObject.runs[0].tool.driver.fullName = "DevSkim Security Analyzer";
-        this.SarifFileObject.runs[0].tool.driver.shortDescription = {"text": "Lightweight Security Linter CLI"};
-        this.SarifFileObject.runs[0].tool.driver.fullDescription = {"text": "Lightweight security linter CLI capable of finding common security mistakes across a variety of languages without needing to compile."};
-        this.SarifFileObject.runs[0].tool.driver.version = "0.3";
-        this.SarifFileObject.runs[0].tool.driver.semanticVersion = "0.3.0";
-        this.SarifFileObject.runs[0].tool.driver.dottedQuadFileVersion = "0.3.0.0";
-        this.SarifFileObject.runs[0].tool.driver.organization = "Microsoft DevLabs";    
-        
+ 
     }
 
     /**
-     * Add all of the rules from this analysis run to the Sarif object that will be output (Goes into runs[0].tool.driver.rules in the output)
+     * 
+     * @param runNumber 
+     */
+    public CreateRun(runNumber : number, directoryInfo : DevSkimObjects.DirectoryInfo)
+    {
+        if(this.SarifFileObject.runs.length <= runNumber)
+        {
+            this.SarifFileObject.runs[runNumber] = Object.create(null);
+            this.SarifFileObject.runs[runNumber].tool = Object.create(null);
+            this.SarifFileObject.runs[runNumber].tool.driver = Object(null);                   
+            this.SarifFileObject.runs[runNumber].tool.driver.name = "DevSkim";
+            this.SarifFileObject.runs[runNumber].tool.driver.fullName = "DevSkim Security Analyzer";
+            this.SarifFileObject.runs[runNumber].tool.driver.shortDescription = {"text": "Lightweight Security Linter CLI"};
+            this.SarifFileObject.runs[runNumber].tool.driver.fullDescription = {"text": "Lightweight security linter CLI capable of finding common security mistakes across a variety of languages without needing to compile."};
+            this.SarifFileObject.runs[runNumber].tool.driver.version = "0.3";
+            this.SarifFileObject.runs[runNumber].tool.driver.semanticVersion = "0.3.0";
+            this.SarifFileObject.runs[runNumber].tool.driver.dottedQuadFileVersion = "0.3.0.0";
+            this.SarifFileObject.runs[runNumber].tool.driver.organization = "Microsoft DevLabs";     
+            
+            if(directoryInfo.gitRepo.length > 0)
+            {
+                this.SarifFileObject.runs[runNumber].versionControlProvenance = [];
+                this.SarifFileObject.runs[runNumber].versionControlProvenance[0] = Object.create(null);
+                this.SarifFileObject.runs[runNumber].versionControlProvenance[0].repositoryUri = directoryInfo.gitRepo;
+                this.SarifFileObject.runs[runNumber].versionControlProvenance[0].branch = directoryInfo.gitInfo.branch;
+                this.SarifFileObject.runs[runNumber].versionControlProvenance[0].revisionId = directoryInfo.gitInfo.sha;
+            }
+               
+        }
+    }
+
+    /**
+     * Add all of the rules from this analysis run to the Sarif object that will be output (Goes into runs[runNumber].tool.driver.rules in the output)
      * @param rules array of all of the rules loaded.  The settings that the overall object was instantiated with in the constructor determine 
      * if the manual review and best practice rules are included
      */
-    public AddRules(rules : DevSkimObjects.Rule[])
+    public AddRules(rules : DevSkimObjects.Rule[], runNumber : number)
     {
-        this.SarifFileObject.runs[0].tool.driver.rules = [];
+        if(this.SarifFileObject.runs.length < runNumber)
+        {
+            throw "Run Object for this run has not yet been created";
+        }
+
+        this.SarifFileObject.runs[runNumber].tool.driver.rules = [];
         for(let rule of rules)
         {
             //check if the optional rules were enabled in this run before adding the rule to the
@@ -103,18 +135,23 @@ export class Sarif21R4 extends outputFile
                 }
                 //sarif doesn't have a field for the security severity, so put it in a property bag
                 newSarifRule.properties = {"MSRC-severity": rule.severity};
-                this.SarifFileObject.runs[0].tool.driver.rules.push(newSarifRule);
+                this.SarifFileObject.runs[runNumber].tool.driver.rules.push(newSarifRule);
             }
         }
     }
 
     /**
-     * Add all of the files analyzed to the sarif output.  This goes in runs[0].artifacts
+     * Add all of the files analyzed to the sarif output.  This goes in runs[runNumber].artifacts
      * @param files array of all of the files and their meta data that were analyzed
      */
-    public AddFiles(files : DevSkimObjects.FileInfo[])
+    public AddFiles(files : DevSkimObjects.FileInfo[], runNumber : number)
     {
-        this.SarifFileObject.runs[0].artifacts = [];
+        if(this.SarifFileObject.runs.length < runNumber)
+        {
+            throw "Run Object for this run has not yet been created";
+        }
+
+        this.SarifFileObject.runs[runNumber].artifacts = [];
 
         for(let file of files)
         {
@@ -125,17 +162,22 @@ export class Sarif21R4 extends outputFile
             sarifFile.length = file.fileSize;
             sarifFile.sourceLanguage = file.sourceLanguage;
             sarifFile.hashes = {"sha-256" : file.sha256hash, "sha-512": file.sha512hash};
-            this.SarifFileObject.runs[0].artifacts.push(sarifFile);
+            this.SarifFileObject.runs[runNumber].artifacts.push(sarifFile);
         }
     }
 
     /**
-     * Add the results of the analysis to the sarif object.  Will populate runs[0].results in the output
+     * Add the results of the analysis to the sarif object.  Will populate runs[runNumber].results in the output
      * @param problems array of every finding from the analysis run
      */
-    public AddResults(problems : DevSkimObjects.DevSkimProblem[], directory : string)
+    public AddResults(problems : DevSkimObjects.DevSkimProblem[], directory : string, runNumber : number)
     {
-        this.SarifFileObject.runs[0].results = [];
+        if(this.SarifFileObject.runs.length < runNumber)
+        {
+            throw "Run Object for this run has not yet been created";
+        }
+                
+        this.SarifFileObject.runs[runNumber].results = [];
         let pathOp : PathOperations = new PathOperations();
 
         for(let problem of problems)
@@ -172,7 +214,7 @@ export class Sarif21R4 extends outputFile
             {
                 sarifResult.locations[0].physicalLocation.region.snippet = {"text" : problem.snippet}
             }
-            this.SarifFileObject.runs[0].results.push(sarifResult);
+            this.SarifFileObject.runs[runNumber].results.push(sarifResult);
         }
     }
 

@@ -2,6 +2,8 @@
 	"typescript.tsc.autoDetect": "off",
 	"typescript.preferences.quoteStyle": "single",
 	"cSpell.words": [
-		"schemastore"
+		"schemastore",
+		"subdir",
+		"subdirs"
 	]
 }

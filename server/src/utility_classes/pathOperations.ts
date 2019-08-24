@@ -29,12 +29,12 @@ export class PathOperations
             let XRegExp = require('xregexp');
             for (let ignorePattern of ignoreList)
             {
-                let ignoreRegex: RegExp = XRegExp(XRegExp.escape(ignorePattern).replace("\\*", ".*").replace("\\?", "."), "i");
-
-                if (XRegExp.exec(filePath, ignoreRegex))
+                ignorePattern = ignorePattern.replace("*","");
+                ignorePattern = ignorePattern.replace("/","");
+                if (filePath.indexOf(ignorePattern) > -1)
                 {
                     return true;
-                }
+                }                
             }
 
         }
@@ -42,7 +42,26 @@ export class PathOperations
         return false;
     }
 
+    /**
+     * 
+     * @param directory 
+     */
+    public normalizeDirectoryPaths(directory : string) : string
+    {
+        directory = directory.replace(/\\\\/g,"\\" );
+        directory = directory.replace(/\/\//g,"/" );
+        if(directory.slice(-1) == "\\" || directory.slice(-1) == "/" )
+        {
+            directory = directory.substring(0,directory.length - 1);
+        }
+        return directory;        
+    }
 
+
+    /**
+     * 
+     * @param filePath 
+     */
     public getMimeFromPath(filePath : string) : string
     {
         let path = require('path');
@@ -312,6 +331,11 @@ export class PathOperations
         return "text/plain";
     }
 
+    /**
+     * 
+     * @param filePath 
+     * @param sarifConvention 
+     */
     public getLangFromPath(filePath : string, sarifConvention : boolean = false) : string
     {
         let path = require('path');
@@ -580,6 +604,10 @@ export class PathOperations
         return "plaintext";
     }
     
+    /**
+     * 
+     * @param filePath 
+     */
     public fileToURI(filePath : string) : string
     {
         if (typeof filePath !== 'string') {
