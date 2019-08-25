@@ -30,7 +30,7 @@ export class PathOperations
 
             for (let ignorePattern of ignoreList)
             {
-                ignorePattern = ignorePattern.replace("\*","");
+                ignorePattern = ignorePattern.replace(/\*/g,"");
                 ignorePattern = ignorePattern.replace("/","");
                 if (filePath.indexOf(ignorePattern) > -1)
                 {

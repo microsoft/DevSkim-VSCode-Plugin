@@ -6,7 +6,6 @@
  * 
  */
 import * as DevSkimObjects from "../../devskimObjects";
-import {SARIF21Writer} from "./sarif21Writer";
 
 /**
  * Abstract Implementation fo CLI output formats
