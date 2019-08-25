@@ -4,14 +4,16 @@
  * ------------------------------------------------------------------------------------------ */
 
 /**
- * 
+ * Various helper functions around paths and file types
  */
 export class PathOperations
 {
     /**
-     * 
-     * @param filePath 
-     * @param ignoreList 
+     * check if the current file path meets any of the conditions that should cause analysis
+     * to skip it
+     * @param filePath the full file path of the file being analyzed 
+     * @param ignoreList the current collection of conditions to ignore (e.g. *.log, node_modules/*)
+     * @return true if the file should be ignored, false if it should be processed
      */
     public static ignoreFile(filePath: string, ignoreList: string[] = []): boolean
     {
@@ -26,10 +28,9 @@ export class PathOperations
                 return true;
             }
 
-            let XRegExp = require('xregexp');
             for (let ignorePattern of ignoreList)
             {
-                ignorePattern = ignorePattern.replace("*","");
+                ignorePattern = ignorePattern.replace("\*","");
                 ignorePattern = ignorePattern.replace("/","");
                 if (filePath.indexOf(ignorePattern) > -1)
                 {
@@ -43,8 +44,10 @@ export class PathOperations
     }
 
     /**
-     * 
-     * @param directory 
+     * Clean up the directory path, stripping trailing / or \ and replacing double slashes with single
+     * even if not cleaned up, it should work with every API that needs a path, but it makes path comparisons suck
+     * @param directory the directory path to clean up
+     * @return cleaned up directory path
      */
     public normalizeDirectoryPaths(directory : string) : string
     {
@@ -59,8 +62,10 @@ export class PathOperations
 
 
     /**
-     * 
-     * @param filePath 
+     * Figure out the mime type for a source file based on its extension.  this is using a precomputed list of 
+     * mime types, so will not succeed for every file type
+     * @param filePath the path of the file 
+     * @return the mime type of the file if known, otherwise text/plain 
      */
     public getMimeFromPath(filePath : string) : string
     {
@@ -332,9 +337,9 @@ export class PathOperations
     }
 
     /**
-     * 
-     * @param filePath 
-     * @param sarifConvention 
+     * Get the language identifier for a file based on its extension(either VS Code or SARIF depending on param)
+     * @param filePath the file path for the file being analyzed
+     * @param sarifConvention (optional) if true, uses SARIF terminology where it deviates, false/default is VS Code identifiers
      */
     public getLangFromPath(filePath : string, sarifConvention : boolean = false) : string
     {
@@ -605,8 +610,9 @@ export class PathOperations
     }
     
     /**
-     * 
-     * @param filePath 
+     * Create a URI from a file path
+     * @param filePath the filepath a URI should be created from
+     * @return a URI format for the file based on its provided path
      */
     public fileToURI(filePath : string) : string
     {

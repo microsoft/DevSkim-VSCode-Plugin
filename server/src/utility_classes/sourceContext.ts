@@ -90,7 +90,6 @@
      * @param {string} langID VSCode ID for the language (should be lower case)
      * @param {string} documentContents the documentContents up to, but not including the next line
      * @param {number} lineNumber the line number we are checking
-     * @param {boolean} onlyLine (Optional) if set to true, only checks if the full line is in a line comment
      * @returns {boolean} true if in a comment, false if active code
      * 
      * @memberOf SourceComments
@@ -138,8 +137,8 @@
     
     /**
      * Gets the starting position of the last block comment
-     * @param langID 
-     * @param documentContents 
+     * @param langID the VS Code language identifier for the file being analyzed
+     * @param documentContents the contents of the current document being analyzed
      */
     public static GetStartOfLastBlockComment(langID: string, documentContents: string)
     {
@@ -153,8 +152,8 @@
 
     /**
      * Gets the starting position of the last block comment
-     * @param langID 
-     * @param documentContents 
+     * @param langID the VS Code language identifier for the file being analyzed
+     * @param documentContents the contents of the current document being analyzed
      */
     public static GetEndOfLastBlockComment(langID: string, documentContents: string)
     {

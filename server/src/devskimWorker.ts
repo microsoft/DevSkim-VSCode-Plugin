@@ -26,7 +26,7 @@ import {DocumentUtilities} from "./utility_classes/document";
 import { DebugLogger } from "./utility_classes/logger";
 
 /**
- * The bulk of the DevSkim analysis logic.  Loads rules in, exposes functions to run rules across a file
+ * The bulk of the DevSkim analysis logic.  Orchestrates Loading rules in, implements and exposes functions to run rules across a file
  */
 export class DevSkimWorker 
 {
@@ -49,6 +49,12 @@ export class DevSkimWorker
     //map seemed a little excessive to me.  Then again, I just wrote 3 paragraphs for how this works, so maybe I'm being too clever
     public codeActions: Map<Map<AutoFix>> = Object.create(null);
 
+    /**
+     * Instantiate the DevSkim Worker
+     * @param logger a logger object, to decide where messages should be written (console, remote console, nowhere, etc)
+     * @param dsSuppressions an existing suppressions object to hold information about suppressed findings
+     * @param settings the settings analysis should run under (can be updated post instantiate with UpdateSettings method)
+     */
     constructor(private logger: DebugLogger, private dsSuppressions: DevSkimSuppression, settings: IDevSkimSettings = DevSkimWorkerSettings.defaultSettings()) 
     {
         this.rulesDirectory = DevSkimWorkerSettings.getRulesDirectory(logger);
@@ -68,17 +74,23 @@ export class DevSkimWorker
         
     }
 
+    /**
+     * Must be called before analysis is effective.  Loads the rules from the file system
+     */
     public async init(): Promise<void> 
     {
         await this.loadRules();
     }
 
     /**
-     * Look for problems in the provided text
+     * Look for problems in the provided text.  For the IDE includeSuppressions should be true so that users see details
+     * about what rule was suppressed in a suppression comment.  When called from teh CLI the value should be false, so that
+     * it doesn't get included in the output
      *
      * @param {string} documentContents the contents of a file to analyze
      * @param {string} langID the programming language for the file
      * @param {string} documentURI the URI identifying the file
+     * @param {boolean} includeSuppressions true if the resulting problems should include information squiggles for the ruleID listed in a suppression comment
      * @returns {DevSkimProblem[]} an array of all of the issues found in the text
      */
     public analyzeText(documentContents: string, langID: string, documentURI: string, includeSuppressions : boolean = true): DevSkimProblem[] 
@@ -284,6 +296,7 @@ export class DevSkimWorker
      * @param {string} documentContents the full text to analyze
      * @param {string} langID the programming language for the text
      * @param {string} documentURI URI identifying the document
+     * @param {boolean} includeSuppressions true if the resulting problems should include information squiggles for the ruleID listed in a suppression comment
      * @returns {DevSkimProblem[]} all of the issues identified in the analysis
      */
     private runAnalysis(documentContents: string, langID: string, documentURI: string, includeSuppressions : boolean = true): DevSkimProblem[] 

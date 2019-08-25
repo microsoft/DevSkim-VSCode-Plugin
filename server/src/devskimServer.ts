@@ -24,7 +24,7 @@ import { DevSkimSuppression } from "./utility_classes/suppressions";
 import { DebugLogger } from "./utility_classes/logger"
 
 /**
- * 
+ * The specific implementation of the DevSkim LSP
  */
 export default class DevSkimServer
 {
@@ -32,10 +32,10 @@ export default class DevSkimServer
     public static instance: DevSkimServer;
 
     /**
-     * 
-     * @param documents 
-     * @param connection 
-     * @param worker 
+     * Sets up the DevSkim Server - not called directly but rather through initialize
+     * @param documents files to analyze
+     * @param connection the connection to the client
+     * @param worker an instantiated instance of the DevSkimWorker class that does the analysis
      */
     private constructor(private documents: TextDocuments, private connection: Connection, private worker: DevSkimWorker)
     {
@@ -43,10 +43,10 @@ export default class DevSkimServer
     }
 
     /**
-     * 
-     * @param documents 
-     * @param connection 
-     * @param params 
+     * Create an instance of the devskim server
+     * @param documents files to analyze
+     * @param connection connection to the client
+     * @param params parameters the client passed during initialization
      */
     public static async initialize(documents: TextDocuments, connection: Connection, params: InitializedParams): Promise<DevSkimServer>
     {
@@ -61,7 +61,7 @@ export default class DevSkimServer
     }
 
     /**
-     * 
+     * load the rules from the file system
      */
     public async loadRules(): Promise<void>
     {
@@ -69,8 +69,8 @@ export default class DevSkimServer
     }
 
     /**
-     * 
-     * @param connection 
+     * registers the various event handlers the client can invoke
+     * @param connection the connection to the client
      */
     public register(connection: Connection): void
     {
@@ -91,7 +91,7 @@ export default class DevSkimServer
     }
 
     /**
-     * 
+     * informs the client of the capabilities this LSP exposes
      */
     public capabilities(): ServerCapabilities
     {
@@ -103,7 +103,10 @@ export default class DevSkimServer
         };
     }
 
-    // Document handlers
+    /**
+     * event handler for document opening event
+     * @param change change of state from the IDE
+     */
     private onDidOpen(change)
     {
         this.connection.console.log(`DevSkimServer: onDidOpen(${change.document.uri})`);
@@ -111,8 +114,8 @@ export default class DevSkimServer
     }
 
     /**
-     * 
-     * @param change 
+     * event handler for a document closing
+     * @param change  change of state from the IDE
      */
     private onDidClose(change)
     {
@@ -124,8 +127,8 @@ export default class DevSkimServer
     }
 
     /**
-     * 
-     * @param change 
+     * document handler for content changing
+     * @param change  change of state from the IDE
      */
     private onDidChangeContent(change): Promise<void>
     {
@@ -133,7 +136,10 @@ export default class DevSkimServer
         return this.validateTextDocument(change.document);
     }
 
-    // Connection Handlers
+    /**
+     * event handler for IDE initializing plugin
+     * @param params connection initialization values
+     */
     private onInitialize(params: InitializeParams): void
     {
         let capabilities = params.capabilities;
@@ -149,8 +155,8 @@ export default class DevSkimServer
     }
 
     /**
-     * 
-     * @param params 
+     * Event handler for request from IDE to validate files
+     * @param params collection of documents/settings to validate
      */
     private onRequestValidateDocsRequest(params: ValidateDocsParams): void
     {
@@ -164,7 +170,8 @@ export default class DevSkimServer
     }
 
     /**
-     * 
+     * Custom event handler for DevSkim specific event that reloads rules from the file system
+     * typically called when files are being edited
      */
     private onRequestReloadRulesRequest()
     {
@@ -172,8 +179,8 @@ export default class DevSkimServer
     }
 
     /**
-     * 
-     * @param params 
+     * Event Handler for requests for code actions
+     * @param params context for the code actions being requested
      */
     private onCodeAction(params: CodeActionParams): Command[]
     {
@@ -209,8 +216,8 @@ export default class DevSkimServer
     }
 
     /**
-     * 
-     * @param change 
+     * Event Handler for settings changing
+     * @param change the new settings after the change
      */
     private onDidChangeConfiguration(change: DidChangeConfigurationParams): void
     {
@@ -238,8 +245,8 @@ export default class DevSkimServer
     }
 
     /**
-     * 
-     * @param pos 
+     * event handler for hover event
+     * @param pos position of hover
      */
     private onHover(pos: TextDocumentPositionParams): Promise<Hover>
     {
@@ -247,6 +254,10 @@ export default class DevSkimServer
         return null;
     }
 
+    /**
+     * retrieve the settings used for analyzing the document
+     * @param resource the identifier for the object we need to retrieve settings for 
+     */
     private getDocumentSettings(resource: string): Thenable<DevSkimSettings>
     {
         if (!this.hasConfigurationCapability)

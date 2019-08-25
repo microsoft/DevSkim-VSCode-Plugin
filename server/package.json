@@ -6,9 +6,9 @@
   "publisher": "MS-DevSkim",
   "private": true,
   "license": "MIT",
-  "main": "./out/devskimCLI.js",
+  "main": "./out/cli.js",
   "bin": {
-    "devskim": "./out/devskimCLI.js"
+    "devskim": "./out/cli.js"
   },
   "preferGlobal": true,
   "engines": {
