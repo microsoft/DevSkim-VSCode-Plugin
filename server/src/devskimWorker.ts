@@ -192,12 +192,12 @@ export class DevSkimWorker
     }
 
     /**
-     * Low, Defense In Depth, and Informational severity rules may be turned on and off via a setting
+     * Best practice and Manual Review severity rules may be turned on and off via a setting
      * prior to running an analysis, verify that the rule is enabled based on its severity and the user settings
      *
      * @public
-     * @param {DevskimRuleSeverity} ruleSeverity
-     * @returns {boolean}
+     * @param {DevskimRuleSeverity} ruleSeverity the severity of the current rule
+     * @returns {boolean} true if it should be processed (its either a high severity or the severity is enabled in settings)
      *
      * @memberOf DevSkimWorker
      */
@@ -219,8 +219,8 @@ export class DevSkimWorker
      * and by using an enum we can get a transpiler error if we remove/change a label
      *
      * @public
-     * @param {string} severity
-     * @returns {DevskimRuleSeverity}
+     * @param {string} severity the text severity from the rules JSON
+     * @returns {DevskimRuleSeverity} the enum used in code for the severity, corresponding to the text
      *
      * @memberOf DevSkimWorker
      */
@@ -247,7 +247,7 @@ export class DevSkimWorker
      * the pattern type governs how we form the regex.  regex-word is wrapped in \b, string is as well, but is also escaped.
      * substring is not wrapped in \b, but is escaped, and regex/the default behavior is a vanilla regular expression
      * @param {string} regexType regex|regex-word|string|substring
-     * @param {string} pattern
+     * @param {string} pattern the regex pattern from the Rules JSON
      * @param {string[]} modifiers modifiers to use when creating regex. can be null.  a value of "d" will be ignored if forXregExp is false
      * @param {boolean} forXregExp whether this is for the XRegExp regex engine (true) or the vanilla javascript regex engine (false)
      */
@@ -403,11 +403,11 @@ export class DevSkimWorker
      * be passed in for warningLevel.  problemRange should be the range of the "DSXXXXXX" text that should get the information squiggle
      * and suppressedFindingRange should be the range of the finding that was suppressed or reviewed by the comment.  This last
      * is important, as we need to save that info for later to cover overrides that also should be suppressed
-     * @param {Rule} rule
-     * @param {DevskimRuleSeverity} warningLevel
-     * @param {Range} problemRange
-     * @param {string} snippet
-     * @param {Range} [suppressedFindingRange]
+     * @param {Rule} rule the DevSkim rule that triggered on the problem
+     * @param {DevskimRuleSeverity} warningLevel Error/Warning/Informational, corresponding to the IDE squiggle UI
+     * @param {Range} problemRange the area that should get a squiggle added in the IDE
+     * @param {string} snippet the text code snippet being flagged
+     * @param {Range} [suppressedFindingRange] (optional) when creating a suppression squiggle, it gets a special range signifier
      */
     public MakeProblem(rule: Rule, warningLevel: DevskimRuleSeverity, problemRange: Range, snippet: string, suppressedFindingRange?: Range): DevSkimProblem
     {
@@ -567,9 +567,9 @@ export class DevSkimWorker
      * Create an array of fixes from the rule and the vulnerable part of the file being scanned
      *
      * @private
-     * @param {Rule} rule
-     * @param {string} replacementSource
-     * @param {Range} range
+     * @param {Rule} rule the rule that triggered the issue
+     * @param {string} replacementSource the text that should be replaced by the fixit
+     * @param {Range} range the range in the document that should be swapped out by the fixit
      * @returns {DevSkimAutoFixEdit[]}
      *
      * @memberOf DevSkimWorker

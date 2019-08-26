@@ -289,7 +289,7 @@ export class DevSkimProblem
 	/**
 	 * Shorten the severity name for output
 	 * 
-	 * @param {DevskimRuleSeverity} severity
+	 * @param {DevskimRuleSeverity} severity the current enum value for the severity we are converting
 	 * @returns {string} short name of the severity rating
 	 * 
 	 * @memberOf DevSkimProblem

@@ -196,7 +196,7 @@ export class SARIF21Writer implements outputWriter
             sarifResult.locations[0].physicalLocation.region.endColumn = problem.range.end.character + 1;
             if(problem.snippet && problem.snippet.length > 0)
             {
-                sarifResult.locations[0].physicalLocation.region.snippet = {"text" : problem.snippet}
+                sarifResult.locations[0].physicalLocation.region.snippet = {"text" : problem.snippet};
             }
             this.SarifFileObject.runs[runNumber].results.push(sarifResult);
         }

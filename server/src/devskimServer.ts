@@ -133,7 +133,11 @@ export default class DevSkimServer
     private onDidChangeContent(change): Promise<void>
     {
         this.connection.console.log(`DevSkimServer: onDidChangeContent(${change.document.uri})`);
-        return this.validateTextDocument(change.document);
+        if(change && change.document)
+        {
+            return this.validateTextDocument(change.document);
+        }
+        return;
     }
 
     /**
