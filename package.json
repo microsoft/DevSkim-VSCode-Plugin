@@ -125,6 +125,7 @@
             "node_modules/*",
             ".vscode/*",
             "*.lock",
+            "*-lock",
             "logs/*",
             "*.log",
             "*.git",
@@ -132,6 +133,11 @@
             "NuGet/*",
             "*.exe",
             ".cache/*",
+            "tests/*",
+            "test/*",
+            "_tests_/*",
+            "_mocks_/*",
+            "*.test",
             "*/rulesValidationLog.json"
           ],
           "description": "List of Files, File Extensions, and directories to ignore.  DevSkim will not run on any files that match one of these ignores.  To match any file of a give name, just list the file name. If there are multiple files and only one should be ignored, include at least the immediate folder path the file lives in. Whole directories can be ignored via <Dir Name>/* (use unix style paths), and all files of a specific extension can be ignored via *.<extension>"

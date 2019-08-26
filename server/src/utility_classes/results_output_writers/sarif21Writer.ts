@@ -31,6 +31,7 @@ export class SARIF21Writer implements outputWriter
      */
     initialize(settings: DevSkimObjects.IDevSkimSettings, analyzedDirectory: string, outputFilePath ?: string)
     {
+        
         this.runSettings = settings;
         this.SarifFileObject = Object.create(null);
         this.SarifFileObject.version = "2.1.0";
@@ -73,6 +74,9 @@ export class SARIF21Writer implements outputWriter
             this.SarifFileObject.runs[runNumber].versionControlProvenance[0].branch = analysisRun.directoryInfo.gitInfo.branch;
             this.SarifFileObject.runs[runNumber].versionControlProvenance[0].revisionId = analysisRun.directoryInfo.gitInfo.sha;
         }
+
+        this.SarifFileObject.runs[runNumber].originalUriBaseIds = Object.create(null);
+        this.SarifFileObject.runs[runNumber].originalUriBaseIds = {"SRCROOT" : {"uri" : new PathOperations().fileToURI(analysisRun.directoryInfo.directoryPath)}}
                
         this.addFiles(analysisRun.files,runNumber);
         this.addResults(analysisRun.problems,analysisRun.directoryInfo.directoryPath,runNumber);
@@ -140,7 +144,7 @@ export class SARIF21Writer implements outputWriter
             let sarifFile : SARIF21Schema.Artifact = Object.create(null);
             sarifFile.location = Object.create(null);
             sarifFile.location.uri = file.fileURI;
-            sarifFile.location.uriBaseId = "%srcroot%";
+            sarifFile.location.uriBaseId = "SRCROOT";
             sarifFile.length = file.fileSize;
             sarifFile.sourceLanguage = file.sourceLanguage;
             sarifFile.hashes = {"sha-256" : file.sha256hash, "sha-512": file.sha512hash};
@@ -185,7 +189,7 @@ export class SARIF21Writer implements outputWriter
             let filePath = pathOp.fileToURI(problem.filePath );
             filePath = filePath.substr(pathOp.fileToURI(directory).length+1);
 
-            sarifResult.locations[0].physicalLocation.artifactLocation = {"uri" : filePath, "uriBaseId" : "%srcroot%", "sourceLanguage" : pathOp.getLangFromPath(problem.filePath, true)};
+            sarifResult.locations[0].physicalLocation.artifactLocation = {"uri" : filePath, "uriBaseId" : "SRCROOT", "sourceLanguage" : pathOp.getLangFromPath(problem.filePath, true)};
             sarifResult.locations[0].physicalLocation.region = Object.create(null);
 
             //LSP uses 0 indexed lines/columns, SARIF expects 1 indexed, hence the + 1

@@ -52,9 +52,10 @@ export class DevSkimCLI
      */
     constructor(private command : CLIcommands, private options)
     {
-        this.workingDirectory = (this.options == undefined || this.options.directory == undefined ) ? 
+        this.workingDirectory = (this.options == undefined || this.options.directory == undefined  || this.options.directory.length == 0 ) ? 
             process.cwd() :  this.options.directory;
 
+        
         this.buildSettings();
 
         this.outputFilePath = (options == undefined || options.output_file == undefined ) ? 
@@ -68,7 +69,8 @@ export class DevSkimCLI
         {
             this.resultFileObject = new ConsoleWriter();            
         }
-        this.resultFileObject.initialize(this.settings, this.outputFilePath, this.workingDirectory);
+        
+        this.resultFileObject.initialize(this.settings, this.workingDirectory, this.outputFilePath );
     }
 
     /**
