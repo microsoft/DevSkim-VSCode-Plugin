@@ -1,227 +1,254 @@
-#!/usr/bin/env node
-
 /* --------------------------------------------------------------------------------------------
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ 
- * command line code for the CLI version of DevSkim.  Handles setting up and parsing command line,
- * orchestrating commands from the command line, and writing output to the specified location
+ * command line class for the CLI version of DevSkim - invoked from cli.ts.  
  * 
  */
 
-// To DO - keep or remove   -      import {IDevSkimSettings, DevSkimSettings, DevSkimProblem, Fixes, AutoFix, FixIt, DevSkimAutoFixEdit, Rule} from "./devskimObjects";
 
-import {IDevSkimSettings, DevSkimProblem, Rule, FileInfo} from "./devskimObjects";
+import { IDevSkimSettings, DevSkimProblem, Rule, FileInfo, DirectoryInfo, Run } from "./devskimObjects";
 
-import {DevSkimWorker} from "./devskimWorker";
-import {PathOperations} from "./utility_classes/pathOperations";
-import {DevSkimWorkerSettings} from "./devskimWorkerSettings";
-import {DevSkimSuppression} from "./utility_classes/suppressions";
-import {DebugLogger} from "./utility_classes/logger";
-import {Sarif21R4} from "./utility_classes/outputFile";
-
-var program = require("commander");
-
-//set up the command line options for the "analyze" command
-program.command('analyze')
-    .description('analyze the files in the specified directory for security mistakes')
-    .option("-b, --best_practice", "include best practice findings in the output")
-    .option("-m, --manual_review", "include manual review findings in the output")
-    .option("-d, --directory [directory]", "The parent directory to containing the files to analyze.  If not provided, the current working directory is used")
-    .option("-o, --output_file [outputFile]", "The file to write output into. If this option is set but no file specified, output is written to devskim_results.json")
-    .action(function(options) {
-        analyze(options);
-    });
-
-//set up the command line options for the "analyze" command
-program.command('rules')
-    .description('output the inventory of currently installed analysis rules')
-    .option("-t, --terse", "lists just the rule ID and name, but no summary")
-    .option("-v, -validate", "validates each rule for errors in the construction of the rules")
-    .option("-o, --output_file [outputFile]", "The file to write output into. If this option is set but no file specified, output is written to devskim_rules.html")
-    .action(function(options) {
-        inventoryRules(options);
-    });    
+import { DevSkimWorker } from "./devskimWorker";
+import { PathOperations } from "./utility_classes/pathOperations";
+import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
+import { DevSkimSuppression } from "./utility_classes/suppressions";
+import { DebugLogger } from "./utility_classes/logger";
+import { outputWriter } from "./utility_classes/results_output_writers/outputWriter";
+import { gitHelper } from './utility_classes/git';
+import { ConsoleWriter } from './utility_classes/results_output_writers/consoleWriter';
+import { SARIF21Writer } from './utility_classes/results_output_writers/sarif21Writer';
 
 /**
- * Create a DevSkimSettings object from the specified command line options (or defaults if no relevant option is present)
- * @param option the options passed from the command line analysis command
+ * An enum to track the various potential commands from the CLI
  */
-function buildSettings(option) : IDevSkimSettings
+export enum CLIcommands
 {
-    let settings : IDevSkimSettings = DevSkimWorkerSettings.defaultSettings();
+    /**
+     * Run an analysis of the files under a folder
+     */
+    Analyze = "analyze",
 
-    if(option.best_practice != undefined && option.best_practice == true)
-    {
-        settings.enableBestPracticeRules = true;
-    }
-
-    if(option.manual_review != undefined && option.manual_review == true)
-    {
-        settings.enableManualReviewRules = true;
-    }
-    return settings;
-
+    /**
+     * List the rules, optionally producing validation
+     */
+    inventoryRules = "rules"
 }
 
 /**
- * Call after DevSkimWorker.Analyze is run.  This exhausts the findings to the command line
- * @param problems the problems detected in the files analyzed
- * @param directory the directory that was analyzed 
+ * The main worker class for the Command Line functionality
  */
-function WriteOutputCLI(problems: DevSkimProblem[], directory : string)
+export class DevSkimCLI
 {
-    let issueText : string = (problems.length == 1)? 
-        "Analyzing all files under %s.  Found %d issue" : 
-        "Analyzing all files under %s.  Found %d issues";
-    console.log(issueText, directory, problems.length);
-    let errorInfo = {};
+    private workingDirectory : string;
+    private settings : IDevSkimSettings;
+    private outputFilePath: string;
+    private resultFileObject : outputWriter;
 
-    if(problems.length > 0)
+    /**
+     * Set up the CLI class - does not run the command, just sets everything up 
+     * @param command the command run from the CLI
+     * @param options the options used with that command
+     */
+    constructor(private command : CLIcommands, private options)
     {
-        for(let problem of problems)
-        {
-            if(errorInfo[problem.filePath] == undefined)
-            {
-                errorInfo[problem.filePath] = [];
-            }
-            let errorString : string = "  line:" + (problem.range.start.line +1).toString() + " column:" + 
-                (problem.range.start.character +1).toString() + " - " + problem.ruleId + " " + DevSkimProblem.getSeverityName(problem.severity) +
-                " : " + problem.source;
+        this.workingDirectory = (this.options == undefined || this.options.directory == undefined  || this.options.directory.length == 0 ) ? 
+            process.cwd() :  this.options.directory;
 
-            errorInfo[problem.filePath].push(errorString);
+        
+        this.buildSettings();
+
+        this.outputFilePath = (options == undefined || options.output_file == undefined ) ? 
+            "" :  options.output_file;    
+        
+        if(this.outputFilePath.length > 0)
+        {
+            this.resultFileObject = new SARIF21Writer();
         }
-        for (let filename in errorInfo) 
+        else
         {
-            issueText  = (errorInfo[filename].length == 1)? 
-            "\n file: %s \n Found %d issue:" : 
-            "\n file: %s \n Found %d issues:";            
-            console.log(issueText,filename, errorInfo[filename].length);
+            this.resultFileObject = new ConsoleWriter();            
+        }
+        
+        this.resultFileObject.initialize(this.settings, this.workingDirectory, this.outputFilePath );
+    }
 
-            for(let errorString of errorInfo[filename])
-            {
-                console.log(errorString);
-            }
+    /**
+     * Run the command that was passed from the CLI
+     */
+    public async run()
+    {
+        switch(this.command)
+        {
+            case CLIcommands.Analyze: 
+                let git : gitHelper = new gitHelper();
+                await git.getRecursiveGitInfo(this.workingDirectory, 
+                    directories => 
+                    {
+                        this.analyze(directories)
+                    });
+                break;
+            case CLIcommands.inventoryRules: await this.inventoryRules();
+                break;
         }
     }
-        
 
-}
-
-/**
- * function invoked from command line. Right now a simplistic stub that simply lists the rules, but TO-DO, create much better output
- * @param options the command line options this functionality was invoked with
- */
-async function inventoryRules(options) : Promise<void>
-{
-    var settings : IDevSkimSettings  = buildSettings(options);
-    const dsSuppression = new DevSkimSuppression(settings);
-    const logger : DebugLogger = new DebugLogger(settings);
-
-    var analysisEngine : DevSkimWorker = new DevSkimWorker(logger, dsSuppression, settings);
-    await analysisEngine.init();
-    let rules : Rule[] = analysisEngine.retrieveLoadedRules();
-    for(let rule of rules)
+    
+    /**
+     * Create a DevSkimSettings object from the specified command line options (or defaults if no relevant option is present)
+     */
+    private buildSettings() 
     {
-        console.log(rule.id+" , "+rule.name);
-    }          
-}
-/**
- * function invoked from the command line. analyzes the contents of a directory
- * @param options the command line options this functionality was invoked with
- */
-async function analyze(options) : Promise<void>
-{
-    let directory: string = (options == undefined || options.directory == undefined ) ? 
-        process.cwd() :  options.directory;
-
-    let outputFile: string= (options == undefined || options.output_file == undefined ) ? 
-        "" :  options.output_file;
-        
+        //right now most of the options come from the defaults, with only a couple of variations passed
+        //from the command line
+        this.settings = DevSkimWorkerSettings.defaultSettings();
     
-    const crypto = require('crypto');
-    let FilesToLog : FileInfo[] = [];
+        if(this.options.best_practice != undefined && this.options.best_practice == true)
+        {
+            this.settings.enableBestPracticeRules = true;
+        }
     
-    var settings : IDevSkimSettings  = buildSettings(options);
-    let sarif : Sarif21R4 = new Sarif21R4(settings);
-
-    let dir = require('node-dir'); 
-    dir.files(directory, async function(err, files) {
-        
+        if(this.options.manual_review != undefined && this.options.manual_review == true)
+        {
+            this.settings.enableManualReviewRules = true;
+        }    
+    }
+    
+    
+    
+    /**
+     * function invoked from command line. Right now a simplistic stub that simply lists the rules
+     * @todo create HTML output with much better formatting/info, and optional validation
+     */
+    private async inventoryRules() : Promise<void>
+    {
+        const dsSuppression = new DevSkimSuppression(this.settings);
+        const logger : DebugLogger = new DebugLogger(this.settings);
+    
+        var analysisEngine : DevSkimWorker = new DevSkimWorker(logger, dsSuppression, this.settings);
+        await analysisEngine.init();
+        let rules : Rule[] = analysisEngine.retrieveLoadedRules();
+        for(let rule of rules)
+        {
+            console.log(rule.id+" , "+rule.name);
+        }          
+    }
+    
+    /**
+     * Analyze the contents of provided directory paths, and output
+     * @param directories collection of Directories that will be analyzed
+     */
+    private async analyze(directories : DirectoryInfo[] ) : Promise<void>
+    {    
+        let FilesToLog : FileInfo[] = [];   
+    
+        let dir = require('node-dir'); 
+        dir.files(directories[0].directoryPath, async (err, files) => {        
             if (err)
             {
                 console.log(err);
-                throw err;
+                 throw err;
             }
-
+    
             if(files == undefined || files.length < 1)
             {
-                console.log("No files found in directory %s", directory);
+                console.log("No files found in directory %s", directories[0].directoryPath);
                 return;
             }
             
-            let fs = require("fs"); 
+            let fs = require("fs");            
             
-            
-            const dsSuppression = new DevSkimSuppression(settings);
-            const logger : DebugLogger = new DebugLogger(settings);
-
-            var analysisEngine : DevSkimWorker = new DevSkimWorker(logger, dsSuppression, settings);
+            const dsSuppression = new DevSkimSuppression(this.settings);
+            const logger : DebugLogger = new DebugLogger(this.settings);
+    
+            var analysisEngine : DevSkimWorker = new DevSkimWorker(logger, dsSuppression, this.settings);
             await analysisEngine.init();
-
+    
             let pathOp : PathOperations = new PathOperations();
             var problems : DevSkimProblem[] = [];
             
-            for(let curFile of files)
-            {						
-                if(curFile.indexOf(".git") == -1 && !PathOperations.ignoreFile(curFile,settings.ignoreFilesList))
+            for(let directory of directories)
+            {               
+                for(let curFile of files)
+                {						
+                    if(curFile.indexOf(".git") == -1 && !PathOperations.ignoreFile(curFile,this.settings.ignoreFilesList))
+                    {
+                        let longestDir : string = "";
+                        for(let searchDirectory of directories)
+                        {
+                            searchDirectory.directoryPath = pathOp.normalizeDirectoryPaths(searchDirectory.directoryPath)
+                            if(curFile.indexOf(searchDirectory.directoryPath) != -1)
+                            {
+                                if (searchDirectory.directoryPath.length > longestDir.length)
+                                {
+                                    longestDir = searchDirectory.directoryPath;
+                                }
+                            }
+                        }
+                        if(pathOp.normalizeDirectoryPaths(longestDir) == pathOp.normalizeDirectoryPaths(directory.directoryPath))
+                        {
+                            //give some indication of progress as files are analyzed
+                            console.log("Analyzing \""+curFile.substr(directories[0].directoryPath.length+1) + "\"");                    
+    
+                            let documentContents : string = fs.readFileSync(curFile, "utf8");
+                            let langID : string = pathOp.getLangFromPath(curFile);
+    
+                            problems = problems.concat(analysisEngine.analyzeText(documentContents,langID, curFile, false));
+    
+                            //if writing to a file, add the metadata for the file that is analyzed
+                            if(this.outputFilePath.length > 0)
+                            {                      
+                                FilesToLog.push(this.createFileData(curFile,documentContents,directory.directoryPath));                
+                            }  
+                        }          
+                    }
+                                            
+                }
+                if(problems.length > 0 || FilesToLog.length > 0)
                 {
-                    //give some indication of progress as files are analyzed
-                    console.log("Analyzing \""+curFile.substr(directory.length+1) + "\"");
-                    
-
-                    let documentContents : string = fs.readFileSync(curFile, "utf8");
-                    let langID : string = pathOp.getLangFromPath(curFile);
-
-                    problems = problems.concat(analysisEngine.analyzeText(documentContents,langID, curFile, false));
-
-                    //if writing to a file, add the metadata for the file that is analyzed
-                    if(outputFile.length > 0)
-                    {                        
-                    
-                        let fileMetadata : FileInfo = Object.create(null);
-                        //the URI needs to be relative to the directory being analyzed, so get the current file URI
-                        //and then chop off the bits for the parent directory
-                        fileMetadata.fileURI = pathOp.fileToURI(curFile);
-                        fileMetadata.fileURI = fileMetadata.fileURI.substr(pathOp.fileToURI(directory).length+1);
-                        
-                        fileMetadata.sourceLanguage = pathOp.getLangFromPath(curFile, true);
-                        fileMetadata.sha256hash = crypto.createHash('sha256').update(documentContents).digest('hex');
-                        fileMetadata.sha512hash = crypto.createHash('sha512').update(documentContents).digest('hex');
-                        fileMetadata.fileSize = fs.statSync(curFile).size;
-                        FilesToLog.push(fileMetadata);                
-                    }            
-                }						
+                    this.resultFileObject.createRun(new Run(directory, 
+                                                            analysisEngine.retrieveLoadedRules(), 
+                                                            FilesToLog, 
+                                                            problems));                                
+                    problems  = [];
+                    FilesToLog = [];
+                }
+                
             }
             //just add a space at the end to make the final text more readable
             console.log("\n-----------------------\n");
             
-            //if we are writing to the file, build it and output
-            if(outputFile.length > 0)
-            {             
-                sarif.AddFiles(FilesToLog);
-                sarif.AddRules(analysisEngine.retrieveLoadedRules());
-                sarif.AddResults(problems, directory);
-                sarif.WriteToFile(outputFile,directory);
-            }
-            else
-            {
-                WriteOutputCLI(problems, directory);
-            }
+            this.resultFileObject.writeFindings();
+
             
         });	
+    }
+    
+    /**
+     * Creates an object of metadata around the file, to identify it on disk both by path and by hash
+     * @param curFile the path of the current file being analyzed
+     * @param documentContents the contents of the document, for hashing
+     * @param analysisDirectory the parent directory that analysis started at, used to create relative pathing
+     */
+    private createFileData(curFile : string, documentContents : string, analysisDirectory : string ) : FileInfo
+    {
+        const crypto = require('crypto');
+        let pathOp : PathOperations = new PathOperations();
+        let fs = require("fs"); 
+    
+        let fileMetadata : FileInfo = Object.create(null);
+        //the URI needs to be relative to the directory being analyzed, so get the current file URI
+        //and then chop off the bits for the parent directory
+        fileMetadata.fileURI = pathOp.fileToURI(curFile);
+        fileMetadata.fileURI = fileMetadata.fileURI.substr(pathOp.fileToURI(analysisDirectory).length+1);
+        
+        fileMetadata.sourceLanguage = pathOp.getLangFromPath(curFile, true);
+        fileMetadata.sha256hash = crypto.createHash('sha256').update(documentContents).digest('hex');
+        fileMetadata.sha512hash = crypto.createHash('sha512').update(documentContents).digest('hex');
+        fileMetadata.fileSize = fs.statSync(curFile).size;
+    
+        return fileMetadata;
+    }
 }
 
 
-
-program.parse(process.argv);
