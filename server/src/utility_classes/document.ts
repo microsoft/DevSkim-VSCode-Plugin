@@ -133,9 +133,10 @@ export class DocumentUtilities
     }
 
     /**
-     * 
-     * @param documentContents 
-     * @param lineNumber 
+     * get the number of white spaces at the beginning of the line - used to ensure formatting with an inserted line
+     * @param documentContents the document being analyzed
+     * @param lineNumber the current line number to inspect for leading whitespace
+     * @return a string duplicating the whitespace at the beginning of the line 
      */
     public static GetLeadingWhiteSpace(documentContents : string, lineNumber: number) : string
     {
@@ -155,9 +156,9 @@ export class DocumentUtilities
      * see scope param for details
      *
      * @public
-     * @param {string} langID
-     * @param {string} docContentsToFinding
-     * @param {number} newlineIndex
+     * @param {string} langID the VS code language identifier for the document being analyzed
+     * @param {string} docContentsToFinding the contents up to, but not including the finding
+     * @param {number} newlineIndex numeric index of the newline
      * @param {string} scopes values are code (finding should only occur in code), comment (finding should only occur code comments), or all (finding occurs anywhere)
      * @returns {boolean}
      * @memberof DevSkimWorker

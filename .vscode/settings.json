@@ -2,6 +2,12 @@
 	"typescript.tsc.autoDetect": "off",
 	"typescript.preferences.quoteStyle": "single",
 	"cSpell.words": [
-		"schemastore"
+		"Icommands",
+		"cplusplus",
+		"pathing",
+		"schemastore",
+		"subdir",
+		"subdirs",
+		"visualbasic"
 	]
 }

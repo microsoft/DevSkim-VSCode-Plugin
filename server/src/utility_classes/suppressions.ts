@@ -284,8 +284,8 @@ export class DevSkimSuppression
      * @param {number} startPosition the start of the finding in the document (#of chars from the start)
      * @param {string} documentContents the content containing the finding
      * @param {string} ruleID the rule that triggered the finding
-     * @param {DevskimRuleSeverity} ruleSeverity (option) the severity of the rule - necessary if the rule is a Manual Review rule, since slightly different
-     *                                           logic is employed because of the different comment string.  If omitted, assume a normal suppression 
+     * @param {string} langID the VS Code language ID for the file being analyzed (to look up comment syntax)
+     * @param {boolean} isReviewRule true if this is a manual review rule, otherwise false, as the comment syntax is different for review rules
      * @param {boolean} anySuppression will look for any suppression, regardless of if it doesn't match ruleID, or is expired
      * @returns {boolean} true if this finding should be ignored, false if it shouldn't
      * 

@@ -15,6 +15,31 @@ import
 } from 'vscode-languageserver';
 
 import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
+import {GitRepoInfo } from 'git-repo-info';
+
+/**
+ * A collection of data about a run in a folder containing .git info and all the files under it.
+ * If DevSkim was run on a folder structure without .git info, there should only be one run with the top level folder
+ * Used in the CLI but not the IDE
+ */
+export class Run
+{
+
+     /**
+      * Create a run object
+      * @param directoryInfo Info for the highest level directory this analysis took place in
+      * @param rules the active rules used in this analysis run
+      * @param files all the files scanned by the run, even if no issues were detected
+      * @param problems all of the findings from this run
+      */
+    constructor(public directoryInfo : DirectoryInfo, 
+                public rules : Rule[], 
+                public files : FileInfo[],
+                public problems : DevSkimProblem[]  )
+    {
+        
+    }
+}
 
 // These are the example settings defined in the client's package.json
 export interface IDevSkimSettings
@@ -56,7 +81,14 @@ export interface FileInfo
 	fileSize : number;
 	sha256hash : string;
 	sha512hash : string;
-} 
+}
+
+export interface DirectoryInfo
+{
+	directoryPath : string;
+	gitRepo : string;
+	gitInfo : GitRepoInfo;
+}
 
 /**
  * An Interface corresponding to the Pattern section of the JSON
@@ -257,7 +289,7 @@ export class DevSkimProblem
 	/**
 	 * Shorten the severity name for output
 	 * 
-	 * @param {DevskimRuleSeverity} severity
+	 * @param {DevskimRuleSeverity} severity the current enum value for the severity we are converting
 	 * @returns {string} short name of the severity rating
 	 * 
 	 * @memberOf DevSkimProblem

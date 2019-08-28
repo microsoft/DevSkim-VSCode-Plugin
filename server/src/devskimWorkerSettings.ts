@@ -87,7 +87,8 @@ export class DevSkimWorkerSettings
 
     /**
      * Determine where the rules live, given the executing context of DevSkim (CLI, IDE, etc.)
-     * @param connection 
+     * @param logger The logger object to use for message logging
+     * @return the directory rules should be loaded from
      */
     public static getRulesDirectory(logger: DebugLogger): string
     {
@@ -100,6 +101,7 @@ export class DevSkimWorkerSettings
     /**
      * generate a default settings object for scenarios where the settings may not be available
      * e.g. for the CLI, or on first startup before the IDE configuration has synced
+     * @return a settings object with the same defaults as set in the root package.json for the IDE
      */
     public static defaultSettings(): IDevSkimSettings
     {
@@ -113,10 +115,19 @@ export class DevSkimWorkerSettings
                 "node_modules/*",
                 ".vscode/*",
                 "*.lock",
+                "*-lock",
                 "logs/*",
                 "*.log",
                 "*.git",
                 "*.sarif",
+                ".cache/*",
+                "NuGet/*",
+                "*.exe",                
+                "tests/*",
+                "test/*",
+                "_tests_/*",
+                "_mocks_/*",
+                "*.test",
                 "rulesValidationLog.json",
             ],
             ignoreRulesList: [],
@@ -130,6 +141,10 @@ export class DevSkimWorkerSettings
         };
     }
 
+    /**
+     * Extract the potential rules directory from the process environment
+     * @return the directory if it can be intuited from the environment, otherwise null
+     */
     public static getRulesDirectoryFromEnvironment(): string | null
     {
         const { DEV_SKIM_RULES_DIRECTORY } = process.env;

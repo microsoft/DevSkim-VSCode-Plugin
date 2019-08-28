@@ -26,11 +26,11 @@ export class DevskimLambdaEngine
     private langID : string;
 
     /**
-     * 
-     * @param currentCondition 
-     * @param currentDocumentContents 
-     * @param currentFindingRange 
-     * @param currentLangID 
+     * Build the initial lambda object for execution
+     * @param currentCondition the condition object containing the lambda
+     * @param currentDocumentContents the document that's currently being analyzed
+     * @param currentFindingRange the location of the finding that triggered this flow
+     * @param currentLangID the VS Code language identifier for the language of the document
      */
     constructor(currentCondition: Condition, currentDocumentContents: string, currentFindingRange: Range, currentLangID: string)
     {
@@ -43,6 +43,7 @@ export class DevskimLambdaEngine
 
     /**
      * Run the lambda from the condition
+     * @return true if the condition the lambda searches for was found, false otherwise (assuming the lambda author constructed the lambda correctly)
      */
     public ExecuteLambda() : boolean
     {

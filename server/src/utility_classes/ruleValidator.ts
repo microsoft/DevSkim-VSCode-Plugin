@@ -227,9 +227,10 @@ export class RuleValidator implements IRuleValidator
     }
 
     /**
-     * 
-     * @param loadedCondition 
-     * @param loadedRule 
+     * Ensure that the condition object was constructed appropriately, cleaning up deprecated/changed fields from previous
+     * iterations of the object schema
+     * @param loadedCondition the condition to inspect
+     * @param loadedRule the rule object that the condition corresponds to
      */
     private validateConditionObject(loadedCondition, loadedRule) : Condition
     {
@@ -265,9 +266,11 @@ export class RuleValidator implements IRuleValidator
     }
 
     /**
-     * 
+     * Inspect the lambda code to ensure it conforms to expectations
      * @param loadedLambda the lambda from the current condition within the current rule
      * @param loadedRule the current rule we are validating 
+     * @todo right now there isn't much to do here, as lambda support is very early, but as it advances
+     * this needs to be improved
      */
     private validateLambda(loadedLambda, loadedRule) : Lambda
     {
