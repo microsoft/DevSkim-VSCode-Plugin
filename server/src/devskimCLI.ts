@@ -177,7 +177,7 @@ async function analyze(options) : Promise<void>
                 if(curFile.indexOf(".git") == -1 && !PathOperations.ignoreFile(curFile,settings.ignoreFilesList))
                 {
                     //give some indication of progress as files are analyzed
-                    console.log("Analyzing \""+curFile.substr(directory.length+1) + "\"");
+                    console.log("Analyzing \""+curFile.substr(directory.length) + "\"");
                     
 
                     let documentContents : string = fs.readFileSync(curFile, "utf8");
