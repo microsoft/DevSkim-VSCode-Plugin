@@ -166,12 +166,11 @@ export class DevSkimCLI
     
             let pathOp : PathOperations = new PathOperations();
             var problems : DevSkimProblem[] = [];
-            
             for(let directory of directories)
             {               
                 for(let curFile of files)
                 {						
-                    if(curFile.indexOf(".git") == -1 && !PathOperations.ignoreFile(curFile,this.settings.ignoreFilesList))
+                    if(!PathOperations.ignoreFile(curFile,this.settings.ignoreFilesList))
                     {
                         let longestDir : string = "";
                         for(let searchDirectory of directories)

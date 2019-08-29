@@ -16,28 +16,22 @@ export class PathOperations
      * @return true if the file should be ignored, false if it should be processed
      */
     public static ignoreFile(filePath: string, ignoreList: string[] = []): boolean
-    {
+    {        
         if (filePath && filePath.length > 1)
         {
-            //we don't want to run analysis on commit files which could, depending
-            //on scenario, be either git://filepath or filepath.git, so we check
-            //to make sure the path doesn't start with git (the git://filepath scenario)
-            //or if .git is in the path
-            if (filePath.indexOf("git") == 0 || filePath.indexOf(".git") > -1)
+            filePath = filePath.replace(/\\/g,"/");
+            for(let ignore of ignoreList)
             {
-                return true;
-            }
-
-            for (let ignorePattern of ignoreList)
-            {
-                ignorePattern = ignorePattern.replace(/\*/g,"");
-                ignorePattern = ignorePattern.replace("/","");
-                if (filePath.indexOf(ignorePattern) > -1)
+                ignore = ignore.replace(/\./g,"\\.");
+                ignore = ignore.replace(/\*/g,".");
+                
+                let XRegExp = require('xregexp');
+                let pattern : RegExp = XRegExp(ignore);
+                if(XRegExp.exec(filePath, XRegExp(ignore)))
                 {
                     return true;
-                }                
-            }
-
+                }
+            }      
         }
 
         return false;
