@@ -55,7 +55,7 @@ export class PathOperations
         directory = directory.replace(/\/\//g,"/" );
         if(directory.slice(-1) == "\\" || directory.slice(-1) == "/" )
         {
-            directory = directory.substring(0,directory.length - 1);
+            directory = directory.substring(0,directory.length );
         }
         return directory;        
     }

@@ -173,6 +173,8 @@ export class DevSkimCLI
                 {						
                     if(curFile.indexOf(".git") == -1 && !PathOperations.ignoreFile(curFile,this.settings.ignoreFilesList))
                     {
+                        //first check if this file is part of this run, by checking if it is under the longest path
+                        //within the directory collection
                         let longestDir : string = "";
                         for(let searchDirectory of directories)
                         {
@@ -185,6 +187,7 @@ export class DevSkimCLI
                                 }
                             }
                         }
+                        //now make sure that whatever directory the file was associated with is the current directory being analyzed
                         if(pathOp.normalizeDirectoryPaths(longestDir) == pathOp.normalizeDirectoryPaths(directory.directoryPath))
                         {
                             //give some indication of progress as files are analyzed
