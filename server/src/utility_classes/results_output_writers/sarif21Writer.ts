@@ -98,7 +98,11 @@ export class SARIF21Writer implements outputWriter
         }
 
         this.SarifFileObject.runs[runNumber].tool.driver.rules = [];
-        for(let rule of rules)
+
+        // Ensure that all rules are specified in a stable order. 
+        const _rules: DevSkimObjects.Rule[] = rules.sort((a, b) => a.id.localeCompare(b.id));
+
+        for(let rule of _rules)
         {
             //check if the optional rules were enabled in this run before adding the rule to the
             //sarif collection

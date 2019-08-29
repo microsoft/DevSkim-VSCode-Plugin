@@ -644,7 +644,8 @@ export class DevSkimWorker
 
                     if ((matches !== undefined && matches != null && matches.length > 0)
                         && problems[x].range.start.line == range.start.line &&
-                        problems[x].range.start.character == range.start.character) 
+                        (problems[x].range.start.character <= range.end.character &&   /* Range overlap algorithm */ 
+                         range.start.character <= problems[x].range.end.character))
                     {
                         problems.splice(x, 1);
                         overrideRemoved = true;

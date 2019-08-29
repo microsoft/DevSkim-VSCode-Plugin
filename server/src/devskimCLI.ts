@@ -188,7 +188,7 @@ export class DevSkimCLI
                         if(pathOp.normalizeDirectoryPaths(longestDir) == pathOp.normalizeDirectoryPaths(directory.directoryPath))
                         {
                             //give some indication of progress as files are analyzed
-                            console.log("Analyzing \""+curFile.substr(directories[0].directoryPath.length+1) + "\"");                    
+                            console.log("Analyzing \""+curFile.substr(directories[0].directoryPath.length) + "\"");                    
     
                             let documentContents : string = fs.readFileSync(curFile, "utf8");
                             let langID : string = pathOp.getLangFromPath(curFile);
