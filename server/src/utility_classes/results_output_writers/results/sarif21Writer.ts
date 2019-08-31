@@ -99,7 +99,7 @@ export class SARIF21ResultWriter implements IResultsWriter, IFileWriter
         }
 
         this.SarifFileObject.runs[runNumber].originalUriBaseIds = Object.create(null);
-        this.SarifFileObject.runs[runNumber].originalUriBaseIds = {"SRCROOT" : {"uri" : new PathOperations().fileToURI(analysisRun.directoryInfo.directoryPath)}}
+        this.SarifFileObject.runs[runNumber].originalUriBaseIds = {"%SRCROOT%" : {"uri" : new PathOperations().fileToURI(analysisRun.directoryInfo.directoryPath)}}
                
         this.addFiles(analysisRun.files,runNumber);
         this.addResults(analysisRun.problems,analysisRun.directoryInfo.directoryPath,runNumber);
@@ -171,7 +171,7 @@ export class SARIF21ResultWriter implements IResultsWriter, IFileWriter
             let sarifFile : SARIF21Schema.Artifact = Object.create(null);
             sarifFile.location = Object.create(null);
             sarifFile.location.uri = file.fileURI;
-            sarifFile.location.uriBaseId = "SRCROOT";
+            sarifFile.location.uriBaseId = "%SRCROOT%";
             sarifFile.length = file.fileSize;
             sarifFile.sourceLanguage = file.sourceLanguage;
             sarifFile.hashes = {"sha-256" : file.sha256hash, "sha-512": file.sha512hash};
@@ -216,7 +216,7 @@ export class SARIF21ResultWriter implements IResultsWriter, IFileWriter
             let filePath = pathOp.fileToURI(problem.filePath );
             filePath = filePath.substr(pathOp.fileToURI(directory).length+1);
 
-            sarifResult.locations[0].physicalLocation.artifactLocation = {"uri" : filePath, "uriBaseId" : "SRCROOT", "sourceLanguage" : pathOp.getLangFromPath(problem.filePath, true)};
+            sarifResult.locations[0].physicalLocation.artifactLocation = {"uri" : filePath, "uriBaseId" : "%SRCROOT%", "sourceLanguage" : pathOp.getLangFromPath(problem.filePath, true)};
             sarifResult.locations[0].physicalLocation.region = Object.create(null);
 
             //LSP uses 0 indexed lines/columns, SARIF expects 1 indexed, hence the + 1
