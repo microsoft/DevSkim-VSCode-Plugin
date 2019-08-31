@@ -291,7 +291,7 @@ export class DevSkimCLI
                         let longestDir : string = "";
                         for(let searchDirectory of directories)
                         {
-                            searchDirectory.directoryPath = pathOp.normalizeDirectoryPaths(searchDirectory.directoryPath)
+                            searchDirectory.directoryPath = pathOp.normalizeDirectoryPaths(searchDirectory.directoryPath);
                             if(curFile.indexOf(searchDirectory.directoryPath) != -1)
                             {
                                 if (searchDirectory.directoryPath.length > longestDir.length)

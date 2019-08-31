@@ -19,7 +19,8 @@ export interface IRuleValidator
 }
 
 /**
- * 
+ * Class to validate each of the rules to ensure that they are in the expected format
+ * or output warning messages if they are not
  */
 export class RuleValidator implements IRuleValidator
 {
@@ -35,23 +36,23 @@ export class RuleValidator implements IRuleValidator
     private logFilePath: string = '';
 
     /**
-     *
-     * @param logger
-     * @param rd
-     * @param ed
+     * Build the validator object
+     * @param logger the object used to log any errors with the actual processing (not errors in rules, but with the parser)
+     * @param rulesDirectory the directory the rules are contained in
+     * @param errorOutputDirectory where to write out an error file
      */
-    constructor(private logger: DebugLogger, rd: string, ed: string)
+    constructor(private logger: DebugLogger, rulesDirectory: string, errorOutputDirectory: string)
     {
-        this.rulesDir = rd;
-        this.errorDir = ed;
+        this.rulesDir = rulesDirectory;
+        this.errorDir = errorOutputDirectory;
         this.fixedRules = {};
         this.writeoutNewRules = false;
     }
 
     /**
-     *
-     * @param readRules
-     * @param outputValidation
+     * Go through all of the loaded rules, and call logic to validate each field
+     * @param readRules collection of all of the loaded rules
+     * @param outputValidation if true, a log of mistakes in rules will be written out, as well as fixed rules when a fix is possible
      */
     public async validateRules(readRules: Rule[], outputValidation: boolean): Promise<Rule[]>
     {
@@ -209,7 +210,7 @@ export class RuleValidator implements IRuleValidator
     }
 
     /**
-     * 
+     * Loop through the array of conditions and validate each one
      * @param loadedRule the rule loaded from the file system
      */
     private validateConditionsArray(loadedRule) : Condition[]
@@ -391,8 +392,8 @@ export class RuleValidator implements IRuleValidator
 
     /**
      * Go through an individual fixit to make sure it is in the expected format
-     * @param loadedFixit 
-     * @param loadedRule 
+     * @param loadedFixit the fixit currently being inspected
+     * @param loadedRule  the rule loaded from the file system that contains the fixit, used to help generate error messages
      */
     private validateFixitObject(loadedFixit, loadedRule): FixIt
     {
@@ -447,7 +448,7 @@ export class RuleValidator implements IRuleValidator
     }
 
     /**
-     * 
+     * Ensure the type of fixit matches an expected value
      * @param fixitType either regex-replace or string-replace
      * @param loadedRule rule loaded from File System whose severity is being validated 
      */
@@ -532,8 +533,8 @@ export class RuleValidator implements IRuleValidator
     /**
      * go through the values in pattern and ensure they are present (where required), and in the correct form
      * set any  values that are missing but have defaults we can assume
-     * @param loadedPattern 
-     * @param loadedRule  rule loaded from File System whose severity is being validated 
+     * @param loadedPattern the pattern object currently being validated
+     * @param loadedRule  rule loaded from File System whose pattern is being validated 
      */
     private validatePatternObject(loadedPattern, loadedRule): Pattern
     {
@@ -875,8 +876,8 @@ export class RuleValidator implements IRuleValidator
     /**
      * Validates the various optional arrays of strings (applies_to, tags, overrides), since the logic was mostly the same
      * for all of them.  The different logic comes up with validating the individual values, and a callback function is used for that
-     * @param arrayToValidate 
-     * @param arrayName 
+     * @param arrayToValidate the array being inspected
+     * @param arrayName the name of the array object - applies_to, tags, etc.
      * @param loadedRule the rule currently being scrutinized.  This is used to create any output messages.  It would be more performant to
      *   pass just the ruleID and file, so consider refactoring.  Unfortunately I was lazy, and a ton of functions already take this
      * @param stringValidator function to validate the individual strings in the array, since this is the point of variance between tags, applies_to, etc.

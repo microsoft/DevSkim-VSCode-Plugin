@@ -99,7 +99,7 @@ export class SARIF21ResultWriter implements IResultsWriter, IFileWriter
         }
 
         this.SarifFileObject.runs[runNumber].originalUriBaseIds = Object.create(null);
-        this.SarifFileObject.runs[runNumber].originalUriBaseIds = {"%SRCROOT%" : {"uri" : new PathOperations().fileToURI(analysisRun.directoryInfo.directoryPath)}}
+        this.SarifFileObject.runs[runNumber].originalUriBaseIds = {"%SRCROOT%" : {"uri" : new PathOperations().fileToURI(analysisRun.directoryInfo.directoryPath)}};
                
         this.addFiles(analysisRun.files,runNumber);
         this.addResults(analysisRun.problems,analysisRun.directoryInfo.directoryPath,runNumber);
