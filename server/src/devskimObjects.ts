@@ -56,6 +56,7 @@ export interface IDevSkimSettings
 	suppressionCommentPlacement: string;
 	validateRulesFiles: boolean;
 	debugLogging : boolean;
+	maxFileSizeKB : number;
 }
 
 export interface FileInfo

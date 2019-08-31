@@ -74,6 +74,11 @@
       "type": "object",
       "title": "DevSkim configuration",
       "properties": {
+        "devskim.maxFileSizeKB": {
+          "type": "number",
+          "default": 100,
+          "description": "To control the performance of DevSkim, this setting controls the maximum file size that it will analyze, in Kilobytes."
+        },
         "devskim.enableManualReviewRules": {
           "type": "boolean",
           "default": false,

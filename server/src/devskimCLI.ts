@@ -95,7 +95,7 @@ export class DevSkimCLI
      */
     private setOutputObject()
     {
-        let format : OutputFormats = OutputFormats.Text;
+        let format : OutputFormats;
         let fileExt : string = "t";
 
         //First, lets figure out what sort of format everything is supposed to be

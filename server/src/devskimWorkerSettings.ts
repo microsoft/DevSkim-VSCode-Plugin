@@ -32,38 +32,41 @@ export class DevSkimWorkerSettings
         let defaults : IDevSkimSettings = DevSkimWorkerSettings.defaultSettings();
 
         //validating the incoming settings, and replace with defaults for fields that don't validate
-        settings.enableBestPracticeRules = (settings.enableBestPracticeRules != undefined && settings.enableBestPracticeRules != null) ?
+        settings.enableBestPracticeRules = (settings.enableBestPracticeRules !== undefined && settings.enableBestPracticeRules != null) ?
                                             settings.enableBestPracticeRules : defaults.enableBestPracticeRules;
 
-        settings.enableManualReviewRules = (settings.enableManualReviewRules != undefined && settings.enableManualReviewRules != null) ?
+        settings.enableManualReviewRules = (settings.enableManualReviewRules !== undefined && settings.enableManualReviewRules != null) ?
                                             settings.enableManualReviewRules : defaults.enableManualReviewRules;      
         
-        settings.guidanceBaseURL = (settings.guidanceBaseURL != undefined && settings.guidanceBaseURL != null && settings.guidanceBaseURL.length > 0) ?
+        settings.guidanceBaseURL = (settings.guidanceBaseURL !== undefined && settings.guidanceBaseURL != null && settings.guidanceBaseURL.length > 0) ?
                                             settings.guidanceBaseURL : defaults.guidanceBaseURL;       
 
-        settings.suppressionCommentStyle = (settings.suppressionCommentStyle != undefined && settings.suppressionCommentStyle != null && (settings.suppressionCommentStyle == "line" || settings.suppressionCommentStyle == "block")) ?
+        settings.suppressionCommentStyle = (settings.suppressionCommentStyle !== undefined && settings.suppressionCommentStyle != null && (settings.suppressionCommentStyle == "line" || settings.suppressionCommentStyle == "block")) ?
                                             settings.suppressionCommentStyle : defaults.suppressionCommentStyle;    
                                             
-        settings.suppressionDurationInDays = (settings.suppressionDurationInDays != undefined && settings.suppressionDurationInDays != null  && settings.suppressionDurationInDays > -1) ?
+        settings.suppressionDurationInDays = (settings.suppressionDurationInDays !== undefined && settings.suppressionDurationInDays != null  && settings.suppressionDurationInDays > -1) ?
                                             settings.suppressionDurationInDays : defaults.suppressionDurationInDays;     
                                             
-        settings.ignoreFilesList = (settings.ignoreFilesList != undefined && settings.ignoreFilesList != null && isArray(settings.ignoreFilesList)) ?
+        settings.ignoreFilesList = (settings.ignoreFilesList !== undefined && settings.ignoreFilesList != null && isArray(settings.ignoreFilesList)) ?
                                             settings.ignoreFilesList : defaults.ignoreFilesList;  
                                             
-        settings.ignoreRulesList = (settings.ignoreRulesList != undefined && settings.ignoreRulesList != null && isArray(settings.ignoreRulesList)) ?
+        settings.ignoreRulesList = (settings.ignoreRulesList !== undefined && settings.ignoreRulesList != null && isArray(settings.ignoreRulesList)) ?
                                             settings.ignoreRulesList : defaults.ignoreRulesList;      
                                             
-        settings.manualReviewerName = (settings.manualReviewerName != undefined && settings.manualReviewerName != null && settings.manualReviewerName.length > 0) ?
+        settings.manualReviewerName = (settings.manualReviewerName !== undefined && settings.manualReviewerName != null && settings.manualReviewerName.length > 0) ?
                                             settings.manualReviewerName : defaults.manualReviewerName;   
                                             
-        settings.removeFindingsOnClose = (settings.removeFindingsOnClose != undefined && settings.removeFindingsOnClose != null) ?
+        settings.removeFindingsOnClose = (settings.removeFindingsOnClose !== undefined && settings.removeFindingsOnClose != null) ?
                                             settings.removeFindingsOnClose : defaults.removeFindingsOnClose ;     
                                             
-        settings.validateRulesFiles = (settings.validateRulesFiles != undefined && settings.validateRulesFiles != null) ?
+        settings.validateRulesFiles = (settings.validateRulesFiles !== undefined && settings.validateRulesFiles != null) ?
                                             settings.validateRulesFiles : defaults.validateRulesFiles ;   
                                             
-        settings.debugLogging = (settings.debugLogging != undefined && settings.debugLogging != null) ?
-                                            settings.debugLogging : defaults.debugLogging ;                                              
+        settings.debugLogging = (settings.debugLogging !== undefined && settings.debugLogging != null) ?
+                                            settings.debugLogging : defaults.debugLogging ; 
+                                            
+        settings.maxFileSizeKB = (settings.maxFileSizeKB !== undefined && settings.maxFileSizeKB != null) ?
+                                            settings.maxFileSizeKB : defaults.maxFileSizeKB ;     
                                             
         this.settings = settings;
     }
@@ -153,7 +156,8 @@ export class DevSkimWorkerSettings
             suppressionCommentStyle: "line",
             suppressionCommentPlacement : "same line as finding",
             validateRulesFiles: false,
-            debugLogging: false
+            debugLogging: false,
+            maxFileSizeKB: 100
         };
     }
 

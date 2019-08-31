@@ -101,7 +101,8 @@ export class DevSkimWorker
         //skip doing any analysis on the file
         if (this.analysisRules && this.analysisRules.length
             && this.dswSettings && this.dswSettings.getSettings().ignoreFilesList
-            && !PathOperations.ignoreFile(documentURI, this.dswSettings.getSettings().ignoreFilesList)) 
+            && !PathOperations.ignoreFile(documentURI, this.dswSettings.getSettings().ignoreFilesList)
+            && documentContents.length < this.dswSettings.getSettings().maxFileSizeKB * 1024) 
         {
 
             //find out what issues are in the current document

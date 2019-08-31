@@ -38,7 +38,7 @@ program.command(CLIcommands.inventoryRules)
 //set up the command line options for the "analyze" command
 program.command(CLIcommands.showSettings)
     .description('output a template of the DevSkim settings, to customize when using the Analyze command')
-    .option("-o, --output_file [outputFile]", "Writes the settings json to the specified file")
+    .option("-o, --output_file [outputFile]", "Writes the settings JSON to the specified file")
     .action(function(options) {
         let cli: DevSkimCLI = new DevSkimCLI(CLIcommands.showSettings, options);
         cli.run();
