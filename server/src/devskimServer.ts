@@ -17,7 +17,7 @@ import
 import { Command, TextEdit } from 'vscode-languageserver-protocol';
 import { TextDocumentIdentifier } from 'vscode-languageserver-types';
 
-import { AutoFix, DevSkimProblem, DevSkimSettings, Fixes, IDevSkimSettings } from "./devskimObjects";
+import { AutoFix, DevSkimProblem, Fixes, IDevSkimSettings } from "./devskimObjects";
 import {DevSkimWorker} from "./devskimWorker";
 import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
 import { DevSkimSuppression } from "./utility_classes/suppressions";
@@ -262,7 +262,7 @@ export default class DevSkimServer
      * retrieve the settings used for analyzing the document
      * @param resource the identifier for the object we need to retrieve settings for 
      */
-    private getDocumentSettings(resource: string): Thenable<DevSkimSettings>
+    private getDocumentSettings(resource: string): Thenable<IDevSkimSettings>
     {
         if (!this.hasConfigurationCapability)
         {
@@ -327,7 +327,7 @@ export default class DevSkimServer
 
     private codeActions: Command[] = [];
     private diagnostics: Diagnostic[] = [];
-    private documentSettings: Map<string, Thenable<DevSkimSettings>> = new Map();
+    private documentSettings: Map<string, Thenable<IDevSkimSettings>> = new Map();
     private globalSettings: IDevSkimSettings;
     private hasConfigurationCapability = false;
     private hasWorkspaceFolderCapability = false;

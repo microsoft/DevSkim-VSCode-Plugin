@@ -6,19 +6,20 @@
  * 
  */
 import * as SARIF21Schema from "@schemastore/sarif-2.1.0-rtm.4";
-import * as DevSkimObjects from "../../devskimObjects";
-import {PathOperations} from "../pathOperations";
-import {outputWriter} from "./outputWriter"
+import * as DevSkimObjects from "../../../devskimObjects";
+import {PathOperations} from "../../pathOperations";
+import {IResultsWriter, IFileWriter} from "../outputWriter";
 
 /**
  * Class to write output in SARIF v2.1 format
+ * The correct order to use this is initialize, (optional) setOutputLocale, createRun for each run, writeOutput 
  */
-export class SARIF21Writer implements outputWriter
+export class SARIF21ResultWriter implements IResultsWriter, IFileWriter
 {
     //settings object that this run of DevSkim analysis executed with
     protected runSettings : DevSkimObjects.IDevSkimSettings;
     private SarifFileObject : SARIF21Schema.StaticAnalysisResultsFormatSARIFVersion210Rtm4JSONSchema;
-    private outputFile : string;
+    private outputLocation : string = "";
     private workingDirectory : string;
 
 
@@ -27,9 +28,8 @@ export class SARIF21Writer implements outputWriter
      * the top level SARIF information (version, schema, etc.)
      * @param settings the settings that this instance of DevSkim Analysis was with
      * @param analyzedDirectory directory that was analyzed (NOT the directory to the output is written to - that will go in the same directory devskim was run from)
-     * @param outputFilePath (optional) full file name for the output.  If not specified, info is written to console     
      */
-    initialize(settings: DevSkimObjects.IDevSkimSettings, analyzedDirectory: string, outputFilePath ?: string)
+    public initialize(settings: DevSkimObjects.IDevSkimSettings, analyzedDirectory: string)
     {
         
         this.runSettings = settings;
@@ -37,10 +37,33 @@ export class SARIF21Writer implements outputWriter
         this.SarifFileObject.version = "2.1.0";
         this.SarifFileObject.$schema =  "https://raw.githubusercontent.com/oasis-tcs/sarifspec/master/Schemata/sarif-schema-2.1.0.json";
         this.SarifFileObject.runs = [];
-        this.outputFile = outputFilePath;
         this.workingDirectory = analyzedDirectory;
  
-    }   
+    }
+    
+     /**
+     * Get the default file name that output will be written to, absent a user specified file name
+     * @return the default file name. to be used if no file name was provided from the command line
+     */    
+    public getDefaultFileName() : string
+    {
+        return "devskim_results.sarif";
+    }
+
+    /**
+     * Sets where the output is sent.  If an empty string, output is echoed to the console, otherwise the output is 
+     * used as a file name.  If not a full path, it will write to the current working directory
+     * @param outputLocale location to write output to
+     */    
+    setOutputLocale(outputLocale : string) : void
+    {
+        //add a file extension if they left it off
+        if(outputLocale.length > 0 && outputLocale.indexOf(".") == -1)
+        {
+            outputLocale = outputLocale + ".sarif";
+        }
+        this.outputLocation = outputLocale;
+    }
 
     /**
      * Each folder with git repo info and files should go under its own run, as well as the parent directory
@@ -212,13 +235,24 @@ export class SARIF21Writer implements outputWriter
 
     /**
      * Output the current findings that have been added with createRun.  This will use the file path
-     * specified during the initialize call, and will overwrite any existing file already there. Will write in SARIF 2.1 format
+     * specified during the setOutputLocale call, and will overwrite any existing file already there. Will write in SARIF 2.1 format
+     * 
+     * If the outputLocation string is an empty string, it will instead be written to the console
      */    
-    public writeFindings()
+    public writeOutput()
     {
-        let fs  = require("fs");
-        
-        fs.writeFile(this.outputFile, JSON.stringify(this.SarifFileObject , null, 4), (err)=> {});  
-        console.log("Analyzed all files under \"%s\" and wrote the findings to %s", this.workingDirectory, this.outputFile);
+        let output : string = JSON.stringify(this.SarifFileObject , null, 4);
+
+        if(this.outputLocation.length == 0)
+        {
+            console.log(output);
+        }
+        else
+        {
+            let fs  = require("fs");
+            
+            fs.writeFile(this.outputLocation,output , (err)=> {});  
+            console.log("Analyzed all files under \"%s\" and wrote the findings to %s", this.workingDirectory, this.outputLocation);
+        }
     }    
 }

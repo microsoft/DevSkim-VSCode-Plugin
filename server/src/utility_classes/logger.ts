@@ -25,11 +25,11 @@ export class DebugLogger
         this.debugConsole = (connection) ? connection.console : console;
     }
     
-    public log(message : string)
+    public log(...args: any[])
     {
-        if(this.settings.logToConsole)
+        if(this.settings.debugLogging)
         {
-            this.debugConsole.log(message);
+            this.debugConsole.log.apply(console,args);
         }
     }
 }

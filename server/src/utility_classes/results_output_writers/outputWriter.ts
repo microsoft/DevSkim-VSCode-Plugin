@@ -10,16 +10,14 @@ import * as DevSkimObjects from "../../devskimObjects";
 /**
  * Abstract Implementation fo CLI output formats
  */
-export interface outputWriter
+export interface IResultsWriter
 {
-
     /**
      * Set up the interface
      * @param settings the settings that this instance of DevSkim Analysis was with
-     * @param analyzedDirectory directory that was analyzed (NOT the directory to the output is written to - that will go in the same directory devskim was run from)
-     * @param outputFilePath (optional) full file name for the output.  If not specified, info is written to console     
+     * @param analyzedDirectory directory that was analyzed (NOT the directory to the output is written to - that will go in the same directory devskim was run from)    
      */
-    initialize(settings : DevSkimObjects.IDevSkimSettings, analyzedDirectory: string, outputFilePath ?: string ) : void;
+    initialize(settings : DevSkimObjects.IDevSkimSettings, analyzedDirectory: string) : void;
 
     /**
      * Each folder with git repo info and files should go under its own run, as well as the parent directory
@@ -29,19 +27,40 @@ export interface outputWriter
      */
     createRun(analysisRun : DevSkimObjects.Run) : void;
 
+    
+}
+
+/**
+ * Interface shared by all of the various file writers - results, rules, settings
+ */
+export interface IFileWriter
+{
+     /**
+     * Get the default file name that output will be written to, absent a user specified file name
+     * @return the default file name. to be used if no file name was provided from the command line
+     */   
+    getDefaultFileName() : string;
 
     /**
-     * Output the current findings that have been added with createRun.  If writing to a file, this will use the file path
+    * Sets where the output should be 
+    */    
+   setOutputLocale(outputLocale : string) : void;
+
+    /**
+     * Output the current findings/rules/settings.  If writing to a file, this will use the file path
      * specified during the initialize call, and will overwrite any existing file already there
      */    
-    writeFindings() : void;
+    writeOutput() : void;
 }
 
 /** various formats that the output may be written as */
 export enum OutputFormats
 {
-    CLI,
-    SARIF21
+    Text,
+    SARIF21,
+    HTML,
+    CSV,
+    JSON
 }
 
 

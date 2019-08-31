@@ -62,8 +62,8 @@ export class DevSkimWorkerSettings
         settings.validateRulesFiles = (settings.validateRulesFiles != undefined && settings.validateRulesFiles != null) ?
                                             settings.validateRulesFiles : defaults.validateRulesFiles ;   
                                             
-        settings.logToConsole = (settings.logToConsole != undefined && settings.logToConsole != null) ?
-                                            settings.logToConsole : defaults.logToConsole ;                                              
+        settings.debugLogging = (settings.debugLogging != undefined && settings.debugLogging != null) ?
+                                            settings.debugLogging : defaults.debugLogging ;                                              
                                             
         this.settings = settings;
     }
@@ -107,7 +107,7 @@ export class DevSkimWorkerSettings
     {
         return {
             enableBestPracticeRules: false,
-            enableManualReviewRules: true,
+            enableManualReviewRules: false,
             guidanceBaseURL: "https://github.com/Microsoft/DevSkim/blob/master/guidance/",
             ignoreFilesList: [
                 "*/out/*",
@@ -153,7 +153,7 @@ export class DevSkimWorkerSettings
             suppressionCommentStyle: "line",
             suppressionCommentPlacement : "same line as finding",
             validateRulesFiles: false,
-            logToConsole: false
+            debugLogging: false
         };
     }
 

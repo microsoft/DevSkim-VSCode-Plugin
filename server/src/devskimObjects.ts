@@ -55,23 +55,7 @@ export interface IDevSkimSettings
 	suppressionCommentStyle: string;
 	suppressionCommentPlacement: string;
 	validateRulesFiles: boolean;
-	logToConsole : boolean;
-}
-
-export class DevSkimSettings implements IDevSkimSettings
-{
-	enableBestPracticeRules: boolean = false;
-	enableManualReviewRules: boolean = false;
-	guidanceBaseURL: string = '';
-	ignoreFilesList: string[] = [];
-	ignoreRulesList: string[] = [];
-	manualReviewerName: string = '';
-	removeFindingsOnClose: boolean = false;
-	suppressionDurationInDays: number = 0;
-	suppressionCommentStyle : string = "line";
-	suppressionCommentPlacement : string = "same line as finding";
-	validateRulesFiles: boolean = false;
-	logToConsole : boolean = false;
+	debugLogging : boolean;
 }
 
 export interface FileInfo
