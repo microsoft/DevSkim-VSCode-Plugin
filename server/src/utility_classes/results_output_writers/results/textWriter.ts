@@ -7,13 +7,13 @@
  */
 
 import * as DevSkimObjects from "../../../devskimObjects";
-import {IResultsWriter, IFileWriter} from "../outputWriter";
+import {IDevSkimResultsWriter, IDevSkimFileWriter} from "../outputWriter";
 
 /**
  * Implementation of outputWriter formatted to write to console
  * The correct order to use this is initialize, (optional) setOutputLocale, createRun for each run, writeOutput 
  */
-export class TextResultWriter implements IResultsWriter, IFileWriter
+export class TextResultWriter implements IDevSkimResultsWriter, IDevSkimFileWriter
 {
     //settings object that this run of DevSkim analysis executed with
     protected runSettings : DevSkimObjects.IDevSkimSettings;

@@ -14,7 +14,7 @@ import { PathOperations } from "./utility_classes/pathOperations";
 import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
 import { DevSkimSuppression } from "./utility_classes/suppressions";
 import { DebugLogger } from "./utility_classes/logger";
-import { IResultsWriter, IFileWriter, OutputFormats } from "./utility_classes/results_output_writers/outputWriter";
+import { IDevSkimResultsWriter, IDevSkimFileWriter, OutputFormats } from "./utility_classes/results_output_writers/outputWriter";
 import { gitHelper } from './utility_classes/git';
 import { TextResultWriter } from './utility_classes/results_output_writers/results/textWriter';
 import { SARIF21ResultWriter } from './utility_classes/results_output_writers/results/sarif21Writer';
@@ -50,7 +50,7 @@ export class DevSkimCLI
     private workingDirectory : string;
     private settings : IDevSkimSettings;
     private outputFilePath: string;
-    private outputObject : (IResultsWriter & IFileWriter);
+    private outputObject : (IDevSkimResultsWriter & IDevSkimFileWriter);
 
     /**
      * Set up the CLI class - does not run the command, just sets everything up 
@@ -360,7 +360,7 @@ export class DevSkimCLI
         fileMetadata.fileURI = pathOp.fileToURI(curFile);
         fileMetadata.fileURI = fileMetadata.fileURI.substr(pathOp.fileToURI(analysisDirectory).length+1);
         
-        fileMetadata.sourceLanguage = pathOp.getLangFromPath(curFile, true);
+        fileMetadata.sourceLanguageSARIF = pathOp.getLangFromPath(curFile, true);
         fileMetadata.sha256hash = crypto.createHash('sha256').update(documentContents).digest('hex');
         fileMetadata.sha512hash = crypto.createHash('sha512').update(documentContents).digest('hex');
         fileMetadata.fileSize = fs.statSync(curFile).size;

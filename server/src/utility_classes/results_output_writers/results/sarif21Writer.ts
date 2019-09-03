@@ -8,13 +8,13 @@
 import * as SARIF21Schema from "@schemastore/sarif-2.1.0-rtm.4";
 import * as DevSkimObjects from "../../../devskimObjects";
 import {PathOperations} from "../../pathOperations";
-import {IResultsWriter, IFileWriter} from "../outputWriter";
+import {IDevSkimResultsWriter, IDevSkimFileWriter} from "../outputWriter";
 
 /**
  * Class to write output in SARIF v2.1 format
  * The correct order to use this is initialize, (optional) setOutputLocale, createRun for each run, writeOutput 
  */
-export class SARIF21ResultWriter implements IResultsWriter, IFileWriter
+export class SARIF21ResultWriter implements IDevSkimResultsWriter, IDevSkimFileWriter
 {
     //settings object that this run of DevSkim analysis executed with
     protected runSettings : DevSkimObjects.IDevSkimSettings;
@@ -79,14 +79,14 @@ export class SARIF21ResultWriter implements IResultsWriter, IFileWriter
         this.SarifFileObject.runs[runNumber] = Object.create(null);
         this.SarifFileObject.runs[runNumber].tool = Object.create(null);
         this.SarifFileObject.runs[runNumber].tool.driver = Object(null);                   
-        this.SarifFileObject.runs[runNumber].tool.driver.name = "DevSkim";
-        this.SarifFileObject.runs[runNumber].tool.driver.fullName = "DevSkim Security Analyzer";
-        this.SarifFileObject.runs[runNumber].tool.driver.shortDescription = {"text": "Lightweight Security Linter CLI"};
-        this.SarifFileObject.runs[runNumber].tool.driver.fullDescription = {"text": "Lightweight security linter CLI capable of finding common security mistakes across a variety of languages without needing to compile."};
-        this.SarifFileObject.runs[runNumber].tool.driver.version = "0.3";
-        this.SarifFileObject.runs[runNumber].tool.driver.semanticVersion = "0.3.0";
-        this.SarifFileObject.runs[runNumber].tool.driver.dottedQuadFileVersion = "0.3.0.0";
-        this.SarifFileObject.runs[runNumber].tool.driver.organization = "Microsoft DevLabs";     
+        this.SarifFileObject.runs[runNumber].tool.driver.name = this.runSettings.toolInfo.name;
+        this.SarifFileObject.runs[runNumber].tool.driver.fullName = this.runSettings.toolInfo.fullName;
+        this.SarifFileObject.runs[runNumber].tool.driver.shortDescription = this.runSettings.toolInfo.shortDescription;
+        this.SarifFileObject.runs[runNumber].tool.driver.fullDescription = this.runSettings.toolInfo.fullDescription;
+        this.SarifFileObject.runs[runNumber].tool.driver.version = this.runSettings.toolInfo.version;
+        this.SarifFileObject.runs[runNumber].tool.driver.semanticVersion = this.runSettings.toolInfo.semanticVersion;
+        this.SarifFileObject.runs[runNumber].tool.driver.dottedQuadFileVersion = this.runSettings.toolInfo.dottedQuadFileVersion;
+        this.SarifFileObject.runs[runNumber].tool.driver.organization = this.runSettings.toolInfo.organization;
         
         //we aren't guaranteed to have git info, but if its there, add it to the SARIF
         if(analysisRun.directoryInfo.gitRepo.length > 0)
@@ -173,7 +173,7 @@ export class SARIF21ResultWriter implements IResultsWriter, IFileWriter
             sarifFile.location.uri = file.fileURI;
             sarifFile.location.uriBaseId = "%SRCROOT%";
             sarifFile.length = file.fileSize;
-            sarifFile.sourceLanguage = file.sourceLanguage;
+            sarifFile.sourceLanguage = file.sourceLanguageSARIF;
             sarifFile.hashes = {"sha-256" : file.sha256hash, "sha-512": file.sha512hash};
             this.SarifFileObject.runs[runNumber].artifacts.push(sarifFile);
         }

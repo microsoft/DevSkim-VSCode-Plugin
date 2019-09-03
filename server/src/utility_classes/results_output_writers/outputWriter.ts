@@ -10,7 +10,7 @@ import * as DevSkimObjects from "../../devskimObjects";
 /**
  * Abstract Implementation fo CLI output formats
  */
-export interface IResultsWriter
+export interface IDevSkimResultsWriter
 {
     /**
      * Set up the interface
@@ -25,15 +25,25 @@ export interface IResultsWriter
      * from that run
      * @param analysisRun all of the information from the analysis of a directory and its contents/sub-directories 
      */
-    createRun(analysisRun : DevSkimObjects.Run) : void;
+    createRun(analysisRun : DevSkimObjects.Run) : void;    
+}
 
-    
+/**
+ * Abstract Implementation fo CLI output formats
+ */
+export interface IDevSkimSettingsWriter
+{
+    /**
+     * Set up the interface
+     * @param settings the settings being written to output
+     */
+    initialize(settings : DevSkimObjects.IDevSkimSettings) : void;
 }
 
 /**
  * Interface shared by all of the various file writers - results, rules, settings
  */
-export interface IFileWriter
+export interface IDevSkimFileWriter
 {
      /**
      * Get the default file name that output will be written to, absent a user specified file name

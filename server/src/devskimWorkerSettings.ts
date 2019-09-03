@@ -6,7 +6,7 @@
  * This file contains a wrapper for the settings interface, providing additional utility functions
  * 
  * ------------------------------------------------------------------------------------------ */
-import { IDevSkimSettings } from "./devskimObjects";
+import { IDevSkimSettings, ToolVersion } from "./devskimObjects";
 import * as path from "path";
 import { DebugLogger } from "./utility_classes/logger";
 import { isArray } from 'util';
@@ -107,7 +107,7 @@ export class DevSkimWorkerSettings
      * @return a settings object with the same defaults as set in the root package.json for the IDE
      */
     public static defaultSettings(): IDevSkimSettings
-    {
+    {  
         return {
             enableBestPracticeRules: false,
             enableManualReviewRules: false,
@@ -157,7 +157,8 @@ export class DevSkimWorkerSettings
             suppressionCommentPlacement : "same line as finding",
             validateRulesFiles: false,
             debugLogging: false,
-            maxFileSizeKB: 100
+            maxFileSizeKB: 100,
+            toolInfo:  new ToolVersion()
         };
     }
 

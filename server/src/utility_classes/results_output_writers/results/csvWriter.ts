@@ -7,13 +7,13 @@
  */
 
 import * as DevSkimObjects from "../../../devskimObjects";
-import {IResultsWriter, IFileWriter} from "../outputWriter";
+import {IDevSkimResultsWriter, IDevSkimFileWriter} from "../outputWriter";
 
 /**
  * Class to write output as comma separated valued
  * The correct order to use this is initialize, (optional) setOutputLocale, createRun for each run, writeOutput 
  */
-export class CSVResultWriter implements IResultsWriter,IFileWriter
+export class CSVResultWriter implements IDevSkimResultsWriter,IDevSkimFileWriter
 {
     //settings object that this run of DevSkim analysis executed with
     protected runSettings : DevSkimObjects.IDevSkimSettings;

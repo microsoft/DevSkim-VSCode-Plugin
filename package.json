@@ -97,7 +97,7 @@
         "devskim.suppressionDurationInDays": {
           "type": "number",
           "default": 30,
-          "description": "DevSkim allows for findings to be suppressed for a temporary period of time. The default is 30 days.  Set to 0 to disable temporary suppressions"
+          "description": "DevSkim allows for findings to be suppressed for a temporary period of time. The default is 30 days.  Set to 0 to disable temporary suppressions."
         },
         "devskim.suppressionCommentStyle": {
           "type": "string",
