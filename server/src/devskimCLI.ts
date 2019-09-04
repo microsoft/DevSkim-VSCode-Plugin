@@ -14,12 +14,13 @@ import { PathOperations } from "./utility_classes/pathOperations";
 import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
 import { DevSkimSuppression } from "./utility_classes/suppressions";
 import { DebugLogger } from "./utility_classes/logger";
-import { IDevSkimResultsWriter, IDevSkimFileWriter, OutputFormats } from "./utility_classes/results_output_writers/outputWriter";
+import { DevskimSettingsWriter, OutputFormats, DevSkimResultsWriter } from "./utility_classes/output_writers/outputWriter";
 import { gitHelper } from './utility_classes/git';
-import { TextResultWriter } from './utility_classes/results_output_writers/results/textWriter';
-import { SARIF21ResultWriter } from './utility_classes/results_output_writers/results/sarif21Writer';
-import { HTMLResultWriter } from './utility_classes/results_output_writers/results/HTMLWriter';
-import { CSVResultWriter } from './utility_classes/results_output_writers/results/csvWriter';
+import { TextResultWriter } from './utility_classes/output_writers/results/textWriter';
+import { SARIF21ResultWriter } from './utility_classes/output_writers/results/sarif21Writer';
+import { HTMLResultWriter } from './utility_classes/output_writers/results/HTMLWriter';
+import { CSVResultWriter } from './utility_classes/output_writers/results/csvWriter';
+import { JSONSettingsWriter } from './utility_classes/output_writers/settings/jsonWriter';
 
 /**
  * An enum to track the various potential commands from the CLI
@@ -50,7 +51,7 @@ export class DevSkimCLI
     private workingDirectory : string;
     private settings : IDevSkimSettings;
     private outputFilePath: string;
-    private outputObject : (IDevSkimResultsWriter & IDevSkimFileWriter);
+    private outputObject : DevSkimResultsWriter | DevskimSettingsWriter;
 
     /**
      * Set up the CLI class - does not run the command, just sets everything up 
@@ -64,7 +65,6 @@ export class DevSkimCLI
         
         this.buildSettings();  
         this.setOutputObject();        
-        this.outputObject.initialize(this.settings, this.workingDirectory );
     }
 
     /**
@@ -153,6 +153,7 @@ export class DevSkimCLI
         switch(this.command)
         {
             case CLIcommands.Analyze:
+            {
                 switch(format)
                 {
                     case OutputFormats.SARIF21: this.outputObject = new SARIF21ResultWriter();
@@ -163,7 +164,21 @@ export class DevSkimCLI
                         break;                
                     default: this.outputObject = new TextResultWriter;
                 }
+                this.outputObject.initialize(this.settings, this.workingDirectory );
                 break;
+            }   
+
+            case CLIcommands.showSettings:
+            {
+                switch(format)
+                {
+                    case OutputFormats.JSON: this.outputObject = new JSONSettingsWriter();
+                        break;
+                    default: this.outputObject = new JSONSettingsWriter();
+                }
+                this.outputObject.initialize(this.settings);
+                break;
+            }
             
             default: throw new Error('Method not implemented.');
         }
@@ -205,7 +220,7 @@ export class DevSkimCLI
                 break;
             case CLIcommands.inventoryRules: await this.inventoryRules();
                 break;
-            case CLIcommands.showSettings: await this.writeSettings();
+            case CLIcommands.showSettings: this.outputObject.writeOutput();
                 break;
         }
     }
@@ -324,7 +339,7 @@ export class DevSkimCLI
                 }
                 if(problems.length > 0 || FilesToLog.length > 0)
                 {
-                    this.outputObject.createRun(new Run(directory, 
+                    (<DevSkimResultsWriter>this.outputObject).createRun(new Run(directory, 
                                                             analysisEngine.retrieveLoadedRules(), 
                                                             FilesToLog, 
                                                             problems));                                

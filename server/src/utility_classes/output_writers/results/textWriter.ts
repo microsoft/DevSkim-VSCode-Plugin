@@ -2,24 +2,22 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ 
- * console writer output writer class
+ * console results output writer class
  * 
  */
 
 import * as DevSkimObjects from "../../../devskimObjects";
-import {IDevSkimResultsWriter, IDevSkimFileWriter} from "../outputWriter";
+import {DevSkimResultsWriter} from "../outputWriter";
 
 /**
  * Implementation of outputWriter formatted to write to console
  * The correct order to use this is initialize, (optional) setOutputLocale, createRun for each run, writeOutput 
  */
-export class TextResultWriter implements IDevSkimResultsWriter, IDevSkimFileWriter
+export class TextResultWriter extends DevSkimResultsWriter
 {
+
     //settings object that this run of DevSkim analysis executed with
-    protected runSettings : DevSkimObjects.IDevSkimSettings;
     private runsCollection : DevSkimObjects.Run[] = [];
-    private workingDirectory : string;
-    private outputLocation : string;
 
      /**
      * Set up initial values
@@ -28,33 +26,10 @@ export class TextResultWriter implements IDevSkimResultsWriter, IDevSkimFileWrit
      */
     public initialize(settings: DevSkimObjects.IDevSkimSettings, analyzedDirectory: string): void
     {
-        this.runSettings = settings;
-        this.workingDirectory = analyzedDirectory;
+        super.initialize(settings,analyzedDirectory);
+        this.fileExtension = "txt";
     }
     
-     /**
-     * Get the default file name that output will be written to, absent a user specified file name
-     * @return the default file name. to be used if no file name was provided from the command line
-     */    
-    public getDefaultFileName() : string
-    {
-        return "devskim_results.txt";
-    }
-
-    /**
-     * Sets where the output is sent.  If an empty string, output is echoed to the console, otherwise the output is 
-     * used as a file name.  If not a full path, it will write to the current working directory
-     * @param outputLocale location to write output to
-     */
-    setOutputLocale(outputLocale : string) : void
-    {
-        //add a file extension if they left it off
-        if(outputLocale.length > 0 && outputLocale.indexOf(".") == -1)
-        {
-            outputLocale = outputLocale + ".txt";
-        }
-        this.outputLocation = outputLocale;
-    }
     
     /**
      * Each folder with git repo info and files should go under its own run, as well as the parent directory
@@ -67,10 +42,13 @@ export class TextResultWriter implements IDevSkimResultsWriter, IDevSkimFileWrit
         this.runsCollection.push(analysisRun);
     }
     
+
     /**
-     * Output the current findings that have been added with createRun to the console
+     * Generate the output string that will either be written to the console or to a file by writeOutput
+     * the base implementation for writeOutput calls the function and then writes out to the given location
+     * so all that is necessary is defining the output to be written
      */  
-    public writeOutput(): void
+    protected createOutput(): string
     {
         let output : string = "";
         for(let run of this.runsCollection)
@@ -78,18 +56,7 @@ export class TextResultWriter implements IDevSkimResultsWriter, IDevSkimFileWrit
             output += this.CreateOutputString(run.problems, run.directoryInfo);
         }
 
-        if(this.outputLocation.length == 0)
-        {
-            console.log(output);
-        }
-        else
-        {
-            let fs  = require("fs");
-        
-            fs.writeFile(this.outputLocation, output, (err)=> {});  
-            console.log("Analyzed all files under \"%s\" and wrote the findings to %s", this.workingDirectory, this.outputLocation);
-        }
-        
+        return output;
     }
 
     /**
