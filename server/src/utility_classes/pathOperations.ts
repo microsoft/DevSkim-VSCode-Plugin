@@ -3,6 +3,7 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 
+import { noop } from '@babel/types';
 /**
  * Various helper functions around paths and file types
  */
@@ -20,17 +21,19 @@ export class PathOperations
         if (filePath && filePath.length > 1)
         {
             filePath = filePath.replace(/\\/g,"/");
+            let XRegExp = require('xregexp');
             for(let ignore of ignoreList)
             {
-                ignore = ignore.replace(/\./g,"\\.");
-                ignore = ignore.replace(/\*/g,".");
-                
-                let XRegExp = require('xregexp');
-                let pattern : RegExp = XRegExp(ignore);
-                if(XRegExp.exec(filePath, XRegExp(ignore)))
-                {
-                    return true;
+                //if the string representation of the regex in the array is screwed up, it may
+                //cause an exception when its used to construct a regex.  That shouldn't prohibit
+                //trying the other patterns
+                try{
+                    if(XRegExp.exec(filePath, RegExp(ignore, "i")))
+                    {
+                        return true;
+                    }
                 }
+                catch(e) {noop();}
             }      
         }
 
