@@ -54,6 +54,11 @@ export class PathOperations
         {
             directory = directory.substring(0,directory.length );
         }
+
+        // Chop off any initial ./ or .\ substrings
+        if (directory.slice(0, 2) === './' || directory.slice(0, 2) === '.\\') {
+            directory = directory.slice(2);
+        }
         return directory;        
     }
 
