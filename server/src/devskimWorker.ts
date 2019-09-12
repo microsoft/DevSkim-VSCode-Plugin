@@ -361,9 +361,15 @@ export class DevSkimWorker
                             DocumentUtilities.MatchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex, rule.patterns[patternIndex].scopes) &&
                             DevSkimWorker.MatchesConditions(rule.conditions, documentContents, range, langID)) 
                         {
+                            let snippet = [];
+                            for (let i=Math.max(0, lineStart - 2); i<=lineEnd + 2; i++)
+                            {
+                                const snippetLine = DocumentUtilities.GetLine(documentContents, i);
+                                snippet.push(snippetLine.substr(0, 80));
+                            }
 
                             //add in any fixes
-                            let problem: DevSkimProblem = this.MakeProblem(rule, DevSkimWorker.MapRuleSeverity(rule.severity), range, match[0]);
+                            let problem: DevSkimProblem = this.MakeProblem(rule, DevSkimWorker.MapRuleSeverity(rule.severity), range, snippet.join('\n'));
                             problem.fixes = problem.fixes.concat(DevSkimWorker.MakeFixes(rule, replacementSource, range));
                             problem.fixes = problem.fixes.concat(this.dsSuppressions.createActions(rule.id, documentContents, match.index, lineStart, langID, ruleSeverity));
                             problem.filePath = documentURI;
