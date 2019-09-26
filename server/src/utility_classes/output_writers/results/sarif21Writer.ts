@@ -2,24 +2,23 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ 
- * SARIF v2.1 output writer class
+ * SARIF v2.1 results output writer class
  * 
  */
 import * as SARIF21Schema from "@schemastore/sarif-2.1.0-rtm.4";
-import * as DevSkimObjects from "../../devskimObjects";
-import {PathOperations} from "../pathOperations";
-import {outputWriter} from "./outputWriter"
+import * as DevSkimObjects from "../../../devskimObjects";
+import {PathOperations} from "../../pathOperations";
+import {DevSkimResultsWriter} from "../outputWriter";
 
 /**
  * Class to write output in SARIF v2.1 format
+ * The correct order to use this is initialize, (optional) setOutputLocale, createRun for each run, writeOutput 
  */
-export class SARIF21Writer implements outputWriter
+export class SARIF21ResultWriter  extends DevSkimResultsWriter
 {
+
     //settings object that this run of DevSkim analysis executed with
-    protected runSettings : DevSkimObjects.IDevSkimSettings;
     private SarifFileObject : SARIF21Schema.StaticAnalysisResultsFormatSARIFVersion210Rtm4JSONSchema;
-    private outputFile : string;
-    private workingDirectory : string;
 
 
      /**
@@ -27,20 +26,42 @@ export class SARIF21Writer implements outputWriter
      * the top level SARIF information (version, schema, etc.)
      * @param settings the settings that this instance of DevSkim Analysis was with
      * @param analyzedDirectory directory that was analyzed (NOT the directory to the output is written to - that will go in the same directory devskim was run from)
-     * @param outputFilePath (optional) full file name for the output.  If not specified, info is written to console     
      */
-    initialize(settings: DevSkimObjects.IDevSkimSettings, analyzedDirectory: string, outputFilePath ?: string)
+    public initialize(settings: DevSkimObjects.IDevSkimSettings, analyzedDirectory: string)
     {
         
-        this.runSettings = settings;
+        super.initialize(settings,analyzedDirectory);
+        this.fileExtension = "sarif";
+
         this.SarifFileObject = Object.create(null);
         this.SarifFileObject.version = "2.1.0";
         this.SarifFileObject.$schema =  "https://raw.githubusercontent.com/oasis-tcs/sarifspec/master/Schemata/sarif-schema-2.1.0.json";
-        this.SarifFileObject.runs = [];
-        this.outputFile = outputFilePath;
-        this.workingDirectory = analyzedDirectory;
- 
-    }   
+        this.SarifFileObject.runs = []; 
+    }
+    
+     /**
+     * Get the default file name that output will be written to, absent a user specified file name
+     * @return the default file name. to be used if no file name was provided from the command line
+     */    
+    public getDefaultFileName() : string
+    {
+        return "devskim_results.sarif";
+    }
+
+    /**
+     * Sets where the output is sent.  If an empty string, output is echoed to the console, otherwise the output is 
+     * used as a file name.  If not a full path, it will write to the current working directory
+     * @param outputLocale location to write output to
+     */    
+    setOutputLocale(outputLocale : string) : void
+    {
+        //add a file extension if they left it off
+        if(outputLocale.length > 0 && outputLocale.indexOf(".") == -1)
+        {
+            outputLocale = outputLocale + ".sarif";
+        }
+        this.outputLocation = outputLocale;
+    }
 
     /**
      * Each folder with git repo info and files should go under its own run, as well as the parent directory
@@ -56,14 +77,14 @@ export class SARIF21Writer implements outputWriter
         this.SarifFileObject.runs[runNumber] = Object.create(null);
         this.SarifFileObject.runs[runNumber].tool = Object.create(null);
         this.SarifFileObject.runs[runNumber].tool.driver = Object(null);                   
-        this.SarifFileObject.runs[runNumber].tool.driver.name = "DevSkim";
-        this.SarifFileObject.runs[runNumber].tool.driver.fullName = "DevSkim Security Analyzer";
-        this.SarifFileObject.runs[runNumber].tool.driver.shortDescription = {"text": "Lightweight Security Linter CLI"};
-        this.SarifFileObject.runs[runNumber].tool.driver.fullDescription = {"text": "Lightweight security linter CLI capable of finding common security mistakes across a variety of languages without needing to compile."};
-        this.SarifFileObject.runs[runNumber].tool.driver.version = "0.3";
-        this.SarifFileObject.runs[runNumber].tool.driver.semanticVersion = "0.3.0";
-        this.SarifFileObject.runs[runNumber].tool.driver.dottedQuadFileVersion = "0.3.0.0";
-        this.SarifFileObject.runs[runNumber].tool.driver.organization = "Microsoft DevLabs";     
+        this.SarifFileObject.runs[runNumber].tool.driver.name = this.devskimSettings.toolInfo.name;
+        this.SarifFileObject.runs[runNumber].tool.driver.fullName = this.devskimSettings.toolInfo.fullName;
+        this.SarifFileObject.runs[runNumber].tool.driver.shortDescription = this.devskimSettings.toolInfo.shortDescription;
+        this.SarifFileObject.runs[runNumber].tool.driver.fullDescription = this.devskimSettings.toolInfo.fullDescription;
+        this.SarifFileObject.runs[runNumber].tool.driver.version = this.devskimSettings.toolInfo.version;
+        this.SarifFileObject.runs[runNumber].tool.driver.semanticVersion = this.devskimSettings.toolInfo.semanticVersion;
+        this.SarifFileObject.runs[runNumber].tool.driver.dottedQuadFileVersion = this.devskimSettings.toolInfo.dottedQuadFileVersion;
+        this.SarifFileObject.runs[runNumber].tool.driver.organization = this.devskimSettings.toolInfo.organization;
         
         //we aren't guaranteed to have git info, but if its there, add it to the SARIF
         if(analysisRun.directoryInfo.gitRepo.length > 0)
@@ -76,7 +97,7 @@ export class SARIF21Writer implements outputWriter
         }
 
         this.SarifFileObject.runs[runNumber].originalUriBaseIds = Object.create(null);
-        this.SarifFileObject.runs[runNumber].originalUriBaseIds = {"%SRCROOT%" : {"uri" : new PathOperations().fileToURI(analysisRun.directoryInfo.directoryPath)}}
+        this.SarifFileObject.runs[runNumber].originalUriBaseIds = {"%SRCROOT%" : {"uri" : new PathOperations().fileToURI(analysisRun.directoryInfo.directoryPath)}};
                
         this.addFiles(analysisRun.files,runNumber);
         this.addResults(analysisRun.problems,analysisRun.directoryInfo.directoryPath,runNumber);
@@ -106,14 +127,14 @@ export class SARIF21Writer implements outputWriter
         {
             //check if the optional rules were enabled in this run before adding the rule to the
             //sarif collection
-            if((rule.severity != "best-practice" || this.runSettings.enableBestPracticeRules) &&
-                (rule.severity != "manual-review" || this.runSettings.enableManualReviewRules))
+            if((rule.severity != "best-practice" || this.devskimSettings.enableBestPracticeRules) &&
+                (rule.severity != "manual-review" || this.devskimSettings.enableManualReviewRules))
             {
                 let newSarifRule : SARIF21Schema.ReportingDescriptor = Object.create(null);
                 newSarifRule.id = rule.id;
                 newSarifRule.name = rule.name;
                 newSarifRule.fullDescription = {"text" : rule.description};
-                newSarifRule.helpUri = this.runSettings.guidanceBaseURL + rule.ruleInfo;
+                newSarifRule.helpUri = this.devskimSettings.guidanceBaseURL + rule.ruleInfo;
                 switch(rule.severity)
                 {
                     case "critical":
@@ -150,7 +171,7 @@ export class SARIF21Writer implements outputWriter
             sarifFile.location.uri = file.fileURI;
             sarifFile.location.uriBaseId = "%SRCROOT%";
             sarifFile.length = file.fileSize;
-            sarifFile.sourceLanguage = file.sourceLanguage;
+            sarifFile.sourceLanguage = file.sourceLanguageSARIF;
             sarifFile.hashes = {"sha-256" : file.sha256hash, "sha-512": file.sha512hash};
             this.SarifFileObject.runs[runNumber].artifacts.push(sarifFile);
         }
@@ -211,14 +232,12 @@ export class SARIF21Writer implements outputWriter
     }
 
     /**
-     * Output the current findings that have been added with createRun.  This will use the file path
-     * specified during the initialize call, and will overwrite any existing file already there. Will write in SARIF 2.1 format
+     * Generate the output string that will either be written to the console or to a file by writeOutput
+     * the base implementation for writeOutput calls the function and then writes out to the given location
+     * so all that is necessary is defining the output to be written
      */    
-    public writeFindings()
+    protected createOutput(): string
     {
-        let fs  = require("fs");
-        
-        fs.writeFile(this.outputFile, JSON.stringify(this.SarifFileObject , null, 4), (err)=> {});  
-        console.log("Analyzed all files under \"%s\" and wrote the findings to %s", this.workingDirectory, this.outputFile);
+        return JSON.stringify(this.SarifFileObject , null, 4);
     }    
 }

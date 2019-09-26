@@ -14,10 +14,13 @@ import { PathOperations } from "./utility_classes/pathOperations";
 import { DevSkimWorkerSettings } from "./devskimWorkerSettings";
 import { DevSkimSuppression } from "./utility_classes/suppressions";
 import { DebugLogger } from "./utility_classes/logger";
-import { outputWriter } from "./utility_classes/results_output_writers/outputWriter";
+import { DevskimSettingsWriter, OutputFormats, DevSkimResultsWriter } from "./utility_classes/output_writers/outputWriter";
 import { gitHelper } from './utility_classes/git';
-import { ConsoleWriter } from './utility_classes/results_output_writers/consoleWriter';
-import { SARIF21Writer } from './utility_classes/results_output_writers/sarif21Writer';
+import { TextResultWriter } from './utility_classes/output_writers/results/textWriter';
+import { SARIF21ResultWriter } from './utility_classes/output_writers/results/sarif21Writer';
+import { HTMLResultWriter } from './utility_classes/output_writers/results/HTMLWriter';
+import { CSVResultWriter } from './utility_classes/output_writers/results/csvWriter';
+import { JSONSettingsWriter } from './utility_classes/output_writers/settings/jsonWriter';
 
 /**
  * An enum to track the various potential commands from the CLI
@@ -32,7 +35,12 @@ export enum CLIcommands
     /**
      * List the rules, optionally producing validation
      */
-    inventoryRules = "rules"
+    inventoryRules = "rules",
+
+    /**
+     * List the rules, optionally producing validation
+     */
+    showSettings = "settings",
 }
 
 /**
@@ -43,7 +51,7 @@ export class DevSkimCLI
     private workingDirectory : string;
     private settings : IDevSkimSettings;
     private outputFilePath: string;
-    private resultFileObject : outputWriter;
+    private outputObject : DevSkimResultsWriter | DevskimSettingsWriter;
 
     /**
      * Set up the CLI class - does not run the command, just sets everything up 
@@ -52,48 +60,13 @@ export class DevSkimCLI
      */
     constructor(private command : CLIcommands, private options)
     {
-        this.workingDirectory = (this.options == undefined || this.options.directory == undefined  || this.options.directory.length == 0 ) ? 
+        this.workingDirectory = (this.options === undefined || this.options.directory === undefined  || this.options.directory.length == 0 ) ? 
             process.cwd() :  this.options.directory;
-
         
-        this.buildSettings();
-
-        this.outputFilePath = (options == undefined || options.output_file == undefined ) ? 
-            "" :  options.output_file;    
-        
-        if(this.outputFilePath.length > 0)
-        {
-            this.resultFileObject = new SARIF21Writer();
-        }
-        else
-        {
-            this.resultFileObject = new ConsoleWriter();            
-        }
-        
-        this.resultFileObject.initialize(this.settings, this.workingDirectory, this.outputFilePath );
+        this.buildSettings();  
+        this.setOutputObject();        
     }
 
-    /**
-     * Run the command that was passed from the CLI
-     */
-    public async run()
-    {
-        switch(this.command)
-        {
-            case CLIcommands.Analyze: 
-                let git : gitHelper = new gitHelper();
-                await git.getRecursiveGitInfo(this.workingDirectory, 
-                    directories => 
-                    {
-                        this.analyze(directories)
-                    });
-                break;
-            case CLIcommands.inventoryRules: await this.inventoryRules();
-                break;
-        }
-    }
-
-    
     /**
      * Create a DevSkimSettings object from the specified command line options (or defaults if no relevant option is present)
      */
@@ -113,8 +86,166 @@ export class DevSkimCLI
             this.settings.enableManualReviewRules = true;
         }    
     }
+
+    /**
+     * Sets up the output object
+     * this is going to be an ugly function with a lot of conditionals and very little actual code
+     * since the point is to figure out all of the format/file output permutations and set properties
+     * and objects accordingly
+     */
+    private setOutputObject()
+    {
+        let format : OutputFormats;
+        let fileExt : string = "t";
+
+        //First, lets figure out what sort of format everything is supposed to be
+        //if they didn't specify a format with the -f/--format switch, see if they
+        //specified a file to output to.  If so, hint from the file extension.  If it
+        //doesn't have one, then lets just assume text, because ¯\_(ツ)_/¯
+        if(this.options === undefined || this.options.format === undefined)
+        {
+            if(this.options !== undefined && this.options.output_file !== undefined )
+            {
+                fileExt = this.options.output_file.toLowerCase();
+                if(fileExt.indexOf(".") > -1)
+                {
+                    fileExt = fileExt.substring(fileExt.lastIndexOf(".")+1);       
+                }
+            }   
+                 
+        }
+        else //hey, they specified a format, lets go with that
+        {
+            fileExt = this.options.format.toLowerCase();
+        }
+
+        //the format specified with -f, or the file extension if missing
+        //could be in all sorts of forms.  Instead of being pedantic and 
+        //hard to use, lets see if it matches against a loose set of possibilities
+        switch(fileExt)
+        {
+            case "s":
+            case "sarif":
+            case "sarif2.1":
+            case "sarif21": format = OutputFormats.SARIF21;
+                break;
+            
+            case "h":
+            case "htm":
+            case "html": format = OutputFormats.HTML;
+                break;
+            
+            case "c":
+            case "csv": format = OutputFormats.CSV;
+                break;
+
+            case "j":
+            case "jsn":
+            case "json": format = OutputFormats.JSON;
+                break;
+            default: format = OutputFormats.Text;
+        }
     
-    
+
+        //now we know what format, lets create the correct object
+        //Unfortunately the correct output object is the union of what command we
+        //are executing and the specified format, so ugly nested switch statements
+        switch(this.command)
+        {
+            case CLIcommands.Analyze:
+            {
+                switch(format)
+                {
+                    case OutputFormats.SARIF21: this.outputObject = new SARIF21ResultWriter();
+                        break;                
+                    case OutputFormats.HTML: this.outputObject = new HTMLResultWriter();
+                        break;                
+                    case OutputFormats.CSV: this.outputObject = new CSVResultWriter();
+                        break;                
+                    default: this.outputObject = new TextResultWriter;
+                }
+                this.outputObject.initialize(this.settings, this.workingDirectory );
+                break;
+            }   
+
+            case CLIcommands.showSettings:
+            {
+                switch(format)
+                {
+                    case OutputFormats.JSON: this.outputObject = new JSONSettingsWriter();
+                        break;
+                    default: this.outputObject = new JSONSettingsWriter();
+                }
+                this.outputObject.initialize(this.settings);
+                break;
+            }
+            
+            default: throw new Error('Method not implemented.');
+        }
+
+        //now we need to determine where the actual output goes.  If -o isn't used
+        //its going to the console.  Otherwise, it will either use a default file
+        //name if they used -o but didn't pass a file name argument, or it will
+        //go to the file name they specified
+        if(this.options === undefined || this.options.output_file === undefined )
+        {
+            this.outputFilePath = "";
+        }
+        else if(this.options.output_file === true)
+        {
+            this.outputFilePath = this.outputObject.getDefaultFileName(); 
+        }
+        else
+        {
+            this.outputFilePath =  this.options.output_file;   
+        }  
+
+        this.outputObject.setOutputLocale(this.outputFilePath);  
+    }
+
+    /**
+     * Run the command that was passed from the CLI
+     */
+    public async run()
+    {
+        switch(this.command)
+        {
+            case CLIcommands.Analyze: 
+                let git : gitHelper = new gitHelper();
+                await git.getRecursiveGitInfo(this.workingDirectory, 
+                    directories => 
+                    {
+                        this.analyze(directories)
+                    });
+                break;
+            case CLIcommands.inventoryRules: await this.inventoryRules();
+                break;
+            case CLIcommands.showSettings: this.outputObject.writeOutput();
+                break;
+        }
+    }
+
+    /**
+     * Produce a template of the DevSkim settings to make it easier to customize runs
+     * @todo do more than just output it to the command line, and finish fleshing out
+     * the settings object
+     */
+    private writeSettings()
+    {
+        let settings : IDevSkimSettings = DevSkimWorkerSettings.defaultSettings();
+
+
+        //remove settings irrelevant for the CLI
+        delete settings.suppressionDurationInDays;
+        delete settings.manualReviewerName;
+        delete settings.suppressionCommentStyle;
+        delete settings.suppressionCommentPlacement;
+        delete settings.removeFindingsOnClose;
+
+        let output : string = JSON.stringify(settings , null, 4);
+
+        console.log(output);
+    }
     
     /**
      * function invoked from command line. Right now a simplistic stub that simply lists the rules
@@ -166,19 +297,18 @@ export class DevSkimCLI
     
             let pathOp : PathOperations = new PathOperations();
             var problems : DevSkimProblem[] = [];
-            
             for(let directory of directories)
             {               
                 for(let curFile of files)
                 {						
-                    if(curFile.indexOf(".git") == -1 && !PathOperations.ignoreFile(curFile,this.settings.ignoreFilesList))
+                    if(!PathOperations.ignoreFile(curFile,this.settings.ignoreFiles))
                     {
                         //first check if this file is part of this run, by checking if it is under the longest path
                         //within the directory collection
                         let longestDir : string = "";
                         for(let searchDirectory of directories)
                         {
-                            searchDirectory.directoryPath = pathOp.normalizeDirectoryPaths(searchDirectory.directoryPath)
+                            searchDirectory.directoryPath = pathOp.normalizeDirectoryPaths(searchDirectory.directoryPath);
                             if(curFile.indexOf(searchDirectory.directoryPath) != -1)
                             {
                                 if (searchDirectory.directoryPath.length > longestDir.length)
@@ -209,7 +339,7 @@ export class DevSkimCLI
                 }
                 if(problems.length > 0 || FilesToLog.length > 0)
                 {
-                    this.resultFileObject.createRun(new Run(directory, 
+                    (<DevSkimResultsWriter>this.outputObject).createRun(new Run(directory, 
                                                             analysisEngine.retrieveLoadedRules(), 
                                                             FilesToLog, 
                                                             problems));                                
@@ -221,7 +351,7 @@ export class DevSkimCLI
             //just add a space at the end to make the final text more readable
             console.log("\n-----------------------\n");
             
-            this.resultFileObject.writeFindings();
+            this.outputObject.writeOutput();
 
             
         });	
@@ -245,7 +375,7 @@ export class DevSkimCLI
         fileMetadata.fileURI = pathOp.fileToURI(curFile);
         fileMetadata.fileURI = fileMetadata.fileURI.substr(pathOp.fileToURI(analysisDirectory).length+1);
         
-        fileMetadata.sourceLanguage = pathOp.getLangFromPath(curFile, true);
+        fileMetadata.sourceLanguageSARIF = pathOp.getLangFromPath(curFile, true);
         fileMetadata.sha256hash = crypto.createHash('sha256').update(documentContents).digest('hex');
         fileMetadata.sha512hash = crypto.createHash('sha512').update(documentContents).digest('hex');
         fileMetadata.fileSize = fs.statSync(curFile).size;

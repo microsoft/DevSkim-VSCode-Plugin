@@ -24,7 +24,6 @@ import {GitRepoInfo } from 'git-repo-info';
  */
 export class Run
 {
-
      /**
       * Create a run object
       * @param directoryInfo Info for the highest level directory this analysis took place in
@@ -41,54 +40,228 @@ export class Run
     }
 }
 
-// These are the example settings defined in the client's package.json
+
+
+/**
+ * Class representing the Tool information, corresponding to the SARIF Tool.Driver object
+ */
+export class ToolVersion
+{
+	/**
+	 * common name for the tool
+	 */
+	public name : string = "DevSkim";
+
+	/**
+	 * Name, plus version and any notes
+	 */
+	public fullName : string = "DevSkim Security Analyzer, version 0.3.0 (Preview)";
+
+	/**
+	 * Quick description meant to show up in listings and tables of tools
+	 */
+	public shortDescription : IToolDescriptor = {"text": "Lightweight Security Linter"};
+
+	/**
+	 * more comprehensive name
+	 */
+	public fullDescription : IToolDescriptor = {"text": "Lightweight security linter capable of finding common security mistakes across a variety of languages without needing to compile."};
+
+	/**
+	 * Different formats of the version
+	 */
+	public version : string = "0.3";
+	public semanticVersion : string = "0.3.0";
+	public dottedQuadFileVersion : string = "0.3.0.0";
+
+	/**
+	 * Publishing information
+	 */
+	public organization : string = "Microsoft DevLabs";    	
+}
+
+/**
+ * SARIF multi-format descriptor interface, to support describing something in both text, and formatted markdown
+ */
+export interface IToolDescriptor
+{
+	/**
+	 * plaintext description
+	 */
+	text : string;
+
+	/**
+	 * (optional) Markdown formatted description
+	 */
+	markdown ? : string;
+}
+
+
+/**
+ * These are the example settings defined in the client's package.json
+ */
 export interface IDevSkimSettings
 {
+	/**
+	 * Turn on the rules of severity "Best-Practice". These rules either flag issues that are typically of a 
+	 * lower severity, or recommended practices that lead to more secure code, but aren't typically outright 
+	 * vulnerabilities.
+	 */
 	enableBestPracticeRules: boolean;
-	enableManualReviewRules: boolean;
+
+	/**
+	 * Turn on the rules that flag things for manual review. These are typically scenarios that *could* be 
+	 * incredibly severe if tainted data can be inserted, but are often programmatically necessary 
+	 * (for example, dynamic code generation with "eval").  Since these rules tend to require further 
+	 * analysis upon flagging an issue, they disabled by default.
+	 */
+	enableManualReviewRules: boolean;	
+
+	/**
+	 * Each finding has a guidance file that describes the issue and solutions in more detail.  By default, 
+	 * those files live on the DevSkim github repo however, with this setting, organizations can clone and 
+	 * customize that repo, and specify their own base URL for the guidance.
+	 */
 	guidanceBaseURL: string;
-	ignoreFilesList: string[];
+
+	/**
+	 * List of Files, File Extensions, and directories to ignore. *-based wild cards can be used. 
+	 * Directories should be specified with forward slash (/) 
+	 */	
+	ignoreFiles: string[];
+
+	/**
+	 * To Do - replace with run-only and exclude
+	 */
 	ignoreRulesList: string[];
-	manualReviewerName: string;
-	removeFindingsOnClose: boolean;
-	suppressionDurationInDays: number;
-	suppressionCommentStyle: string;
-	suppressionCommentPlacement: string;
+	
+	/**
+	 * Intended to help while authoring new rules. When loading the DevSkim rules, analyze the JSON files that 
+	 * contain the rules for mistakes.  If the mistakes are correctable, DevSkim will create a Fixed-Rules folder 
+	 * containing the corrected rules within its extension directory.  rulesValidationLog.json is also created in 
+	 * the DevSkim directory logging any issues found.  This setting is off by default, to reduce load time.
+	 */
 	validateRulesFiles: boolean;
-	logToConsole : boolean;
+
+	/**
+	 * enable debug message to either the console or the remote console if running in vs code debugging
+	 */
+	debugLogging : boolean;
+
+	/**
+	 * To control the performance of DevSkim, this setting controls the maximum file size that it will analyze, 
+	 * in Kilobytes.
+	 */
+	maxFileSizeKB : number;
+
+	//--------------------------------------
+	//IDE Only
+
+	/**
+	 * when enableManualReviewRules is set to true, if this property is set to a name/alias/email address
+	 * it will be inserted when marking a finding as reviewed.  
+	 * For example //DevSkim: reviewed DS123321 on 2016-12-10 by <whatever this value is>.  
+	 * If left blank the "by <whatever this value is>" is omitted when marking a finding reviewed
+	 */
+	manualReviewerName: string;
+
+	/**
+	 * By default, when a source file is closed the findings remain in the 'Problems' window.  
+	 * Setting this value to true will cause findings to be removed from 'Problems' when the document is closed.  
+	 * Note, setting this to true will cause findings that are listed when invoking the 'Scan all files in workspace' 
+	 * command to automatically clear away after a couple of minutes
+	 */
+	removeFindingsOnClose: boolean;
+
+	/**
+	 * DevSkim allows for findings to be suppressed for a temporary period of time. The default is 30 days.  
+	 * Set to 0 to disable temporary suppressions.
+	 */
+	suppressionDurationInDays: number;
+
+	/**
+	 * When DevSkim inserts a suppression comment it defaults to using single line comments for every language 
+	 * that has them.  Setting this to block will instead use block comments for the languages that support them.  
+	 * Block comments are suggested if regularly adding explanations for why a finding was suppressed.
+	 * 
+	 * values are "line" or "block"
+	 */
+	suppressionCommentStyle: string;
+
+	/**
+	 * When DevSkim inserts a suppression comment it defaults placing the comment after the finding being suppressed, 
+	 * on the same line.  Changing this setting will place the suppression the line above the finding instead.
+	 * 
+	 * values are "same line as finding" or "line above finding"
+	 */
+	suppressionCommentPlacement: string;
+	
+	//--------------------------------------
+	//Internal use
+
+	/**
+	 * Information about the version of DevSkim being run
+	 */
+	toolInfo : ToolVersion;
 }
 
-export class DevSkimSettings implements IDevSkimSettings
-{
-	enableBestPracticeRules: boolean = false;
-	enableManualReviewRules: boolean = false;
-	guidanceBaseURL: string = '';
-	ignoreFilesList: string[] = [];
-	ignoreRulesList: string[] = [];
-	manualReviewerName: string = '';
-	removeFindingsOnClose: boolean = false;
-	suppressionDurationInDays: number = 0;
-	suppressionCommentStyle : string = "line";
-	suppressionCommentPlacement : string = "same line as finding";
-	validateRulesFiles: boolean = false;
-	logToConsole : boolean = false;
-}
 
+
+/**
+ * Details of the file being analyzed
+ */
 export interface FileInfo
 {
-	fileURI : string;
-	sourceLanguage : string;
+	/**
+	 * Location of the file being analyzed
+	 */
+	fileURI : string; 
+
+	/**
+	 * Source Language of the file being analyzed, using SARIF conventions
+	 */
+	sourceLanguageSARIF : string;
+
+	/**
+	 * The size of the file in bytes
+	 */
 	fileSize : number;
+
+	/**
+	 * SHA 256 hash of the file, for fingerprinting exact version of the file
+	 */
 	sha256hash : string;
+
+	/**
+	 * SHA512 hash of the file, for fingerprinting exact version of the file
+	 */
 	sha512hash : string;
 }
 
+
+/**
+ * Object to capture the information about a directory being analyzed.  Currently
+ * only used when running the devskim command line
+ */
 export interface DirectoryInfo
 {
+	/**
+	 * directory being analyzed
+	 */
 	directoryPath : string;
-	gitRepo : string;
-	gitInfo : GitRepoInfo;
+
+	/**
+	 * (optional) the git repo that populated the directory, if present
+	 */
+	gitRepo ?: string;
+
+	/**
+	 * (optional, but should be populated if gitRepo is) additional git information such as
+	 * branch, sha of commit, etc.
+	 */
+	gitInfo ?: GitRepoInfo;
 }
+
 
 /**
  * An Interface corresponding to the Pattern section of the JSON
@@ -105,6 +278,7 @@ export interface Pattern
 	scopes?: string[];
 	_comment?: string;
 }
+
 
 /**
  * An Interface corresponding to the lambda section of the JSON
@@ -165,6 +339,7 @@ export interface Rule
 	filepath?: string; //filepath to the rules file the rule came from
 	_comment?: string;
 }
+
 
 export interface Condition
 {
@@ -331,8 +506,9 @@ export class DevSkimProblem
 
     /**
      * Make a VS Code Diagnostic object from the information in this DevSkim problem
+	 * @param dswSettings the current settings analysis is being run under
      * 
-     * @returns {Diagnostic}
+     * @returns {Diagnostic} the diagnostic for the current DevSKim problem
      */
 	public makeDiagnostic(dswSettings: DevSkimWorkerSettings): Diagnostic
 	{

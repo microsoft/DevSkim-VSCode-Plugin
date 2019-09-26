@@ -6,7 +6,7 @@
  * This file contains a wrapper for the settings interface, providing additional utility functions
  * 
  * ------------------------------------------------------------------------------------------ */
-import { IDevSkimSettings } from "./devskimObjects";
+import { IDevSkimSettings, ToolVersion } from "./devskimObjects";
 import * as path from "path";
 import { DebugLogger } from "./utility_classes/logger";
 import { isArray } from 'util';
@@ -32,38 +32,41 @@ export class DevSkimWorkerSettings
         let defaults : IDevSkimSettings = DevSkimWorkerSettings.defaultSettings();
 
         //validating the incoming settings, and replace with defaults for fields that don't validate
-        settings.enableBestPracticeRules = (settings.enableBestPracticeRules != undefined && settings.enableBestPracticeRules != null) ?
+        settings.enableBestPracticeRules = (settings.enableBestPracticeRules !== undefined && settings.enableBestPracticeRules != null) ?
                                             settings.enableBestPracticeRules : defaults.enableBestPracticeRules;
 
-        settings.enableManualReviewRules = (settings.enableManualReviewRules != undefined && settings.enableManualReviewRules != null) ?
+        settings.enableManualReviewRules = (settings.enableManualReviewRules !== undefined && settings.enableManualReviewRules != null) ?
                                             settings.enableManualReviewRules : defaults.enableManualReviewRules;      
         
-        settings.guidanceBaseURL = (settings.guidanceBaseURL != undefined && settings.guidanceBaseURL != null && settings.guidanceBaseURL.length > 0) ?
+        settings.guidanceBaseURL = (settings.guidanceBaseURL !== undefined && settings.guidanceBaseURL != null && settings.guidanceBaseURL.length > 0) ?
                                             settings.guidanceBaseURL : defaults.guidanceBaseURL;       
 
-        settings.suppressionCommentStyle = (settings.suppressionCommentStyle != undefined && settings.suppressionCommentStyle != null && (settings.suppressionCommentStyle == "line" || settings.suppressionCommentStyle == "block")) ?
+        settings.suppressionCommentStyle = (settings.suppressionCommentStyle !== undefined && settings.suppressionCommentStyle != null && (settings.suppressionCommentStyle == "line" || settings.suppressionCommentStyle == "block")) ?
                                             settings.suppressionCommentStyle : defaults.suppressionCommentStyle;    
                                             
-        settings.suppressionDurationInDays = (settings.suppressionDurationInDays != undefined && settings.suppressionDurationInDays != null  && settings.suppressionDurationInDays > -1) ?
+        settings.suppressionDurationInDays = (settings.suppressionDurationInDays !== undefined && settings.suppressionDurationInDays != null  && settings.suppressionDurationInDays > -1) ?
                                             settings.suppressionDurationInDays : defaults.suppressionDurationInDays;     
                                             
-        settings.ignoreFilesList = (settings.ignoreFilesList != undefined && settings.ignoreFilesList != null && isArray(settings.ignoreFilesList)) ?
-                                            settings.ignoreFilesList : defaults.ignoreFilesList;  
+        settings.ignoreFiles = (settings.ignoreFiles !== undefined && settings.ignoreFiles != null && isArray(settings.ignoreFiles)) ?
+                                            settings.ignoreFiles : defaults.ignoreFiles;  
                                             
-        settings.ignoreRulesList = (settings.ignoreRulesList != undefined && settings.ignoreRulesList != null && isArray(settings.ignoreRulesList)) ?
+        settings.ignoreRulesList = (settings.ignoreRulesList !== undefined && settings.ignoreRulesList != null && isArray(settings.ignoreRulesList)) ?
                                             settings.ignoreRulesList : defaults.ignoreRulesList;      
                                             
-        settings.manualReviewerName = (settings.manualReviewerName != undefined && settings.manualReviewerName != null && settings.manualReviewerName.length > 0) ?
+        settings.manualReviewerName = (settings.manualReviewerName !== undefined && settings.manualReviewerName != null && settings.manualReviewerName.length > 0) ?
                                             settings.manualReviewerName : defaults.manualReviewerName;   
                                             
-        settings.removeFindingsOnClose = (settings.removeFindingsOnClose != undefined && settings.removeFindingsOnClose != null) ?
+        settings.removeFindingsOnClose = (settings.removeFindingsOnClose !== undefined && settings.removeFindingsOnClose != null) ?
                                             settings.removeFindingsOnClose : defaults.removeFindingsOnClose ;     
                                             
-        settings.validateRulesFiles = (settings.validateRulesFiles != undefined && settings.validateRulesFiles != null) ?
+        settings.validateRulesFiles = (settings.validateRulesFiles !== undefined && settings.validateRulesFiles != null) ?
                                             settings.validateRulesFiles : defaults.validateRulesFiles ;   
                                             
-        settings.logToConsole = (settings.logToConsole != undefined && settings.logToConsole != null) ?
-                                            settings.logToConsole : defaults.logToConsole ;                                              
+        settings.debugLogging = (settings.debugLogging !== undefined && settings.debugLogging != null) ?
+                                            settings.debugLogging : defaults.debugLogging ; 
+                                            
+        settings.maxFileSizeKB = (settings.maxFileSizeKB !== undefined && settings.maxFileSizeKB != null) ?
+                                            settings.maxFileSizeKB : defaults.maxFileSizeKB ;     
                                             
         this.settings = settings;
     }
@@ -104,31 +107,26 @@ export class DevSkimWorkerSettings
      * @return a settings object with the same defaults as set in the root package.json for the IDE
      */
     public static defaultSettings(): IDevSkimSettings
-    {
+    {  
         return {
             enableBestPracticeRules: false,
-            enableManualReviewRules: true,
+            enableManualReviewRules: false,
             guidanceBaseURL: "https://github.com/Microsoft/DevSkim/blob/master/guidance/",
-            ignoreFilesList: [
-                "out/*",
-                "bin/*",
-                "node_modules/*",
-                ".vscode/*",
-                "*.lock",
-                "*-lock",
-                "logs/*",
-                "*.log",
-                "*.git",
-                "*.sarif",
-                ".cache/*",
-                "NuGet/*",
-                "*.exe",                
-                "tests/*",
-                "test/*",
-                "_tests_/*",
-                "_mocks_/*",
-                "*.test",
-                "rulesValidationLog.json",
+            ignoreFiles: [
+                "\\.(exe|dll|so|dylib|bin|so\\..*)$",
+                "\\.(png|jpg|jpeg|gif|psd|ico|mp3|mpeg|bmp)$",
+                "\\.(zip|tar|gz|rar|jar|gz|7z|bz|bz2|gzip|cab|war|xz|nupkg|gem|egg)$",
+                "\\.(sqlite3|db)$",
+                "(^|/)(out|bin)/",
+                "(^|/)(tests?|unittests?|__tests__|__mocks__)/",
+                "(^|/)(\\.git|git)/",
+                "\\.(git|git[^.\/])$",
+                "-lock\\.[^/]|\\.lock$",
+                "(^|/)(\\.vscode|\\.cache|logs)/",
+                "(^|/)(nuget|node_modules)/",
+                "\\.(log|sarif|test)$",
+                "\\.(py[cod])$",
+                "(^|/)__pycache__/"            
             ],
             ignoreRulesList: [],
             manualReviewerName: "",
@@ -137,7 +135,9 @@ export class DevSkimWorkerSettings
             suppressionCommentStyle: "line",
             suppressionCommentPlacement : "same line as finding",
             validateRulesFiles: false,
-            logToConsole: false
+            debugLogging: false,
+            maxFileSizeKB: 100,
+            toolInfo:  new ToolVersion()
         };
     }
 

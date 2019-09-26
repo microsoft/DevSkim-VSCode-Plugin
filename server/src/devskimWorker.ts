@@ -100,8 +100,9 @@ export class DevSkimWorker
         //Before we do any processing, see if the file (or its directory) are in the ignore list.  If so
         //skip doing any analysis on the file
         if (this.analysisRules && this.analysisRules.length
-            && this.dswSettings && this.dswSettings.getSettings().ignoreFilesList
-            && !PathOperations.ignoreFile(documentURI, this.dswSettings.getSettings().ignoreFilesList)) 
+            && this.dswSettings && this.dswSettings.getSettings().ignoreFiles
+            && !PathOperations.ignoreFile(documentURI, this.dswSettings.getSettings().ignoreFiles)
+            && documentContents.length < this.dswSettings.getSettings().maxFileSizeKB * 1024) 
         {
 
             //find out what issues are in the current document
@@ -360,9 +361,15 @@ export class DevSkimWorker
                             DocumentUtilities.MatchIsInScope(langID, documentContents.substr(0, match.index), newlineIndex, rule.patterns[patternIndex].scopes) &&
                             DevSkimWorker.MatchesConditions(rule.conditions, documentContents, range, langID)) 
                         {
+                            let snippet = [];
+                            for (let i=Math.max(0, lineStart - 2); i<=lineEnd + 2; i++)
+                            {
+                                const snippetLine = DocumentUtilities.GetLine(documentContents, i);
+                                snippet.push(snippetLine.substr(0, 80));
+                            }
 
                             //add in any fixes
-                            let problem: DevSkimProblem = this.MakeProblem(rule, DevSkimWorker.MapRuleSeverity(rule.severity), range, match[0]);
+                            let problem: DevSkimProblem = this.MakeProblem(rule, DevSkimWorker.MapRuleSeverity(rule.severity), range, snippet.join('\n'));
                             problem.fixes = problem.fixes.concat(DevSkimWorker.MakeFixes(rule, replacementSource, range));
                             problem.fixes = problem.fixes.concat(this.dsSuppressions.createActions(rule.id, documentContents, match.index, lineStart, langID, ruleSeverity));
                             problem.filePath = documentURI;

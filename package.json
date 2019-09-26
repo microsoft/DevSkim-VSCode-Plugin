@@ -74,6 +74,11 @@
       "type": "object",
       "title": "DevSkim configuration",
       "properties": {
+        "devskim.maxFileSizeKB": {
+          "type": "number",
+          "default": 100,
+          "description": "To control the performance of DevSkim, this setting controls the maximum file size that it will analyze, in Kilobytes."
+        },
         "devskim.enableManualReviewRules": {
           "type": "boolean",
           "default": false,
@@ -92,7 +97,7 @@
         "devskim.suppressionDurationInDays": {
           "type": "number",
           "default": 30,
-          "description": "DevSkim allows for findings to be suppressed for a temporary period of time. The default is 30 days.  Set to 0 to disable temporary suppressions"
+          "description": "DevSkim allows for findings to be suppressed for a temporary period of time. The default is 30 days.  Set to 0 to disable temporary suppressions."
         },
         "devskim.suppressionCommentStyle": {
           "type": "string",
@@ -117,30 +122,25 @@
           "default": "https://github.com/Microsoft/DevSkim/blob/master/guidance/",
           "description": "Each finding has a guidance file that describes the issue and solutions in more detail.  By default, those files live on the DevSkim github repo however, with this setting, organizations can clone and customize that repo, and specify their own base URL for the guidance."
         },
-        "devskim.ignoreFilesList": {
+        "devskim.ignoreFiles": {
           "type": "array",
           "default": [
-            "out/*",
-            "bin/*",
-            "node_modules/*",
-            ".vscode/*",
-            "*.lock",
-            "*-lock",
-            "logs/*",
-            "*.log",
-            "*.git",
-            "*.sarif",
-            "NuGet/*",
-            "*.exe",
-            ".cache/*",
-            "tests/*",
-            "test/*",
-            "_tests_/*",
-            "_mocks_/*",
-            "*.test",
-            "*/rulesValidationLog.json"
+            "\\.(exe|dll|so|dylib|bin|so\\..*)$",
+            "\\.(png|jpg|jpeg|gif|psd|ico|mp3|mpeg|bmp)$",
+            "\\.(zip|tar|gz|rar|jar|gz|7z|bz|bz2|gzip|cab|war|xz|nupkg|gem|egg)$",
+            "\\.(sqlite3|db)$",
+            "(^|/)(out|bin)/",
+            "(^|/)(tests?|unittests?|__tests__|__mocks__)/",
+            "(^|/)(\\.git|git)/",
+            "\\.(git|git[^.\/])$",
+            "-lock\\.[^/]|\\.lock$",
+            "(^|/)(\\.vscode|\\.cache|logs)/",
+            "(^|/)(nuget|node_modules)/",
+            "\\.(log|sarif|test)$",
+            "\\.(py[cod])$",
+            "(^|/)__pycache__/"        
           ],
-          "description": "List of Files, File Extensions, and directories to ignore.  DevSkim will not run on any files that match one of these ignores.  To match any file of a give name, just list the file name. If there are multiple files and only one should be ignored, include at least the immediate folder path the file lives in. Whole directories can be ignored via <Dir Name>/* (use unix style paths), and all files of a specific extension can be ignored via *.<extension>"
+          "description": "Regular expressions to exclude files and folders from analysis.  All regular expressions are executed with the i (case insensitive) flag "
         },
         "devskim.ignoreRulesList": {
           "type": "array",
@@ -156,18 +156,7 @@
           "type": "boolean",
           "default": true,
           "description": "By default, when a source file is closed the findings remain in the 'Problems' window.  Setting this value to true will cause findings to be removed from 'Problems' when the document is closed.  Note, setting this to true will cause findings that are listed when invoking the 'Scan all files in workspace' command to automatically clear away after a couple of minutes"
-        },
-        "devskim.trace.server": {
-          "scope": "window",
-          "type": "string",
-          "enum": [
-            "off",
-            "messages",
-            "verbose"
-          ],
-          "default": "off",
-          "description": "Traces the communication between VS Code and the language server."
-        }
+        }      
       }
     }
   },
