@@ -6,7 +6,7 @@ export interface DevSkimSettings {
     enableLowSeverityRules: boolean;
     suppressionDurationInDays: number;
     manualReviewerName: string;
-    ignoreFilesList: string[];
+    ignoreFiles: string[];
     ignoreRulesList: string[];
     validateRulesFiles: boolean;
     guidanceBaseURL: string;
@@ -20,7 +20,7 @@ export class DevSkimSettingsObject implements DevSkimSettings {
     enableLowSeverityRules: boolean;
     enableManualReviewRules: boolean;
     guidanceBaseURL: string;
-    ignoreFilesList: string[];
+    ignoreFiles: string[];
     ignoreRulesList: string[];
     manualReviewerName: string;
     removeFindingsOnClose: boolean;

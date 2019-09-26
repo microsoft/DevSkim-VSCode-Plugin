@@ -301,7 +301,7 @@ export class DevSkimCLI
             {               
                 for(let curFile of files)
                 {						
-                    if(!PathOperations.ignoreFile(curFile,this.settings.ignoreFilesList))
+                    if(!PathOperations.ignoreFile(curFile,this.settings.ignoreFiles))
                     {
                         //first check if this file is part of this run, by checking if it is under the longest path
                         //within the directory collection

@@ -128,7 +128,7 @@ export interface IDevSkimSettings
 	 * List of Files, File Extensions, and directories to ignore. *-based wild cards can be used. 
 	 * Directories should be specified with forward slash (/) 
 	 */	
-	ignoreFilesList: string[];
+	ignoreFiles: string[];
 
 	/**
 	 * To Do - replace with run-only and exclude

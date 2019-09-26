@@ -47,8 +47,8 @@ export class DevSkimWorkerSettings
         settings.suppressionDurationInDays = (settings.suppressionDurationInDays !== undefined && settings.suppressionDurationInDays != null  && settings.suppressionDurationInDays > -1) ?
                                             settings.suppressionDurationInDays : defaults.suppressionDurationInDays;     
                                             
-        settings.ignoreFilesList = (settings.ignoreFilesList !== undefined && settings.ignoreFilesList != null && isArray(settings.ignoreFilesList)) ?
-                                            settings.ignoreFilesList : defaults.ignoreFilesList;  
+        settings.ignoreFiles = (settings.ignoreFiles !== undefined && settings.ignoreFiles != null && isArray(settings.ignoreFiles)) ?
+                                            settings.ignoreFiles : defaults.ignoreFiles;  
                                             
         settings.ignoreRulesList = (settings.ignoreRulesList !== undefined && settings.ignoreRulesList != null && isArray(settings.ignoreRulesList)) ?
                                             settings.ignoreRulesList : defaults.ignoreRulesList;      
@@ -112,7 +112,7 @@ export class DevSkimWorkerSettings
             enableBestPracticeRules: false,
             enableManualReviewRules: false,
             guidanceBaseURL: "https://github.com/Microsoft/DevSkim/blob/master/guidance/",
-            ignoreFilesList: [
+            ignoreFiles: [
                 "\\.(exe|dll|so|dylib|bin|so\\..*)$",
                 "\\.(png|jpg|jpeg|gif|psd|ico|mp3|mpeg|bmp)$",
                 "\\.(zip|tar|gz|rar|jar|gz|7z|bz|bz2|gzip|cab|war|xz|nupkg|gem|egg)$",

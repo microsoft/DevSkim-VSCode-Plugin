@@ -124,7 +124,7 @@ function getDevSkimConfiguration(section='devskim' ): DevSkimSettings {
 	settings.enableLowSeverityRules = vscode.workspace.getConfiguration(section).get('enableLowSeverityRules', false);
 	settings.enableManualReviewRules = vscode.workspace.getConfiguration(section).get('enableManualReviewRules', false);
 	settings.guidanceBaseURL = vscode.workspace.getConfiguration(section).get('guidanceBaseURL', "https://github.com/Microsoft/DevSkim/blob/master/guidance/");
-	settings.ignoreFilesList = vscode.workspace.getConfiguration(section).get('ignoreFilesList',
+	settings.ignoreFiles = vscode.workspace.getConfiguration(section).get('ignoreFiles',
 		[ "out/*", "bin/*", "node_modules/*", ".vscode/*", "yarn.lock", "logs/*", "*.log", "*.git" ]);
 	settings.ignoreRulesList = vscode.workspace.getConfiguration(section).get('ignoreRulesList', []);
 	settings.manualReviewerName = vscode.workspace.getConfiguration(section).get('manualReviewerName', '');

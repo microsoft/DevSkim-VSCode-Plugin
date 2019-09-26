@@ -100,8 +100,8 @@ export class DevSkimWorker
         //Before we do any processing, see if the file (or its directory) are in the ignore list.  If so
         //skip doing any analysis on the file
         if (this.analysisRules && this.analysisRules.length
-            && this.dswSettings && this.dswSettings.getSettings().ignoreFilesList
-            && !PathOperations.ignoreFile(documentURI, this.dswSettings.getSettings().ignoreFilesList)
+            && this.dswSettings && this.dswSettings.getSettings().ignoreFiles
+            && !PathOperations.ignoreFile(documentURI, this.dswSettings.getSettings().ignoreFiles)
             && documentContents.length < this.dswSettings.getSettings().maxFileSizeKB * 1024) 
         {
 

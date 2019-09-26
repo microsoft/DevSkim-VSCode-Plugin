@@ -20,7 +20,7 @@ export class DevSkimWorkerSettings {
                 "enableLowSeverityRules": false,
                 "enableManualReviewRules": true,
                 "guidanceBaseURL": "https://github.com/Microsoft/DevSkim/blob/master/guidance/",
-                "ignoreFilesList":
+                "ignoreFiles":
                     [
                         "out/*", "bin/*", "node_modules/*", ".vscode/*", "yarn.lock",
                         "logs/*", "*.log", "*.git", "rulesValidationLog.json",
