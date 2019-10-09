@@ -32,10 +32,12 @@ export class DevSkimWorkerSettings
         let defaults : IDevSkimSettings = DevSkimWorkerSettings.defaultSettings();
 
         //validating the incoming settings, and replace with defaults for fields that don't validate
-        settings.enableBestPracticeRules = (settings.enableBestPracticeRules !== undefined && settings.enableBestPracticeRules != null) ?
+        settings.enableBestPracticeRules = (settings.enableBestPracticeRules !== undefined && settings.enableBestPracticeRules != null
+                                        && (settings.enableBestPracticeRules === true || settings.enableBestPracticeRules === false)) ?
                                             settings.enableBestPracticeRules : defaults.enableBestPracticeRules;
 
-        settings.enableManualReviewRules = (settings.enableManualReviewRules !== undefined && settings.enableManualReviewRules != null) ?
+        settings.enableManualReviewRules = (settings.enableManualReviewRules !== undefined && settings.enableManualReviewRules != null
+                                        && (settings.enableManualReviewRules === true || settings.enableManualReviewRules === false)) ?
                                             settings.enableManualReviewRules : defaults.enableManualReviewRules;      
         
         settings.guidanceBaseURL = (settings.guidanceBaseURL !== undefined && settings.guidanceBaseURL != null && settings.guidanceBaseURL.length > 0) ?
@@ -56,10 +58,12 @@ export class DevSkimWorkerSettings
         settings.manualReviewerName = (settings.manualReviewerName !== undefined && settings.manualReviewerName != null && settings.manualReviewerName.length > 0) ?
                                             settings.manualReviewerName : defaults.manualReviewerName;   
                                             
-        settings.removeFindingsOnClose = (settings.removeFindingsOnClose !== undefined && settings.removeFindingsOnClose != null) ?
+        settings.removeFindingsOnClose = (settings.removeFindingsOnClose !== undefined && settings.removeFindingsOnClose != null
+                                    && (settings.removeFindingsOnClose === true || settings.removeFindingsOnClose === false)) ?
                                             settings.removeFindingsOnClose : defaults.removeFindingsOnClose ;     
                                             
-        settings.validateRulesFiles = (settings.validateRulesFiles !== undefined && settings.validateRulesFiles != null) ?
+        settings.validateRulesFiles = (settings.validateRulesFiles !== undefined && settings.validateRulesFiles != null
+                                    && (settings.validateRulesFiles === true || settings.validateRulesFiles === false)) ?
                                             settings.validateRulesFiles : defaults.validateRulesFiles ;   
                                             
         settings.debugLogging = (settings.debugLogging !== undefined && settings.debugLogging != null) ?
@@ -120,7 +124,7 @@ export class DevSkimWorkerSettings
                 "(^|/)(out|bin)/",
                 "(^|/)(tests?|unittests?|__tests__|__mocks__)/",
                 "(^|/)(\\.git|git)/",
-                "\\.(git|git[^.\/])$",
+                "\\.(git|git[^\.\/]*)$",
                 "-lock\\.[^/]|\\.lock$",
                 "(^|/)(\\.vscode|\\.cache|logs)/",
                 "(^|/)(nuget|node_modules)/",
