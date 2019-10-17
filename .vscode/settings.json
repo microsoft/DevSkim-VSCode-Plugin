@@ -3,7 +3,9 @@
 	"typescript.preferences.quoteStyle": "single",
 	"cSpell.words": [
 		"Icommands",
+		"analysisflag",
 		"cplusplus",
+		"deserialization",
 		"dylib",
 		"eval",
 		"nuget",
@@ -15,6 +17,7 @@
 		"subdir",
 		"subdirs",
 		"unittests",
+		"usersettings",
 		"visualbasic"
 	]
 }

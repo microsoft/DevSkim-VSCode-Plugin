@@ -34,6 +34,10 @@ export class ReloadRulesRequest {
 	public static type: RequestType<{},void,void,void> = new RequestType<{}, void, void, void>('devskim/validaterules')
 }
 
+export class SetAnalysisFlag {
+	public static type: RequestType<{},void,void,void> = new RequestType<{}, void, void, void>('devskim/analysisflag')
+}
+
 export function activate(context: vscode.ExtensionContext) {
 
 	try {
@@ -155,9 +159,11 @@ function applyTextEdits(uri: string, documentVersion: number, edits: TextEdit[])
 		//be able to trigger an action for a different document).  Also make sure versions match.  This also shouldn't happen
 		//as any changes to the document should refresh the code action, but since things are asynchronous this might be possible
 		if (textEditor && textEditor.document.uri.toString() === uri) {
+
 			if (textEditor.document.version !== documentVersion) {
 				vscode.window.showInformationMessage(`DevSkim fixes are outdated and can't be applied to the document.`);
 			}
+			client.sendRequest(SetAnalysisFlag.type, null);
 			//apply the edits
 			textEditor.edit(mutator => {
 				for (let edit of edits) {

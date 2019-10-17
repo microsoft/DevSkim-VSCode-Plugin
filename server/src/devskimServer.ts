@@ -30,6 +30,7 @@ export default class DevSkimServer
 {
 
     public static instance: DevSkimServer;
+    private analysisFlag : boolean = false;
 
     /**
      * Sets up the DevSkim Server - not called directly but rather through initialize
@@ -82,12 +83,15 @@ export default class DevSkimServer
         connection.onDidChangeConfiguration(this.onDidChangeConfiguration.bind(this));
         connection.onHover(this.onHover.bind(this));
         connection.onRequest(ReloadRulesRequest.type, this.onRequestReloadRulesRequest.bind(this));
+        connection.onRequest(SetAnalysisFlag.type, this.onRequestSetAnalysisFlag.bind(this));
+        
         connection.onRequest(ValidateDocsRequest.type, this.onRequestValidateDocsRequest.bind(this));
 
         // document handlers
         this.documents.onDidOpen(this.onDidOpen.bind(this));
         this.documents.onDidClose(this.onDidClose.bind(this));
         this.documents.onDidChangeContent(this.onDidChangeContent.bind(this));
+        this.documents.onDidSave(this.onDidSave.bind(this));
     }
 
     /**
@@ -102,6 +106,21 @@ export default class DevSkimServer
             codeActionProvider: true,
         };
     }
+
+    /**
+     * event handler for document opening event
+     * @param change change of state from the IDE
+     */
+    private onDidSave(change)
+    {
+        this.connection.console.log(`DevSkimServer: onDidChangeContent(${change.document.uri})`);
+        this.analysisFlag = false;
+        if(change && change.document && this.globalSettings.analyzeMode != "Analyze While Typing")
+        {
+            return this.validateTextDocument(change.document);
+        }
+        return;        
+    }    
 
     /**
      * event handler for document opening event
@@ -133,8 +152,9 @@ export default class DevSkimServer
     private onDidChangeContent(change): Promise<void>
     {
         this.connection.console.log(`DevSkimServer: onDidChangeContent(${change.document.uri})`);
-        if(change && change.document)
+        if(change && change.document && (this.globalSettings.analyzeMode == "Analyze While Typing" || this.analysisFlag == true))
         {
+            this.analysisFlag = false;
             return this.validateTextDocument(change.document);
         }
         return;
@@ -180,6 +200,11 @@ export default class DevSkimServer
     private onRequestReloadRulesRequest()
     {
         this.worker.refreshAnalysisRules();
+    }
+
+    private onRequestSetAnalysisFlag()
+    {
+        this.analysisFlag = true;
     }
 
     /**
@@ -337,7 +362,12 @@ export default class DevSkimServer
 
 export class ReloadRulesRequest
 {
-    public static type = new RequestType<{}, void, void, void>('devskim/validaterules')
+    public static type = new RequestType<{}, void, void, void>('devskim/validaterules');
+}
+
+export class SetAnalysisFlag
+{
+    public static type  = new RequestType<{}, void, void, void>('devskim/analysisflag');
 }
 
 interface ValidateDocsParams
