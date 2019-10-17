@@ -240,29 +240,7 @@ export class DevSkimCLI
                 break;
         }
     }
-
-    /**
-     * Produce a template of the DevSkim settings to make it easier to customize runs
-     * @todo do more than just output it to the command line, and finish fleshing out
-     * the settings object
-     */
-    private writeSettings()
-    {
-        let settings : IDevSkimSettings = DevSkimWorkerSettings.defaultSettings();
-
-
-        //remove settings irrelevant for the CLI
-        delete settings.suppressionDurationInDays;
-        delete settings.manualReviewerName;
-        delete settings.suppressionCommentStyle;
-        delete settings.suppressionCommentPlacement;
-        delete settings.removeFindingsOnClose;
-
-        let output : string = JSON.stringify(settings , null, 4);
-
-        console.log(output);
-    }
-    
+   
     /**
      * function invoked from command line. Right now a simplistic stub that simply lists the rules
      * @todo create HTML output with much better formatting/info, and optional validation
