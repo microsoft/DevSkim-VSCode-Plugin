@@ -18,7 +18,7 @@ import { DevskimSettingsWriter, OutputFormats, DevSkimResultsWriter } from "./ut
 import { gitHelper } from './utility_classes/git';
 import { TextResultWriter } from './utility_classes/output_writers/results/textWriter';
 import { SARIF21ResultWriter } from './utility_classes/output_writers/results/sarif21Writer';
-import { HTMLResultWriter } from './utility_classes/output_writers/results/HTMLWriter';
+import { HTMLResultWriter } from './utility_classes/output_writers/results/htmlWriter';
 import { CSVResultWriter } from './utility_classes/output_writers/results/csvWriter';
 import { JSONSettingsWriter } from './utility_classes/output_writers/settings/jsonWriter';
 
