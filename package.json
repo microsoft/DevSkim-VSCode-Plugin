@@ -156,16 +156,7 @@
           "type": "boolean",
           "default": true,
           "description": "By default, when a source file is closed the findings remain in the 'Problems' window.  Setting this value to true will cause findings to be removed from 'Problems' when the document is closed.  Note, setting this to true will cause findings that are listed when invoking the 'Scan all files in workspace' command to automatically clear away after a couple of minutes"
-        },
-        "devskim.analyzeMode": {
-          "type": "string",
-          "enum": [
-            "Analyze While Typing",
-            "Analyze on File Save"
-          ],
-          "default": "Analyze while Typing",
-          "description": "DevSkim can analyze files for problems at two points in time, while actively editing the document, and when the document is saved.  Editing is similar to Spell Check as it will catch issues as they are introduced, but on very large files, or less performant machines, may lag behind the typing. On Save will only analyze when the document has been saved."
-        }    
+        } 
       }
     }
   },

@@ -152,6 +152,8 @@ export default class DevSkimServer
     private onDidChangeContent(change): Promise<void>
     {
         this.connection.console.log(`DevSkimServer: onDidChangeContent(${change.document.uri})`);
+        //check to make sure the document has changed and that we should either analyze on change because of the settings
+        //or because we were told by the flag to do so anyway (once, hence why it is set to false first thing)
         if(change && change.document && (this.globalSettings.analyzeMode == "Analyze While Typing" || this.analysisFlag == true))
         {
             this.analysisFlag = false;
@@ -202,6 +204,10 @@ export default class DevSkimServer
         this.worker.refreshAnalysisRules();
     }
 
+    /**
+     * Mark a flag to tell us to analyze on file change EVEN if the settings say on save
+     * this is so code actions trigger re-evaluation and the IDE is decorated accordingly
+     */
     private onRequestSetAnalysisFlag()
     {
         this.analysisFlag = true;
