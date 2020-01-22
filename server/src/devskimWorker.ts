@@ -453,7 +453,7 @@ export class DevSkimWorker
                 if(condition.pattern != undefined && condition.pattern && condition.pattern.pattern != undefined &&
                     condition.pattern.pattern && condition.pattern.pattern.length > 0)
                 {
-                    if(DevSkimWorker.MatchesConditionPattern(condition, documentContents, findingRange, langID))
+                    if(!DevSkimWorker.MatchesConditionPattern(condition, documentContents, findingRange, langID))
                     {
                         return false;
                     }
@@ -516,8 +516,8 @@ export class DevSkimWorker
             let regionMatch = XRegExp.exec(condition.search_in, regionRegex);
             if (regionMatch && regionMatch.length > 2) 
             {
-                startPos = DocumentUtilities.GetDocumentPosition(documentContents, findingRange.start.line + regionMatch[1]);
-                endPos = DocumentUtilities.GetDocumentPosition(documentContents, findingRange.end.line + regionMatch[2] + 1);
+                startPos = DocumentUtilities.GetDocumentPosition(documentContents, findingRange.start.line + +regionMatch[1]);
+                endPos = DocumentUtilities.GetDocumentPosition(documentContents, findingRange.end.line + +regionMatch[2] + 1);
             }
         }
         let foundPattern = false;
